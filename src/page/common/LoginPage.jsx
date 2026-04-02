@@ -3,7 +3,7 @@ import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
 const LoginPage = () => {
-  const [loginType, setLoginType] = useState('admin');
+  const [loginType, setLoginType] = useState('company');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,9 +29,9 @@ const LoginPage = () => {
   };
 
   const tabs = [
-    { id: 'admin', label: 'Admin' },
-    { id: 'company', label: 'Company' },
-    { id: 'employee', label: 'Employee' },
+    // { id: 'admin', label: 'Admin' },
+    // { id: 'company', label: 'Company' },
+    // { id: 'employee', label: 'Employee' },
   ];
 
   return (
@@ -130,13 +130,17 @@ const LoginPage = () => {
                   </svg>
                   Signing in...
                 </>
-              ) : `Sign in as ${loginType === 'admin' ? 'Admin' : loginType === 'company' ? 'Company' : 'Employee'}`}
+              // ) : `Sign in as ${loginType === 'admin' ? 'Admin' : loginType === 'company' ? 'Company' : 'Employee'}`}
+              ) : `Sign in`}
+
             </button>
           </form>
         </div>
 
         <p className="text-center text-xs text-gray-400 mt-6">
-          &copy; {new Date().getFullYear()} ApexInnovs CRM. All rights reserved.
+          &copy; {new Date().getFullYear()} ApexInnovs CRM. All rights reserved.<br />
+          <span className="block">Powered by LenseTalk</span>
+          <span className="block">Developed by ApexInnovs</span>
         </p>
       </div>
     </div>
