@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Pencil, RefreshCw, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 import useFeedback from "../../hooks/useFeedback";
 // Helper to show relative time in words
 function timeAgo(date) {
@@ -18,9 +19,9 @@ function timeAgo(date) {
 
 import Table from '../../components/common/Table';
 import { Modal, ConfirmDialog } from '../../components/common/Modal';
+import { SkeletonLoader, SkeletonPresets } from '../../components/common/Skeleton';
 import PageHeader from '../../components/common/PageHeader';
 import Input from '../../components/common/Input';
-import Loader from '../../components/common/Loader';
 import {
   fetchPermissions,
   createPermission,
@@ -51,7 +52,6 @@ const Permissions = () => {
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [searchText, setSearchText] = useState('');
-  const [searchKey, setSearchKey] = useState('name');
   const [status, setStatus] = useState('');
 
   // Handler to update status and fetch permissions
@@ -127,13 +127,15 @@ const Permissions = () => {
     try {
       if (editData) {
         await updatePermission(editData._id, modalFields);
+        toast.success('Permission updated successfully!');
       } else {
         await createPermission(modalFields);
+        toast.success('Permission created successfully!');
       }
       setModalOpen(false);
       getPermissions();
     } catch (e) {
-      alert('Failed to save permission');
+      toast.error('Failed to save permission');
     } finally {
       setModalLoading(false);
     }
@@ -201,9 +203,14 @@ const Permissions = () => {
     }
   ];
 
-  const handleConfirmToggle = () => {
+  const handleConfirmToggle = async () => {
     if (rowToToggle) {
-      handleRowAction('status', rowToToggle);
+      try {
+        await handleRowAction('status', rowToToggle);
+        toast.success('Status updated successfully!');
+      } catch (error) {
+        toast.error('Failed to update status');
+      }
     }
     setConfirmModalOpen(false);
     setRowToToggle(null);
@@ -216,9 +223,16 @@ const Permissions = () => {
 
   const handleConfirmDelete = async () => {
     if (rowToDelete) {
-      setLoading(true);
-      await deletePermission(rowToDelete._id);
-      getPermissions();
+      try {
+        setLoading(true);
+        await deletePermission(rowToDelete._id);
+        await getPermissions();
+        toast.success('Permission deleted successfully!');
+      } catch (error) {
+        toast.error('Failed to delete permission');
+      } finally {
+        setLoading(false);
+      }
     }
     setDeleteConfirmOpen(false);
     setRowToDelete(null);
@@ -227,6 +241,12 @@ const Permissions = () => {
 
   return (
     <div className="px-2">
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
       {/* Search bar and Add Permission button */}
       <div style={{
         background: 'linear-gradient(160deg, #ffffff 0%, #f5f7f4 100%)',
@@ -243,31 +263,6 @@ const Permissions = () => {
         position: 'relative',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-          <select
-            value={searchKey}
-            onChange={e => setSearchKey(e.target.value)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '7px',
-              padding: '9px 14px',
-              background: 'linear-gradient(175deg, #ffffff 0%, #eff1ee 100%)',
-              borderRadius: '10px',
-              border: '1px solid rgba(180,190,175,0.6)',
-              cursor: 'pointer',
-              fontFamily: 'inherit',
-              fontSize: '13.5px',
-              fontWeight: '500',
-              color: '#374140',
-              outline: 'none',
-              boxShadow: '0 1px 0 rgba(255,255,255,0.9) inset, 0 -1px 0 rgba(0,0,0,0.06) inset, 0 2px 4px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05)',
-            }}
-          >
-            {tableHeaders.filter(h => h.searchable).map((h) => (
-              <option key={h.key} value={h.key}>{h.label}</option>
-            ))}
-          </select>
-
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
             <svg
               style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9aaa98', pointerEvents: 'none' }}
@@ -303,6 +298,29 @@ const Permissions = () => {
               }}
             />
           </div>
+
+          <select
+            value={status}
+            onChange={e => handleStatusChange(e.target.value)}
+            style={{
+              padding: '9px 14px',
+              background: 'linear-gradient(175deg, #ffffff 0%, #eff1ee 100%)',
+              borderRadius: '10px',
+              border: '1px solid rgba(180,190,175,0.6)',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              fontSize: '13.5px',
+              fontWeight: '500',
+              color: '#374140',
+              outline: 'none',
+              boxShadow: '0 1px 0 rgba(255,255,255,0.9) inset, 0 -1px 0 rgba(0,0,0,0.06) inset, 0 2px 4px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.05)',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <option value="">All Status</option>
+            <option value="1">Active</option>
+            <option value="0">Inactive</option>
+          </select>
         </div>
 
         <button
@@ -349,73 +367,140 @@ const Permissions = () => {
         </button>
       </div>
 
-      <Table
-        headers={tableHeaders}
-        values={values}
-        total={total}
-        page={page}
-        pageSize={pageSize}
-        loading={loading}
-        onPageChange={setPage}
-        onPageSizeChange={size => { setPageSize(size); setPage(1); }}
-        actions={actions}
-        onRowAction={handleRowAction}
-      />
+      {loading ? (
+        <SkeletonLoader
+          rows={pageSize}
+          columns={5}
+          columnWidths={['40px', '1fr', '2fr', '150px', '120px']}
+          isMultiLine={[false, false, true, false, false]}
+        />
+      ) : (
+        <Table
+          headers={tableHeaders}
+          values={values}
+          total={total}
+          page={page}
+          pageSize={pageSize}
+          loading={loading}
+          onPageChange={setPage}
+          onPageSizeChange={size => { setPageSize(size); setPage(1); }}
+          actions={actions}
+          onRowAction={handleRowAction}
+        />
+      )}
 
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
       <Modal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         title={editData ? 'Edit Permission' : 'Add New Permission'}
+        icon={
+          <div className="w-9 h-9 rounded-lg bg-linear-to-br from-lime-100 to-lime-50 flex items-center justify-center shrink-0 border border-lime-200">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-lime-700">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              <path d="M9 12l2 2 4-4" />
+            </svg>
+          </div>
+        }
         footer={
-          !modalLoading && (
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-4 focus:ring-gray-100 transition-all cursor-pointer"
-                onClick={() => setModalOpen(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                form="permission-form"
-                className="px-5 py-2.5 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 focus:ring-4 focus:ring-emerald-300 transition-all shadow-sm cursor-pointer"
-              >
-                {editData ? 'Save Changes' : 'Create Permission'}
-              </button>
-            </div>
-          )
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              disabled={modalLoading}
+              className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:border-gray-400 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => { hapticTap(); setModalOpen(false); }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="permission-form"
+              disabled={modalLoading}
+              style={{
+                padding: '6px 16px',
+                fontSize: '13px',
+                fontWeight: '600',
+                color: '#1a3a00',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: modalLoading ? 'not-allowed' : 'pointer',
+                background: 'linear-gradient(160deg, #b5f053 0%, #84cc16 40%, #65a30d 100%)',
+                boxShadow: '0 2px 6px rgba(101,163,13,0.2)',
+                transition: 'all 0.25s ease',
+                opacity: modalLoading ? 0.7 : 1,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                justifyContent: 'center',
+              }}
+              onClick={() => !modalLoading && hapticTap()}
+              onMouseEnter={e => {
+                if (!modalLoading) {
+                  e.currentTarget.style.boxShadow = '0 4px 12px rgba(101,163,13,0.3)';
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                }
+              }}
+              onMouseLeave={e => {
+                if (!modalLoading) {
+                  e.currentTarget.style.boxShadow = '0 2px 6px rgba(101,163,13,0.2)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }
+              }}
+            >
+              {modalLoading && (
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="animate-spin"
+                  style={{
+                    animation: 'spin 1s linear infinite',
+                  }}
+                >
+                  <circle cx="12" cy="12" r="10" opacity="0.3" />
+                  <path d="M12 2a10 10 0 0 1 10 10" opacity="1" />
+                </svg>
+              )}
+              <span>{modalLoading ? (editData ? 'Saving...' : 'Creating...') : (editData ? 'Save Changes' : 'Create Permission')}</span>
+            </button>
+          </div>
         }
       >
-        {modalLoading ? (
-          <div className="flex justify-center items-center py-12">
-            <Loader />
-          </div>
-        ) : (
-          <form id="permission-form" onSubmit={handleModalSubmit} className="space-y-2">
-            <Input
-              label="Permission Name"
-              name="name"
-              placeholder="e.g. read_users"
-              value={modalFields.name || ''}
-              onChange={handleFieldChange}
-              onBlur={() => setTouched((prev) => ({ ...prev, name: true }))}
-              error={touched.name && formError.name ? formError.name : ''}
-              required
-            />
-            <Input
-              label="Meta Description"
-              name="meta"
-              type="textarea"
-              placeholder="Describe what this permission allows..."
-              value={modalFields.meta || ''}
-              onChange={handleFieldChange}
-              onBlur={() => setTouched((prev) => ({ ...prev, meta: true }))}
-              error={touched.meta && formError.meta ? formError.meta : ''}
-              required
-            />
-          </form>
-        )}
+        <form id="permission-form" onSubmit={handleModalSubmit} className="space-y-3">
+          <Input
+            label="Permission Name"
+            name="name"
+            placeholder="e.g. read_users"
+            value={modalFields.name || ''}
+            onChange={handleFieldChange}
+            onBlur={() => setTouched((prev) => ({ ...prev, name: true }))}
+            error={touched.name && formError.name ? formError.name : ''}
+            disabled={modalLoading}
+            required
+          />
+          <Input
+            label="Meta Description"
+            name="meta"
+            type="textarea"
+            placeholder="Describe it !"
+            value={modalFields.meta || ''}
+            onChange={handleFieldChange}
+            onBlur={() => setTouched((prev) => ({ ...prev, meta: true }))}
+            error={touched.meta && formError.meta ? formError.meta : ''}
+            disabled={modalLoading}
+            required
+          />
+        </form>
       </Modal>
 
       <ConfirmDialog

@@ -60,26 +60,28 @@ const Input = forwardRef(
       width: "100%",
       padding: type === "price" ? "10px 10px 10px 30px" : "10px 12px",
       borderRadius: "8px",
-      border: isError ? "1px solid #ef4444" : "1px solid #d1d5db",
+      border: isError ? "2px solid #ef4444" : "2px solid #e5e7eb",
       outline: "none",
       fontSize: "14px",
       color: "#111827",
       backgroundColor: disabled ? "#f3f4f6" : "#ffffff",
-      transition: "border-color 0.15s, box-shadow 0.15s",
+      transition: "border-color 0.2s, box-shadow 0.2s, background-color 0.2s",
       fontFamily: "inherit",
+      fontWeight: 500,
     };
 
     const focusStyle = isError
-      ? { boxShadow: "0 0 0 3px rgba(239, 68, 68, 0.1)" }
-      : { borderColor: "#059669", boxShadow: "0 0 0 3px rgba(5, 150, 105, 0.1)" };
+      ? { borderColor: "#ef4444", boxShadow: "0 0 0 4px rgba(239, 68, 68, 0.15), inset 0 0 0 1px rgba(239, 68, 68, 0.1)" }
+      : { borderColor: "#84cc16", boxShadow: "0 0 0 4px rgba(132, 204, 22, 0.15), inset 0 0 0 1px rgba(132, 204, 22, 0.1)" };
 
     const labelStyle = {
       display: "block",
       marginBottom: "6px",
-      fontSize: "14px",
-      fontWeight: 500,
-      color: isError ? "#ef4444" : "#374151",
+      fontSize: "13px",
+      fontWeight: 600,
+      color: isError ? "#ef4444" : "#1f2937",
       transition: "color 0.15s",
+      letterSpacing: "0.35px",
     };
 
     // --- Select Component logic ---
@@ -387,8 +389,8 @@ const Input = forwardRef(
         <div style={{ position: "relative" }}>
           <style>{`
             .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
-              border-color: ${isError ? '#ef4444' : '#059669'} !important;
-              box-shadow: ${isError ? '0 0 0 3px rgba(239, 68, 68, 0.1)' : '0 0 0 3px rgba(5, 150, 105, 0.1)'} !important;
+              border-color: ${isError ? '#ef4444' : '#84cc16'} !important;
+              box-shadow: ${isError ? '0 0 0 4px rgba(239, 68, 68, 0.15), inset 0 0 0 1px rgba(239, 68, 68, 0.1)' : '0 0 0 4px rgba(132, 204, 22, 0.15), inset 0 0 0 1px rgba(132, 204, 22, 0.1)'} !important;
             }
           `}</style>
           {renderField()}

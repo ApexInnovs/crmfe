@@ -1,5 +1,6 @@
 import React, { Suspense } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { Toaster } from "react-hot-toast";
 import MainLayout from "./layout/mainLayout";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import NotFoundPage from "./page/common/NotFoundPage";
@@ -14,52 +15,97 @@ function App() {
   if (loading) return <Loader />;
 
   return (
-    <Router>
-      <Suspense fallback={<Loader />}>
-        <Routes>
-          {/* Public routes */}
-          <Route path="/login" element={
-            isAuthenticated
-              ? <Navigate to={`/${userType}`} replace />
-              : <LoginPage />
-          } />
+    <>
+      <Toaster
+        position="top-right"
+        reverseOrder={false}
+        gutter={8}
+        toastOptions={{
+          duration: 4000,
+          style: {
+            background: '#fff',
+            color: '#1f2937',
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: '#84cc16',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
+      {/* SVG filter definitions for modal grain effect */}
+      <svg style={{ position: 'absolute', width: '0', height: '0' }} aria-hidden="true">
+        <defs>
+          <filter id="modal-grain" x="0%" y="0%" width="100%" height="100%">
+            <feTurbulence
+              type="fractalNoise"
+              baseFrequency="0.70"
+              numOctaves="4"
+              stitchTiles="stitch"
+              result="turbulence"
+            />
+            <feColorMatrix type="saturate" values="0" result="gray" />
+            <feBlend mode="overlay" in="gray" in2="SourceGraphic" />
+          </filter>
+        </defs>
+      </svg>
 
-          {/* Public campaign landing page */}
-          <Route path="/campaign/:campaignId" element={<PublicCampaignPage />} />
+      <Router>
+        <Suspense fallback={<Loader />}>
+          <Routes>
+            {/* Public routes */}
+            <Route path="/login" element={
+              isAuthenticated
+                ? <Navigate to={`/${userType}`} replace />
+                : <LoginPage />
+            } />
 
-          {/* Root redirect */}
-          <Route path="/" element={
-            isAuthenticated
-              ? <Navigate to={`/${userType}`} replace />
-              : <Navigate to="/login" replace />
-          } />
+            {/* Public campaign landing page */}
+            <Route path="/campaign/:campaignId" element={<PublicCampaignPage />} />
 
-          {/* Admin route - single page with tabs */}
-          <Route path="/admin" element={
-            <ProtectedRoute allowedUserTypes={['admin']}>
-              <MainLayout />
-            </ProtectedRoute>
-          } />
+            {/* Root redirect */}
+            <Route path="/" element={
+              isAuthenticated
+                ? <Navigate to={`/${userType}`} replace />
+                : <Navigate to="/login" replace />
+            } />
 
-          {/* Company route - single page with tabs */}
-          <Route path="/company" element={
-            <ProtectedRoute allowedUserTypes={['company']}>
-              <MainLayout />
-            </ProtectedRoute>
-          } />
+            {/* Admin route - single page with tabs */}
+            <Route path="/admin" element={
+              <ProtectedRoute allowedUserTypes={['admin']}>
+                <MainLayout />
+              </ProtectedRoute>
+            } />
 
-          {/* Employee route - single page with tabs */}
-          <Route path="/employee" element={
-            <ProtectedRoute allowedUserTypes={['employee']}>
-              <MainLayout />
-            </ProtectedRoute>
-          } />
+            {/* Company route - single page with tabs */}
+            <Route path="/company" element={
+              <ProtectedRoute allowedUserTypes={['company']}>
+                <MainLayout />
+              </ProtectedRoute>
+            } />
 
-          {/* Catch-all */}
-          <Route path="*" element={<NotFoundPage />} />
-        </Routes>
-      </Suspense>
-    </Router>
+            {/* Employee route - single page with tabs */}
+            <Route path="/employee" element={
+              <ProtectedRoute allowedUserTypes={['employee']}>
+                <MainLayout />
+              </ProtectedRoute>
+            } />
+
+            {/* Catch-all */}
+            <Route path="*" element={<NotFoundPage />} />
+          </Routes>
+        </Suspense>
+      </Router>
+    </>
   );
 }
 
