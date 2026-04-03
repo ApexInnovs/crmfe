@@ -118,6 +118,7 @@ const CompanyEmployees = () => {
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [editData, setEditData] = useState(null);
   const [rowToToggle, setRowToToggle] = useState(null);
+  const [limitModalOpen, setLimitModalOpen] = useState(false);
 
   const initialFields = { name: '', email: '', phone: '', role: '', password: '', confirmPassword: '' };
   const [modalFields, setModalFields] = useState(initialFields);
@@ -182,6 +183,14 @@ const CompanyEmployees = () => {
   };
 
   const handleAdd = () => {
+    if (loading) {
+      alert('Please wait, employee data is still loading.');
+      return;
+    }
+    if (values.length >= 2) {
+      setLimitModalOpen(true);
+      return;
+    }
     setEditData(null);
     setModalFields(initialFields);
     loadSelectData();
@@ -299,7 +308,7 @@ const CompanyEmployees = () => {
     <div className="p-2">
       <PageHeader
         title="Employees"
-        actions={<AddButton onAdd={handleAdd} addLabel="Add Employee" />}
+        actions={<AddButton onAdd={handleAdd} addLabel="Add Employee" disabled={loading} />}
         searchKeys={["name", "email"]}
         searchKey={searchKey}
         searchText={searchText}
@@ -429,6 +438,29 @@ const CompanyEmployees = () => {
             </div>
           </form>
         )}
+      </Modal>
+
+      {/* Employee Limit Modal */}
+      <Modal
+        isOpen={limitModalOpen}
+        onClose={() => setLimitModalOpen(false)}
+        title="Employee Limit Reached"
+        footer={
+          <div className="flex justify-end">
+            <button
+              type="button"
+              className="px-5 py-2.5 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-all shadow-sm"
+              onClick={() => setLimitModalOpen(false)}
+            >
+              OK
+            </button>
+          </div>
+        }
+      >
+        <div className="py-2 text-center text-gray-700">
+          You have reached the employee limit for your company.<br />
+          Please buy more credits and contact the developer to add more employees.
+        </div>
       </Modal>
 
       <ConfirmDialog
