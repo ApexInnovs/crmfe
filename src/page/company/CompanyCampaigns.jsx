@@ -2,8 +2,8 @@ import React, { useEffect, useState, useRef } from 'react';
 import Table from '../../components/common/Table';
 import Input from '../../components/common/Input';
 import { Modal, ConfirmDialog } from '../../components/common/Modal';
-import PageHeader from '../../components/common/PageHeader';
 import { useAuth } from '../../context/AuthContext';
+import useFeedback from '../../hooks/useFeedback';
 import {
   createCampaign,
   updateCampaign,
@@ -12,7 +12,6 @@ import {
 } from '../../api/campigneAndLeadApi';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { AddButton } from '../../components/common/Table';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -614,6 +613,8 @@ function CampaignUrlModal({ isOpen, onClose, campaign }) {
 
 const CompanyCampaigns = () => {
   const { user } = useAuth();
+  const { fire } = useFeedback();
+  const hapticTap = () => fire({ haptic: [{ duration: 30 }, { delay: 60, duration: 40, intensity: 1 }], sound: true });
   const [values, setValues] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -749,27 +750,6 @@ const CompanyCampaigns = () => {
         </span>
       ),
     },
-    {
-      key: '_id', label: 'Landing URL',
-      render: (_, row) => {
-        const isStarted = row.status === 2;
-        return (
-          <button
-            type="button"
-            title={isStarted ? 'View / Copy campaign URL' : 'URL available only when campaign is Started'}
-            onClick={isStarted ? () => { setUrlCampaign(row); setUrlModalOpen(true); } : undefined}
-            disabled={!isStarted}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-lg transition-colors border
-              ${isStarted
-                ? 'text-blue-600 bg-blue-50 border-blue-200 hover:bg-blue-100 cursor-pointer'
-                : 'text-gray-400 bg-gray-100 border-gray-200 cursor-not-allowed'}`}
-          >
-            {LinkIcon}
-            Get URL
-          </button>
-        );
-      },
-    },
     { key: 'createdAt', label: 'Created', format: 'date' },
   ];
 
@@ -827,79 +807,161 @@ const CompanyCampaigns = () => {
   ];
 
 
-  // ─── Activity Timeline Panel ─────────────────────────────────────────────
-  const activityTimelineData = [
-    { type: 'created', message: 'Campaign "Spring Sale" created', time: '2026-03-28 10:12' },
-    { type: 'import', message: '120 leads imported to "Spring Sale"', time: '2026-03-28 10:15' },
-    { type: 'status', message: 'Campaign "Spring Sale" marked as Active', time: '2026-03-28 10:16' },
-    { type: 'export', message: 'Leads exported from "Spring Sale"', time: '2026-03-28 10:20' },
-    { type: 'edit', message: 'Campaign "Q2 Drive" edited', time: '2026-03-27 17:02' },
-  ];
 
-  const activityIcon = (type) => {
-    switch (type) {
-      case 'created': return <span className="text-green-600">●</span>;
-      case 'import': return <span className="text-blue-600">⬆</span>;
-      case 'export': return <span className="text-purple-600">⬇</span>;
-      case 'edit': return <span className="text-yellow-600">✎</span>;
-      case 'status': return <span className="text-emerald-600">★</span>;
-      default: return <span className="text-gray-400">●</span>;
-    }
-  };
 
   return (
-    <div className="p-2">
-      <PageHeader
-        title="Campaigns"
-        actions={
-          <div className="flex items-center gap-2">
-            {/* Import Leads button styled like AddButton but violet */}
-            <button
-              style={{
-                display: 'inline-flex', alignItems: 'center', gap: '7px', padding: '10px 22px', borderRadius: '11px', cursor: 'pointer', fontFamily: 'inherit', fontSize: '13px', fontWeight: 600, color: '#3b0764', letterSpacing: '0.01em', whiteSpace: 'nowrap', border: 'none', background: 'linear-gradient(160deg, #e9d5ff 0%, #a78bfa 40%, #7c3aed 100%)', borderTop: '1px solid rgba(255,255,255,0.45)', boxShadow: '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 4px 0 #7c3aed, 0 5px 6px rgba(124,58,237,0.25), 0 10px 20px rgba(168,139,250,0.15)', transition: 'all 0.15s ease', }}
-              onClick={() => setImportModalOpen(true)}
-              onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.4) inset, 0 5px 0 #7c3aed, 0 7px 10px rgba(124,58,237,0.30), 0 14px 24px rgba(168,139,250,0.18)'; }}
-              onMouseLeave={e => { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 4px 0 #7c3aed, 0 5px 6px rgba(124,58,237,0.25), 0 10px 20px rgba(168,139,250,0.15)'; }}
-              onMouseDown={e => { e.currentTarget.style.transform = 'translateY(3px)'; e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.12) inset, 0 1px 0 rgba(255,255,255,0.25) inset, 0 1px 0 #7c3aed'; }}
-              onMouseUp={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.4) inset, 0 5px 0 #7c3aed, 0 7px 10px rgba(124,58,237,0.30)'; }}
-            >
-              <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-                <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1m-4-8-4-4m0 0L8 8m4-4v12" />
-              </svg>
-              Import Leads
-            </button>
-            <AddButton onAdd={() => {
+    <div className="px-2">
+      {/* Header with search and buttons */}
+      <div style={{
+        background: 'linear-gradient(160deg, #ffffff 0%, #f5f7f4 100%)',
+        borderRadius: '16px',
+        padding: '14px 18px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '12px',
+        flexWrap: 'wrap',
+        marginBottom: '16px',
+        border: '1px solid rgba(200,210,195,0.7)',
+        boxShadow: '0 1px 0 0 rgba(255,255,255,0.9) inset, 0 -1px 0 0 rgba(0,0,0,0.06) inset, 0 4px 6px -2px rgba(0,0,0,0.05), 0 12px 28px -6px rgba(0,0,0,0.10), 0 1px 2px rgba(0,0,0,0.08)',
+      }}>
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <svg
+            style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9aaa98', pointerEvents: 'none' }}
+            width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+          >
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Search..."
+            value={searchText}
+            onChange={e => setSearchText(e.target.value)}
+            style={{
+              padding: '9px 14px 9px 36px',
+              background: 'linear-gradient(175deg, #f4f6f3 0%, #ffffff 100%)',
+              borderRadius: '10px',
+              border: '1px solid rgba(180,190,175,0.5)',
+              fontFamily: 'inherit',
+              fontSize: '13.5px',
+              color: '#374140',
+              outline: 'none',
+              width: '260px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.06) inset, 0 1px 0 rgba(255,255,255,0.8)',
+              transition: 'all 0.2s ease',
+            }}
+            onFocus={e => {
+              e.target.style.borderColor = 'rgba(132,204,22,0.5)';
+              e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.04) inset, 0 0 0 3px rgba(132,204,22,0.12), 0 1px 0 rgba(255,255,255,0.8)';
+            }}
+            onBlur={e => {
+              e.target.style.borderColor = 'rgba(180,190,175,0.5)';
+              e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.06) inset, 0 1px 0 rgba(255,255,255,0.8)';
+            }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <button
+            onClick={() => { hapticTap(); setImportModalOpen(true); }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 22px',
+              borderRadius: '11px',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              fontSize: '13.5px',
+              fontWeight: '600',
+              color: '#831843',
+              letterSpacing: '0.01em',
+              whiteSpace: 'nowrap',
+              position: 'relative',
+              border: 'none',
+              background: 'linear-gradient(160deg, #fbcfe8 0%, #fbcfe8 40%, #fb7185 100%)',
+              borderTop: '1px solid rgba(255,255,255,0.45)',
+              borderBottom: '1px solid rgba(0,0,0,0.15)',
+              boxShadow: '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 4px 0 #db2777, 0 5px 6px rgba(219,39,119,0.35), 0 10px 20px rgba(251,113,133,0.20)',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 5px 0 #db2777, 0 7px 10px rgba(219,39,119,0.40), 0 14px 24px rgba(251,113,133,0.22)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 4px 0 #db2777, 0 5px 6px rgba(219,39,119,0.35), 0 10px 20px rgba(251,113,133,0.20)';
+            }}
+            onMouseDown={e => {
+              e.currentTarget.style.transform = 'translateY(3px)';
+              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.12) inset, 0 1px 0 rgba(255,255,255,0.25) inset, 0 1px 0 #db2777, 0 2px 4px rgba(219,39,119,0.25)';
+            }}
+            onMouseUp={e => {
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 5px 0 #db2777, 0 7px 10px rgba(219,39,119,0.40), 0 14px 24px rgba(251,113,133,0.22)';
+            }}
+          >
+            Import Leads
+          </button>
+          <button
+            onClick={() => {
+              hapticTap();
               setEditData(null);
               setModalFields(initialFields);
               setNewField(emptyField);
               setModalOpen(true);
-            }} addLabel={" New Campaign"} />
-          </div>
-        }
-      />
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 22px',
+              borderRadius: '11px',
+              cursor: 'pointer',
+              fontFamily: 'inherit',
+              fontSize: '13.5px',
+              fontWeight: '600',
+              color: '#1a3a00',
+              letterSpacing: '0.01em',
+              whiteSpace: 'nowrap',
+              position: 'relative',
+              border: 'none',
+              background: 'linear-gradient(160deg, #b5f053 0%, #84cc16 40%, #65a30d 100%)',
+              borderTop: '1px solid rgba(255,255,255,0.45)',
+              borderBottom: '1px solid rgba(0,0,0,0.15)',
+              boxShadow: '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 4px 0 #4d7c0f, 0 5px 6px rgba(74,120,8,0.35), 0 10px 20px rgba(101,163,13,0.20)',
+              transition: 'all 0.15s ease',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 5px 0 #4d7c0f, 0 7px 10px rgba(74,120,8,0.40), 0 14px 24px rgba(101,163,13,0.22)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 4px 0 #4d7c0f, 0 5px 6px rgba(74,120,8,0.35), 0 10px 20px rgba(101,163,13,0.20)';
+            }}
+            onMouseDown={e => {
+              e.currentTarget.style.transform = 'translateY(3px)';
+              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.12) inset, 0 1px 0 rgba(255,255,255,0.25) inset, 0 1px 0 #4d7c0f, 0 2px 4px rgba(74,120,8,0.25)';
+            }}
+            onMouseUp={e => {
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 5px 0 #4d7c0f, 0 7px 10px rgba(74,120,8,0.40), 0 14px 24px rgba(101,163,13,0.22)';
+            }}
+          >
+            New Campaign
+          </button>
+        </div>
+      </div>
 
       <Table
         headers={tableHeaders} values={values} total={total} page={page} pageSize={pageSize}
-        searchKeys={['title']} searchKey={searchKey} onSearchKeyChange={setSearchKey}
-        searchText={searchText} onSearchTextChange={setSearchText}
         loading={loading} onPageChange={setPage}
         onPageSizeChange={size => { setPageSize(size); setPage(1); }}
         actions={actions}
       />
 
-      {/* ── Activity Timeline Panel ── */}
-      <div className="mt-8 mb-4 p-5 bg-white border border-gray-200 rounded-2xl shadow-sm">
-        <h3 className="text-base font-semibold text-gray-700 mb-3">Activity Timeline</h3>
-        <ul className="divide-y divide-gray-100">
-          {activityTimelineData.map((a, i) => (
-            <li key={i} className="flex items-center gap-3 py-2">
-              <span className="text-lg">{activityIcon(a.type)}</span>
-              <span className="flex-1 text-sm text-gray-700">{a.message}</span>
-              <span className="text-xs text-gray-400 font-mono">{a.time}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
 
       {/* ── Add/Edit Campaign Modal ── */}
       <Modal
