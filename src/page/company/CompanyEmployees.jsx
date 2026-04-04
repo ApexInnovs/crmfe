@@ -306,16 +306,7 @@ const CompanyEmployees = () => {
 
   return (
     <div className="p-2">
-      <PageHeader
-        title="Employees"
-        actions={<AddButton onAdd={handleAdd} addLabel="Add Employee" disabled={loading} />}
-        searchKeys={["name", "email"]}
-        searchKey={searchKey}
-        searchText={searchText}
-        onSearchKeyChange={setSearchKey}
-        onSearchTextChange={setSearchText}
-      />
-
+      
       <Table
         headers={tableHeaders}
         values={values}
@@ -334,6 +325,9 @@ const CompanyEmployees = () => {
           setPage(1);
         }}
         actions={actions}
+        onAdd={handleAdd}
+        addLabel="Add Employee"
+        // The Add button will now appear in the table toolbar next to the search bar
       />
 
       {/* Add/Edit Modal */}
@@ -354,7 +348,8 @@ const CompanyEmployees = () => {
               <button
                 type="submit"
                 form="employee-form"
-                className="px-5 py-2.5 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-all shadow-sm"
+                className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all shadow-sm ${modalFields.password !== modalFields.confirmPassword ? 'bg-gray-300 text-gray-400 cursor-not-allowed' : 'text-white bg-emerald-600 hover:bg-emerald-700'}`}
+                disabled={modalFields.password !== modalFields.confirmPassword}
               >
                 {editData ? "Save Changes" : "Add Employee"}
               </button>
@@ -375,47 +370,50 @@ const CompanyEmployees = () => {
             }}
             className="space-y-4"
           >
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Full Name"
-                name="name"
-                placeholder="John Doe"
-                value={modalFields.name}
-                onChange={f("name")}
-                required
-              />
-              <Input
-                label="Email"
-                name="email"
-                type="email"
-                placeholder="john@example.com"
-                value={modalFields.email}
-                onChange={f("email")}
-                required
-              />
-              <Input
-                label="Phone"
-                name="phone"
-                placeholder="+1 555 000 0000"
-                value={modalFields.phone}
-                onChange={f("phone")}
-              />
-              <div>
-                <label className="block text-sm font-medium mb-2">Role</label>
-                <select
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div className="py-0.1">
+                <Input
+                  label="Full Name"
+                  name="name"
+                  placeholder="John Doe"
+                  value={modalFields.name}
+                  onChange={f("name")}
+                  required
+                />
+              </div>
+              <div className="py-0.1">
+                <Input
+                  label="Email"
+                  name="email"
+                  type="email"
+                  placeholder="john@example.com"
+                  value={modalFields.email}
+                  onChange={f("email")}
+                  required
+                />
+              </div>
+              <div className="py-0.1">
+                <Input
+                  label="Phone"
+                  name="phone"
+                  placeholder="+1 555 000 0000"
+                  value={modalFields.phone}
+                  onChange={f("phone")}
+                />
+              </div>
+              <div className="py-0.1">
+                <Input
+                  label="Role"
                   name="role"
+                  type="select"
                   value={modalFields.role}
                   onChange={f("role")}
-                  className="w-full p-2 border rounded"
+                  options={roles.map((role) => ({ value: role._id, label: role.name }))}
+                  placeholder="-- Select Role --"
                   required
-                >
-                  <option value="">-- Select Role --</option>
-                  {roles.map((role) => (
-                    <option key={role._id} value={role._id}>{role.name}</option>
-                  ))}
-                </select>
+                />
               </div>
-              <>
+              <div className="py-0.1">
                 <Input
                   label="Password"
                   name="password"
@@ -425,6 +423,8 @@ const CompanyEmployees = () => {
                   onChange={f("password")}
                   required={!editData}
                 />
+              </div>
+              <div className="py-0.1">
                 <Input
                   label="Confirm Password"
                   name="confirmPassword"
@@ -434,7 +434,7 @@ const CompanyEmployees = () => {
                   onChange={f("confirmPassword")}
                   required={!editData}
                 />
-              </>
+              </div>
             </div>
           </form>
         )}

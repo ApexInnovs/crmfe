@@ -36,6 +36,14 @@ const ConvertedClientsPage = () => {
   const [campaigns, setCampaigns] = useState([]);
   const [leadSearch, setLeadSearch] = useState('');
   const [leadCampaign, setLeadCampaign] = useState('');
+  // New state for main campaign filter
+  const [selectedCampaign, setSelectedCampaign] = useState('');
+
+  // Campaign filter options for table header
+  const campaignFilterOptions = [
+    { value: '', label: 'All' },
+    ...campaigns.map(c => ({ value: c._id, label: c.title }))
+  ];
 
   const [modalOpen, setModalOpen] = useState(false);
   const [modalLoading, setModalLoading] = useState(false);
@@ -64,6 +72,7 @@ const ConvertedClientsPage = () => {
       const params = { page, limit: pageSize, company: user._id };
       if (status !== '') params.status = status;
       if (searchText) params.search = searchText;
+      if (selectedCampaign) params.campaign = selectedCampaign;
       const data = await getClients(params);
       const items = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
       setValues(items);
@@ -113,7 +122,7 @@ const ConvertedClientsPage = () => {
     setLeads(filtered);
   }, [leadSearch, leadCampaign, allLeads]);
 
-  useEffect(() => { load(); }, [page, pageSize, status, searchText]);
+  useEffect(() => { load(); }, [page, pageSize, status, searchText, selectedCampaign]);
 
   const handleEdit = (row) => {
     setEditData(row);
@@ -130,9 +139,13 @@ const ConvertedClientsPage = () => {
         status: row.projectDetails?.status || 'Not Started',
       },
     });
-    loadSelectData();
     setModalOpen(true);
   };
+  // Load select data (campaigns, employees, leads) on mount
+  useEffect(() => {
+    loadSelectData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleSubmit = async () => {
     setModalLoading(true);
@@ -175,25 +188,26 @@ const ConvertedClientsPage = () => {
   function ProjectManagerModal({ open, projects, clientId, onClose, onSave }) {
     const [localProjects, setLocalProjects] = useState(projects || []);
     const [confirmIdx, setConfirmIdx] = useState(null);
-    useEffect(() => { setLocalProjects(projects || []); }, [projects, open]);
-      const setProjectModal = React.useContext(React.createContext(() => {})); // fallback if not provided
+    const [editIdx, setEditIdx] = useState(null); // null = view mode, number = edit mode for that project
+    useEffect(() => { setLocalProjects(projects || []); setEditIdx(null); }, [projects, open]);
+    const setProjectModal = React.useContext(React.createContext(() => {})); // fallback if not provided
     const handleChange = (idx, key, value) => setLocalProjects(ps => ps.map((p, i) => i === idx ? { ...p, [key]: value } : p));
-    const handleAdd = () => setLocalProjects(ps => ([...ps, { name: '', description: '', startDate: '', deadline: '', budget: '', status: 'Not Started' }]));
+    const handleAdd = () => {
+      setLocalProjects(ps => ([...ps, { name: '', description: '', startDate: '', deadline: '', budget: '', status: 'Not Started' }]));
+      setEditIdx(localProjects.length); // Edit the new project
+    };
     const handleRemove = async idx => {
-        const updated = localProjects.filter((_, i) => i !== idx);
-        setLocalProjects(updated);
-        // Also update parent state so modal and table show correct data
-        if (clientId) {
-          try {
-            await updateClient(clientId, { projects: updated });
-            // Update parent modal state to reflect removal immediately
-            if (typeof onSave === 'function') onSave();
-            // Update projectModal.projects in parent
-            setProjectModal(pm => ({ ...pm, projects: updated }));
-          } catch (e) {
-            alert(e.response?.data?.message || 'Failed to update projects');
-          }
+      const updated = localProjects.filter((_, i) => i !== idx);
+      setLocalProjects(updated);
+      if (clientId) {
+        try {
+          await updateClient(clientId, { projects: updated });
+          if (typeof onSave === 'function') onSave();
+          setProjectModal(pm => ({ ...pm, projects: updated }));
+        } catch (e) {
+          alert(e.response?.data?.message || 'Failed to update projects');
         }
+      }
     };
     const handleSave = async () => {
       if (!clientId) return onClose();
@@ -207,32 +221,92 @@ const ConvertedClientsPage = () => {
     };
     if (!open) return null;
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-        <div className="bg-white rounded-xl shadow-lg w-full max-w-2xl p-6 relative">
-          <button className="absolute top-3 right-3 text-gray-400 hover:text-gray-700" onClick={onClose}>&times;</button>
-          <h2 className="text-lg font-bold mb-4">Project Details</h2>
-          <div className="space-y-4 max-h-[60vh] overflow-y-auto">
-            {localProjects.length === 0 && <div className="text-gray-400">No projects found.</div>}
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-200 bg-opacity-70">
+        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl p-0 relative">
+          <div className="flex items-center justify-between px-4 pt-4 pb-2 border-b border-gray-100">
+            <h2 className="text-base font-bold text-gray-800">Project Details</h2>
+            <button className="text-gray-400 hover:text-gray-700 text-2xl font-bold" onClick={onClose}>&times;</button>
+          </div>
+          <div className="px-4 py-3 max-h-[55vh] overflow-y-auto">
+            {localProjects.length === 0 && <div className="text-gray-400 text-center py-6 text-sm">No projects found.</div>}
             {localProjects.map((proj, idx) => (
-              <div key={idx} className="border-b pb-2 mb-2">
-                <div className="flex items-center gap-2 mb-1">
-                  <input className="font-semibold text-gray-800 border-b border-dashed border-gray-300 bg-transparent outline-none flex-1" value={proj.name} onChange={e => handleChange(idx, 'name', e.target.value)} placeholder="Project Name" />
-                  <select className="ml-2 px-2 py-1 text-xs border rounded bg-gray-50" value={proj.status} onChange={e => handleChange(idx, 'status', e.target.value)}>
-                    {PROJECT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                  <button type="button" className="ml-2 text-xs text-red-500 hover:underline" onClick={() => setConfirmIdx(idx)}>Remove</button>
-                </div>
-                <div className="text-xs text-gray-500 mb-1">
-                  <input className="w-full border-b border-dashed border-gray-200 bg-transparent outline-none" value={proj.description} onChange={e => handleChange(idx, 'description', e.target.value)} placeholder="Description" />
-                </div>
-                <div className="flex flex-wrap gap-3 text-xs text-gray-600">
-                  <span>Start: <input type="date" className="border rounded px-2 py-1 text-xs" value={proj.startDate ? proj.startDate.slice(0,10) : ''} onChange={e => handleChange(idx, 'startDate', e.target.value)} /></span>
-                  <span>Deadline: <input type="date" className="border rounded px-2 py-1 text-xs" value={proj.deadline ? proj.deadline.slice(0,10) : ''} onChange={e => handleChange(idx, 'deadline', e.target.value)} /></span>
-                  <span>Budget: <input type="number" className="border rounded px-2 py-1 text-xs w-20" value={proj.budget} onChange={e => handleChange(idx, 'budget', e.target.value)} /></span>
-                </div>
+              <div key={idx} className="mb-3 rounded border border-gray-100 bg-gray-50 p-2 shadow-sm relative group transition-all">
+                {/* View/Edit Toggle */}
+                {editIdx === idx ? (
+                  <>
+                    <div className="flex flex-col md:flex-row gap-2 mb-1">
+                      <div className="flex-1">
+                        <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">Project Name</label>
+                        <input className="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-emerald-500 outline-none" value={proj.name} onChange={e => handleChange(idx, 'name', e.target.value)} placeholder="Project Name" />
+                      </div>
+                      <div className="flex-1">
+                        <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">Status</label>
+                        <select className="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-emerald-500 outline-none" value={proj.status} onChange={e => handleChange(idx, 'status', e.target.value)}>
+                          {PROJECT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                    <div className="mb-1">
+                      <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">Description</label>
+                      <input className="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-emerald-500 outline-none" value={proj.description} onChange={e => handleChange(idx, 'description', e.target.value)} placeholder="Description" />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-1">
+                      <div>
+                        <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">Start Date</label>
+                        <input type="date" className="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-emerald-500 outline-none" value={proj.startDate ? proj.startDate.slice(0,10) : ''} onChange={e => handleChange(idx, 'startDate', e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">Deadline</label>
+                        <input type="date" className="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-emerald-500 outline-none" value={proj.deadline ? proj.deadline.slice(0,10) : ''} onChange={e => handleChange(idx, 'deadline', e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">Budget ($)</label>
+                        <input type="number" className="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-emerald-500 outline-none" value={proj.budget} onChange={e => handleChange(idx, 'budget', e.target.value)} min="0" />
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2 mt-1">
+                      <button className="px-3 py-1 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded hover:bg-gray-50" onClick={() => setEditIdx(null)}>Cancel</button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex flex-col md:flex-row gap-2 mb-1">
+                      <div className="flex-1">
+                        <div className="text-[11px] text-gray-500 font-semibold mb-0.5">Project Name</div>
+                        <div className="text-[13px] font-bold text-gray-800">{proj.name || <span className="text-gray-400">—</span>}</div>
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-[11px] text-gray-500 font-semibold mb-0.5">Status</div>
+                        <div className="text-xs font-medium text-gray-700">{proj.status || <span className="text-gray-400">—</span>}</div>
+                      </div>
+                    </div>
+                    <div className="mb-1">
+                      <div className="text-[11px] text-gray-500 font-semibold mb-0.5">Description</div>
+                      <div className="text-xs text-gray-700">{proj.description || <span className="text-gray-400">—</span>}</div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-1">
+                      <div>
+                        <div className="text-[11px] text-gray-500 font-semibold mb-0.5">Start Date</div>
+                        <div className="text-xs text-gray-700">{proj.startDate ? proj.startDate.slice(0,10) : <span className="text-gray-400">—</span>}</div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] text-gray-500 font-semibold mb-0.5">Deadline</div>
+                        <div className="text-xs text-gray-700">{proj.deadline ? proj.deadline.slice(0,10) : <span className="text-gray-400">—</span>}</div>
+                      </div>
+                      <div>
+                        <div className="text-[11px] text-gray-500 font-semibold mb-0.5">Budget ($)</div>
+                        <div className="text-xs text-gray-700">{proj.budget || <span className="text-gray-400">—</span>}</div>
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2 mt-1">
+                      <button className="px-2 py-1 text-xs font-medium text-indigo-600 border border-indigo-200 bg-white rounded hover:bg-indigo-50" onClick={() => setEditIdx(idx)}>Edit</button>
+                      <button className="px-2 py-1 text-xs font-medium text-red-600 border border-red-200 bg-white rounded hover:bg-red-50" onClick={() => setConfirmIdx(idx)}>Remove</button>
+                    </div>
+                  </>
+                )}
                 {/* Confirm dialog for remove */}
                 {confirmIdx === idx && (
-                  <div className="fixed inset-0 z-60 flex items-center justify-center bg-black bg-opacity-40">
+                  <div className="fixed inset-0 z-60 flex items-center justify-center bg-gray-200 bg-opacity-70">
                     <div className="bg-white rounded-lg shadow-lg p-6 w-80">
                       <div className="font-semibold mb-2">Remove this project?</div>
                       <div className="text-sm text-gray-500 mb-4">Are you sure you want to remove <span className="font-bold">{proj.name || 'this project'}</span>?</div>
@@ -246,9 +320,9 @@ const ConvertedClientsPage = () => {
               </div>
             ))}
           </div>
-          <div className="flex justify-between items-center mt-6">
-            <button className="px-4 py-2 text-xs font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700" onClick={handleAdd}>Add Project</button>
-            <button className="px-5 py-2.5 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700" onClick={handleSave}>Save</button>
+          <div className="flex justify-between items-center px-4 py-3 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+            <button className="px-3 py-1.5 text-xs font-medium text-white bg-indigo-600 rounded hover:bg-indigo-700" onClick={handleAdd}>Add Project</button>
+            <button className="px-4 py-2 text-xs font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700" onClick={handleSave}>Save</button>
           </div>
         </div>
       </div>
@@ -266,7 +340,28 @@ const ConvertedClientsPage = () => {
       label: 'Managed By',
       render: (v, row) => <span>{typeof v === 'object' ? v?.name : v}</span>,
     },
+
+    { key: 'notes', label: 'Notes', render: v => <span className="text-xs text-gray-500">{v || '—'}</span> },
+    { key: 'createdAt', label: 'Created', format: 'date' },
     {
+      key: 'campaign',
+      label: 'Campaign',
+      filter: {
+        options: campaignFilterOptions,
+        value: selectedCampaign,
+        onChange: (val) => { setSelectedCampaign(val); setPage(1); },
+      },
+        render: (v, row) => {
+          // Prefejr campaign name from lead_id.campigne.title if available
+          if (row.lead_id?.campigne?.title) {
+            return <span className="text-xs text-gray-700">{row.lead_id.campigne.title}</span>;
+          }
+          // Fallback to previous logic
+          const campaignObj = row.campaign || row.campigne || campaigns.find(c => c._id === (row.campaign || row.campigne));
+          return <span className="text-xs text-gray-700">{campaignObj?.title || campaignObj?.name || '—'}</span>;
+        },
+    },
+        {
       key: 'leadInfo',
       label: '',
       render: (_, row) => (
@@ -291,8 +386,6 @@ const ConvertedClientsPage = () => {
         </button>
       )
     },
-    { key: 'notes', label: 'Notes', render: v => <span className="text-xs text-gray-500">{v || '—'}</span> },
-    { key: 'createdAt', label: 'Created', format: 'date' },
     {
       key: 'status', label: 'Status', type: 'status', valueMap: { 0: 'Inactive', 1: 'Active' },
       filter: { options: STATUS_OPTIONS, value: status, onChange: setStatus },
@@ -319,9 +412,6 @@ const ConvertedClientsPage = () => {
 
   return (
     <div className="p-2">
-      <PageHeader
-        title="Converted Clients"
-      />
 
       <Table
         headers={tableHeaders}
@@ -329,7 +419,7 @@ const ConvertedClientsPage = () => {
         total={total}
         page={page}
         pageSize={pageSize}
-        searchKeys={['_id', 'managedBy', 'notes']}
+        searchKeys={['_id', 'managedBy']}
         searchKey={''}
         onSearchKeyChange={() => { }}
         searchText={searchText}
@@ -358,18 +448,22 @@ const ConvertedClientsPage = () => {
         size="md"
       >
         {leadInfoModal.lead ? (
-          <div className="space-y-2">
-            {leadInfoModal?.lead?.leadData
-              ? Object.entries(leadInfoModal.lead.leadData).map(([key, value]) => (
-                  <div key={key}>
-                    <span className="font-semibold capitalize">{key}:</span> {value === undefined || value === null || value === '' ? '-' : value.toString()}
+          <div className="max-h-80 overflow-y-auto">
+            {leadInfoModal?.lead?.leadData ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {Object.entries(leadInfoModal.lead.leadData).map(([key, value]) => (
+                  <div key={key} className="flex flex-col bg-white rounded-lg border border-gray-200 shadow-sm px-3 py-2 min-h-[56px]">
+                    <span className="text-xs font-semibold text-gray-500 mb-0.5 truncate" title={key.replace(/([A-Z])/g, ' $1')}>{key.replace(/([A-Z])/g, ' $1')}</span>
+                    <span className="text-sm text-gray-900 font-medium break-all leading-snug mt-0.5">{value === undefined || value === null || value === '' ? <span className='text-gray-300'>—</span> : value.toString()}</span>
                   </div>
-                ))
-              : <div>No lead data available.</div>
-            }
+                ))}
+              </div>
+            ) : (
+              <div className="text-gray-400 text-sm">No lead data available.</div>
+            )}
             {/* Show status if present at root */}
             {leadInfoModal.lead.status !== undefined && (
-              <div><span className="font-semibold">Status:</span> {leadInfoModal.lead.status === '' ? '-' : leadInfoModal.lead.status}</div>
+              <div className="mt-3 text-sm"><span className="font-semibold text-gray-700">Status:</span> <span className="text-gray-900 font-medium">{leadInfoModal.lead.status === '' ? '-' : leadInfoModal.lead.status}</span></div>
             )}
           </div>
         ) : (
