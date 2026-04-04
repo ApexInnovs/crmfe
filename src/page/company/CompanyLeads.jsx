@@ -5,7 +5,9 @@ import { Modal, ConfirmDialog } from '../../components/common/Modal';
 import PageHeader from '../../components/common/PageHeader';
 import { useAuth } from '../../context/AuthContext';
 import { getLeads, createLead, updateLead, getCampaignsByCompany, fetchLeadPipeline, fetchActivityTimeline, fetchLeadInsights } from '../../api/campigneAndLeadApi';
-import { AddButton } from '../../components/common/Table';
+import { uploadAvatar } from '../../api/uploadApi';
+import { getEmployees } from '../../api/employeeAndAdminApi';
+
 
 const LEAD_STATUSES = [
   { value: 'created', label: 'Created', color: 'bg-blue-100 text-blue-700' },
@@ -142,6 +144,8 @@ const LeadIntelligenceEngine = ({ companyId }) => {
 };
 
 const CompanyLeads = () => {
+    // Call Recording Modal state
+    const [callRecordingModal, setCallRecordingModal] = useState({ open: false, fileUrl: '', fileName: '' });
   const { user } = useAuth();
   const [values, setValues] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -153,8 +157,8 @@ const CompanyLeads = () => {
   const [editData, setEditData] = useState(null);
   const [rowToToggle, setRowToToggle] = useState(null);
 
-  // Notes panel state
-  const [detailLead, setDetailLead] = useState(null);
+  // Lead detail modal state
+  const [detailLeadModal, setDetailLeadModal] = useState({ open: false, lead: null });
   const [noteText, setNoteText] = useState('');
   const [addingNote, setAddingNote] = useState(false);
 
@@ -201,41 +205,29 @@ const CompanyLeads = () => {
   const handleSubmit = async () => {
     setModalLoading(true);
     try {
-      // Validation
-      if (modalFields.type === 'campaign') {
-        if (!modalFields.campigne) {
-          alert('Please select a campaign.');
-          setModalLoading(false);
-          return;
-        }
-        if (!modalFields.name.trim() || !modalFields.phone.trim() || !modalFields.organization.trim() || !modalFields.note.trim()) {
-          alert('Name, Phone, Organization, and Note are required.');
-          setModalLoading(false);
-          return;
-        }
-      } else if (modalFields.type === 'thirdparty') {
-        if (!modalFields.name.trim() || !modalFields.phone.trim() || !modalFields.organization.trim() || !modalFields.note.trim()) {
-          alert('Name, Phone, Organization, and Note are required.');
-          setModalLoading(false);
-          return;
-        }
+      // Only send the required fields in the payload
+      let callFileUrl = '';
+      if (modalFields.callFile) {
+        const formData = new FormData();
+        formData.append('avatar', modalFields.callFile);
+        const uploadRes = await uploadAvatar(formData);
+        callFileUrl = uploadRes.url || uploadRes.path || uploadRes.fileUrl || '';
       }
+
       const payload = {
-        company: user._id,
-        createdBy: user._id,
         status: modalFields.status,
-        leadData: {
-          name: modalFields.name,
-          phone: modalFields.phone,
-          organization: modalFields.organization,
-          email: modalFields.email,
-        },
         nextMeetingDate: modalFields.nextMeetingDate || null,
-        notes: modalFields.note.trim() ? [{ text: modalFields.note.trim() }] : [],
+        assignedTo: modalFields.assignedTo || null,
+        notes: Array.isArray(modalFields.notes)
+          ? modalFields.notes.filter(n => n && n.trim()).map(n => ({
+              text: n.trim(),
+              addedBy: user._id,
+              addedAt: new Date().toISOString(),
+            }))
+          : [],
+        ...(callFileUrl ? { callFile: callFileUrl } : {}),
       };
-      if (modalFields.type === 'campaign') {
-        payload.campigne = modalFields.campigne;
-      }
+
       if (editData) {
         await updateLead(editData._id, payload);
       } else {
@@ -286,7 +278,10 @@ const CompanyLeads = () => {
   const leadLabel = (lead) => lead.leadData?.name || lead.leadData?.email || `Lead #${lead._id?.slice(-6)}`;
 
   const statusFilterOptions = [{ value: '', label: 'All Statuses' }, ...LEAD_STATUSES.map(s => ({ value: s.value, label: s.label }))];
-  const campaignOptions = campaigns.map(c => ({ value: c._id, label: c.title }));
+  const campaignOptions = [
+    { value: '', label: 'All Campaigns' },
+    ...campaigns.map(c => ({ value: c._id, label: c.title }))
+  ];
   const statusSelectOptions = LEAD_STATUSES.map(s => ({ value: s.value, label: s.label }));
 
   const EyeIcon = (
@@ -296,7 +291,18 @@ const CompanyLeads = () => {
     {
       key: 'campigne',
       label: <span title="Campaign"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" className="inline mr-1"><path stroke="#6366f1" strokeWidth="2" d="M4 7h16M4 12h16M4 17h16" /></svg>Camp.</span>,
-      render: v => v?.title || <span className="text-xs text-gray-400">—</span>
+      render: v => v?.title || <span className="text-xs text-gray-400">—</span>,
+      filter: { options: campaignOptions, value: filterCampaign, onChange: v => { setFilterCampaign(v); setPage(1); } }
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      filter: { options: statusFilterOptions, value: filterStatus, onChange: v => { setFilterStatus(v); setPage(1); } },
+      render: v => (
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${STATUS_COLOR_MAP[v] || 'bg-gray-100 text-gray-500'}`}>
+          {STATUS_LABEL_MAP[v] || v}
+        </span>
+      ),
     },
     {
       key: 'view',
@@ -305,21 +311,39 @@ const CompanyLeads = () => {
         <button
           className="p-2 rounded-full hover:bg-gray-100"
           title="View Lead Data"
-          onClick={() => setDetailLead(row)}
+          onClick={() => setDetailLeadModal({ open: true, lead: row })}
         >
           {EyeIcon}
         </button>
       )
     },
     {
-      key: 'salesPerson',
-      label: <span title="Salesperson"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" className="inline mr-1"><circle cx="12" cy="8" r="4" stroke="#f43f5e" strokeWidth="2" /><path stroke="#f43f5e" strokeWidth="2" d="M4 20c0-2.21 3.582-4 8-4s8 1.79 8 4" /></svg>Sales</span>,
-      render: v => v?.name || <span className="text-xs text-gray-400">—</span>
+      key: 'assignedTo',
+      label: <span title="Assigned To"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" className="inline mr-1"><circle cx="12" cy="8" r="4" stroke="#f43f5e" strokeWidth="2" /><path stroke="#f43f5e" strokeWidth="2" d="M4 20c0-2.21 3.582-4 8-4s8 1.79 8 4" /></svg>Assigned To</span>,
+      render: v => (typeof v === 'object' && v !== null && v.name)
+        ? v.name
+        : <span className="text-xs text-gray-400">—</span>
     },
     {
-      key: 'createdAt',
-      label: <span title="Created"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" className="inline mr-1"><path stroke="#6366f1" strokeWidth="2" d="M12 8v4l3 3" /><circle cx="12" cy="12" r="10" stroke="#6366f1" strokeWidth="2" /></svg>Created</span>,
-      format: 'date'
+      key: 'callRecording',
+      label: <span title="Call Recording"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" className="inline mr-1"><path stroke="#6366f1" strokeWidth="2" d="M12 5v14m7-7H5" /></svg>Call Recording</span>,
+      render: (_, row) => {
+        // Assume callFile is a URL or file name in row.callFile
+        if (row.callFile) {
+          // If callFile is an object with url or path, adjust as needed
+          const fileUrl = typeof row.callFile === 'string' ? row.callFile : row.callFile.url || row.callFile.path || '';
+          const fileName = typeof row.callFile === 'string' ? row.callFile.split('/').pop() : row.callFile.name || 'Recording';
+          return (
+            <button
+              className="text-indigo-600 underline hover:text-indigo-800 text-xs"
+              onClick={() => setCallRecordingModal({ open: true, fileUrl, fileName })}
+            >
+              View Recording
+            </button>
+          );
+        }
+        return <span className="text-xs text-gray-400">—</span>;
+      }
     },
     {
       key: 'nextMeetingDate',
@@ -328,10 +352,15 @@ const CompanyLeads = () => {
         ? <span className="text-xs font-medium text-emerald-700">{new Date(v).toLocaleDateString()}</span>
         : <span className="text-xs text-gray-400">—</span>
     },
+        {
+      key: 'createdAt',
+      label: <span title="Created"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" className="inline mr-1"><path stroke="#6366f1" strokeWidth="2" d="M12 8v4l3 3" /><circle cx="12" cy="12" r="10" stroke="#6366f1" strokeWidth="2" /></svg>Created</span>,
+      format: 'date'
+    },
   ];
 
-  const CallUploadIcon = (
-    <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path stroke="#6366f1" strokeWidth="2" d="M12 20v-6m0 0V4m0 10H6m6 0h6" /><path stroke="#0ea5e9" strokeWidth="2" d="M22 16.92V21a1 1 0 0 1-1.09 1A19.91 19.91 0 0 1 3 5.09 1 1 0 0 1 4 4h4.09a1 1 0 0 1 1 .75l1.1 4.4a1 1 0 0 1-.29 1L8.21 12.21a16 16 0 0 0 7.58 7.58l2.06-2.06a1 1 0 0 1 1-.29l4.4 1.1a1 1 0 0 1 .75 1V21z" /></svg>
+  const NewUploadIcon = (
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="#6366f1" strokeWidth="2" d="M12 16V4m0 0L7 9m5-5 5 5"/><rect width="18" height="8" x="3" y="16" stroke="#0ea5e9" strokeWidth="2" rx="2"/></svg>
   );
   const actions = [
     {
@@ -339,82 +368,60 @@ const CompanyLeads = () => {
       onClick: row => {
         setEditData(row);
         setModalFields({
-          type: row.campigne ? 'campaign' : 'thirdparty',
-          campigne: row.campigne?._id || row.campigne || '',
           status: row.status || 'created',
-          name: row.leadData?.name || '',
-          phone: row.leadData?.phone || '',
-          organization: row.leadData?.organization || '',
-          email: row.leadData?.email || '',
           nextMeetingDate: row.nextMeetingDate ? row.nextMeetingDate.slice(0, 10) : '',
-          note: '',
+          assignedTo: row.assignedTo || '',
+          notes: Array.isArray(row.notes) ? row.notes.map(n => typeof n === 'string' ? n : n.text || '') : [''],
+          callFile: null,
         });
         setModalOpen(true);
-      },
-    },
-    {
-      key: 'notes', label: 'View Notes', icon: NotesIcon,
-      onClick: row => { setDetailLead(row); setNoteText(''); },
-    },
-    {
-      key: 'callupload',
-      label: 'Upload Call',
-      icon: CallUploadIcon,
-      onClick: row => {
-        setUploadingLeadId(row._id);
-        setTimeout(() => fileInputRef.current?.click(), 0);
       },
     },
     { key: 'archive', label: 'Mark Lost / Reopen', icon: ArchiveIcon, onClick: row => { setRowToToggle(row); setConfirmModalOpen(true); } },
   ];
   // Call recording upload state
-  const [uploadingLeadId, setUploadingLeadId] = useState(null);
-  const fileInputRef = React.useRef();
-
-  const handleCallFileChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file || !uploadingLeadId) return;
-    // TODO: Implement upload logic here (API call)
-    alert(`Uploading call recording for lead: ${uploadingLeadId}\nFile: ${file.name}`);
-    setUploadingLeadId(null);
-    e.target.value = '';
-  };
+  // Employees for assignedTo
+  const [employees, setEmployees] = useState([]);
+  useEffect(() => {
+    getEmployees({ company: user._id, limit: 100 }).then(data => {
+      setEmployees(Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []));
+    }).catch(() => setEmployees([]));
+  }, [user._id]);
 
   return (
     <div className="p-2">
-      <PageHeader
-        title="Leads"
-        actions={
-          <AddButton onAdd={() => setModalOpen(true)} addLabel="Add Lead" />
-        }
-      />
-
-      {/* Campaign filter dropdown */}
-      <div className="mb-4 flex items-center gap-2">
-        <label className="text-sm font-medium">Filter by Campaign:</label>
-        <select
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm"
-          value={filterCampaign}
-          onChange={e => { setFilterCampaign(e.target.value); setPage(1); }}
-        >
-          <option value="">All Campaigns</option>
-          {campaigns.map(c => <option key={c._id} value={c._id}>{c.title}</option>)}
-        </select>
-      </div>
       <Table
-        headers={tableHeaders} values={values} total={total} page={page} pageSize={pageSize}
-        loading={loading} onPageChange={setPage}
+        headers={tableHeaders}
+        values={values}
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        loading={loading}
+        onPageChange={setPage}
         onPageSizeChange={size => { setPageSize(size); setPage(1); }}
         actions={actions}
       />
-      {/* Hidden file input for call upload */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept="audio/*"
-        style={{ display: 'none' }}
-        onChange={handleCallFileChange}
-      />
+
+      {/* Call Recording Modal */}
+      <Modal
+        isOpen={callRecordingModal.open}
+        onClose={() => setCallRecordingModal({ open: false, fileUrl: '', fileName: '' })}
+        title="Call Recording"
+        footer={null}
+      >
+        <div className="space-y-4">
+          <div className="font-semibold text-gray-800">{callRecordingModal.fileName || 'No file'}</div>
+          {callRecordingModal.fileUrl ? (
+            <audio controls style={{ width: '100%' }}>
+              <source src={callRecordingModal.fileUrl} />
+              Your browser does not support the audio element.
+            </audio>
+          ) : (
+            <div className="text-gray-400 text-sm">No audio file available.</div>
+          )}
+        </div>
+      </Modal>
+
 
       {/* Add/Edit Modal */}
       <Modal
@@ -434,74 +441,67 @@ const CompanyLeads = () => {
           ? <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" /></div>
           : (
             <form id="lead-form" onSubmit={e => { e.preventDefault(); handleSubmit(); }} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Lead Type</label>
-                  <select
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                    value={modalFields.type}
-                    onChange={e => setModalFields(p => ({ ...p, type: e.target.value, campigne: '' }))}
-                  >
-                    <option value="campaign">Campaign</option>
-                    <option value="thirdparty">3rd Party</option>
-                  </select>
-                </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 ">
                 <Input
                   label="Status" name="status" type="select"
                   value={modalFields.status}
                   onChange={e => setModalFields(p => ({ ...p, status: e.target.value }))}
                   options={statusSelectOptions} required
                 />
-                {modalFields.type === 'campaign' && (
-                  <Input
-                    label="Campaign" name="campigne" type="select"
-                    value={modalFields.campigne}
-                    onChange={e => setModalFields(p => ({ ...p, campigne: e.target.value }))}
-                    options={campaignOptions}
-                    required
-                  />
-                )}
                 <Input
-                  label="Name" name="name" type="text"
-                  value={modalFields.name}
-                  onChange={e => setModalFields(p => ({ ...p, name: e.target.value }))}
-                  required
-                />
-                <Input
-                  label="Phone" name="phone" type="text"
-                  value={modalFields.phone}
-                  onChange={e => setModalFields(p => ({ ...p, phone: e.target.value }))}
-                  required
-                />
-                <Input
-                  label="Organization" name="organization" type="text"
-                  value={modalFields.organization}
-                  onChange={e => setModalFields(p => ({ ...p, organization: e.target.value }))}
-                  required
-                />
-                <Input
-                  label="Email" name="email" type="email"
-                  value={modalFields.email}
-                  onChange={e => setModalFields(p => ({ ...p, email: e.target.value }))}
+                  label="Next Meeting Date" name="nextMeetingDate" type="date"
+                  value={modalFields.nextMeetingDate}
+                  onChange={e => setModalFields(p => ({ ...p, nextMeetingDate: e.target.value }))}
                   required={false}
                 />
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Next Meeting Date</label>
-                  <input
-                    type="date"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                    value={modalFields.nextMeetingDate}
-                    onChange={e => setModalFields(p => ({ ...p, nextMeetingDate: e.target.value }))}
+                <div className="col-span-2">
+                  <Input
+                    label="Assigned To" name="assignedTo" type="select"
+                    value={modalFields.assignedTo}
+                    onChange={e => setModalFields(p => ({ ...p, assignedTo: e.target.value }))}
+                    options={employees.map(emp => ({ value: emp._id, label: emp.name }))}
+                    required={false}
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Notes</label>
+                  <div className="space-y-2">
+                    {modalFields.notes && modalFields.notes.map((note, idx) => (
+                      <div key={idx} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded p-2 group hover:shadow-sm transition-all">
+                        <Input
+                          name={`note-${idx}`}
+                          type="text"
+                          value={note}
+                          onChange={e => setModalFields(p => ({ ...p, notes: p.notes.map((n, i) => i === idx ? e.target.value : n) }))}
+                          placeholder={`Note #${idx + 1}`}
+                          required={false}
+                          className="flex-1"
+                        />
+                        <button
+                          type="button"
+                          className="px-2 py-1 bg-red-100 text-red-600 rounded hover:bg-red-200 text-xs font-medium"
+                          onClick={() => setModalFields(p => ({ ...p, notes: p.notes.filter((_, i) => i !== idx) }))}
+                        >Remove</button>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    className="mt-3 px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 text-sm font-semibold w-full transition-all"
+                    onClick={() => setModalFields(p => ({ ...p, notes: [...(p.notes || []), ''] }))}
+                  >+ Add Note</button>
+                </div>
+                <div className="col-span-2 mt-2">
+                  <Input
+                    // label={<span className="flex items-center gap-2">Call Recording {NewUploadIcon}</span>}
+                    name="callFile"
+                    type="file"
+                    accept="audio/*"
+                    onChange={e => setModalFields(p => ({ ...p, callFile: e.target.files?.[0] }))}
+                    required={false}
                   />
                 </div>
               </div>
-              <Input
-                label="Add Note" name="note" type="textarea"
-                placeholder="Any notes about this lead..."
-                value={modalFields.note}
-                onChange={e => setModalFields(p => ({ ...p, note: e.target.value }))}
-                required
-              />
             </form>
           )}
       </Modal>
@@ -517,56 +517,56 @@ const CompanyLeads = () => {
         variant="warning"
       />
 
-      {/* Lead Data Slide-Over Panel */}
-      {detailLead && (
-        <div className="fixed inset-0 z-50" onClick={() => setDetailLead(null)}>
-          {/* Overlay */}
-          <div className="absolute inset-0 bg-black/30" />
-          {/* Panel */}
-          <div
-            className="absolute top-0 right-0 h-full w-full max-w-lg bg-white shadow-2xl flex flex-col"
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/80 flex items-center gap-3">
+      {/* Lead Data Modal */}
+      <Modal
+        isOpen={detailLeadModal.open}
+        onClose={() => setDetailLeadModal({ open: false, lead: null })}
+        title={detailLeadModal.lead ? `Lead Details: ${leadLabel(detailLeadModal.lead)}` : 'Lead Details'}
+        footer={null}
+      >
+        {detailLeadModal.lead && (
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-sm font-bold text-emerald-700 shrink-0">
-                {leadLabel(detailLead)[0]?.toUpperCase()}
+                {leadLabel(detailLeadModal.lead)[0]?.toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-gray-800 truncate">{leadLabel(detailLead)}</h3>
+                <h3 className="font-semibold text-gray-800 truncate">{leadLabel(detailLeadModal.lead)}</h3>
                 <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                  <span className="text-xs text-gray-400">{detailLead.company?.name || '—'}</span>
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${STATUS_COLOR_MAP[detailLead.status] || 'bg-gray-100 text-gray-500'}`}>
-                    {STATUS_LABEL_MAP[detailLead.status] || detailLead.status}
+                  <span className="text-xs text-gray-400">{detailLeadModal.lead.company?.name || '—'}</span>
+                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${STATUS_COLOR_MAP[detailLeadModal.lead.status] || 'bg-gray-100 text-gray-500'}`}>
+                    {STATUS_LABEL_MAP[detailLeadModal.lead.status] || detailLeadModal.lead.status}
                   </span>
                 </div>
               </div>
-              <button className="text-gray-400 hover:text-gray-700 bg-white border border-gray-200 rounded-full p-2" onClick={() => setDetailLead(null)}>
-                <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
             </div>
-
-            {/* Dynamic Lead Data */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              <h4 className="font-semibold text-md mb-2">Lead Data</h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {Object.entries(detailLead.leadData || {}).map(([key, value]) => (
-                  <div key={key}>
-                    <span className="block text-xs text-gray-400 font-medium mb-1">{key}</span>
-                    <span className="block text-sm text-gray-800 break-all">{String(value)}</span>
-                  </div>
-                ))}
-                {Object.entries(detailLead).filter(([k]) => !['leadData','company','campigne','status','_id','__v','createdAt','updatedAt'].includes(k)).map(([key, value]) => (
-                  <div key={key}>
-                    <span className="block text-xs text-gray-400 font-medium mb-1">{key}</span>
-                    <span className="block text-sm text-gray-800 break-all">{typeof value === 'object' ? JSON.stringify(value) : String(value)}</span>
-                  </div>
-                ))}
-              </div>
+            <h4 className="font-semibold text-md mb-2">Lead Data</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {Object.entries(detailLeadModal.lead.leadData || {}).map(([key, value]) => (
+                <div key={key}>
+                  <span className="block text-xs text-gray-400 font-medium mb-1">{key}</span>
+                  <span className="block text-sm text-gray-800 break-all">{String(value)}</span>
+                </div>
+              ))}
+            </div>
+            {/* Notes Section */}
+            <div className="mt-6">
+              <h4 className="font-semibold text-md mb-2">Notes</h4>
+              {Array.isArray(detailLeadModal.lead.notes) && detailLeadModal.lead.notes.length > 0 ? (
+                <ul className="space-y-2">
+                  {detailLeadModal.lead.notes.map((note, idx) => (
+                    <li key={idx} className="p-2 bg-gray-50 border rounded text-sm text-gray-700">
+                      {typeof note === 'string' ? note : (note.text || JSON.stringify(note))}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-gray-400 text-sm">No notes available.</div>
+              )}
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </div>
   );
 };
