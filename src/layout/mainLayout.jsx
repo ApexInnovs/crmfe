@@ -78,7 +78,7 @@ const MainLayout = ({ children }) => {
 				<div className="flex items-center gap-3">
 					{isCompany && (
 						<button
-							onClick={(e) => { e.stopPropagation(); setSidebarOpen((o) => !o); }}
+							onClick={(e) => { e.stopPropagation(); setSidebarOpen((o) => !o); hapticTab(); }}
 							className="flex items-center justify-center w-8 h-8 rounded-full text-slate-500 hover:text-slate-900 hover:bg-slate-100 transition-all duration-150 outline-none cursor-pointer"
 							aria-label="Toggle navigation"
 						>
@@ -226,8 +226,11 @@ const MainLayout = ({ children }) => {
 									cally
 								</span>
 								<button
-									onClick={() => setSidebarOpen(false)}
-									className="flex items-center justify-center w-7 h-7 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all duration-150 outline-none cursor-pointer"
+									onClick={() => {
+										setSidebarOpen(false);
+										hapticTab();
+									}}
+									className="flex items-center justify-center w-7 h-7 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-all duration-150 outline-none cursor-pointer"
 								>
 									<TbX className="text-[18px]" />
 								</button>

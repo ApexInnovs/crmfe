@@ -1,5 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
+import toast from 'react-hot-toast';
 import Table from '../../components/common/Table';
+import { SkeletonLoader } from '../../components/common/Skeleton';
 import Input from '../../components/common/Input';
 import { Modal, ConfirmDialog } from '../../components/common/Modal';
 import { useAuth } from '../../context/AuthContext';
@@ -9,6 +11,7 @@ import {
   updateCampaign,
   getCampaignsByCompany,
   importLeadsFromFile, // NEW: POST /leads/import  { campaignId, leads: [...] }
+  deleteCampaign,
 } from '../../api/campigneAndLeadApi';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -50,14 +53,14 @@ const EditIcon = (
 
 const LinkIcon = (
   <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-    <path stroke="#2563eb" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+    <path stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
       d="M13.828 10.172a4 4 0 0 0-5.656 0l-4 4a4 4 0 0 0 5.656 5.656l1.102-1.101m-.758-4.899a4 4 0 0 0 5.656 0l4-4a4 4 0 0 0-5.656-5.656l-1.1 1.1" />
   </svg>
 );
 
 const ImportIcon = (
   <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-    <path stroke="#7c3aed" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+    <path stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
       d="M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1m-4-8-4-4m0 0L8 8m4-4v12" />
   </svg>
 );
@@ -78,6 +81,15 @@ const CheckIcon = (
 const XIcon = (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
     <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
+
+const TrashIcon = (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+    <path d="M3 6h18" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" strokeLinecap="round" strokeLinejoin="round" />
+    <path d="M10 11v6M14 11v6" strokeLinecap="round" strokeLinejoin="round" />
   </svg>
 );
 
@@ -522,83 +534,260 @@ function CampaignUrlModal({ isOpen, onClose, campaign }) {
   const handleCopy = () => {
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setTimeout(() => setCopied(false), 2500);
     });
   };
 
   if (!isOpen || !campaign) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm p-4">
+      {/* Gradient backdrop base */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: 'linear-gradient(to bottom, rgba(220,220,225,0.5), rgba(180,180,190,0.6), rgba(140,140,150,0.8))',
+        }}
+      />
+
+      {/* Grain overlay */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          filter: 'url(#modal-grain)',
+          opacity: 1,
+          mixBlendMode: 'multiply',
+        }}
+      />
+
+      {/* Click to close */}
+      <div
+        className="absolute inset-0 cursor-pointer"
+        onClick={onClose}
+      />
+
+      <style>{`
+        @keyframes modalEntrance { 
+          from { opacity: 0; transform: scale(0.94) translateY(12px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes slideInUp {
+          from { opacity: 0; transform: translateY(16px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes shimmer {
+          0%, 100% { background-position: 0% 50%; }
+          50% { background-position: 100% 50%; }
+        }
+        
+        .modal-content {
+          animation: modalEntrance 0.36s cubic-bezier(0.34, 1.3, 0.64, 1) both;
+        }
+        
+        .modal-section {
+          animation: slideInUp 0.32s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+          opacity: 0;
+        }
+        
+        .modal-section:nth-child(1) { animation-delay: 0.08s; }
+        .modal-section:nth-child(2) { animation-delay: 0.14s; }
+        .modal-section:nth-child(3) { animation-delay: 0.20s; }
+        .modal-section:nth-child(4) { animation-delay: 0.26s; }
+      `}</style>
+
+      {/* Modal content */}
+      <div className="modal-content relative bg-white rounded-2xl w-full max-w-lg mx-auto overflow-hidden flex flex-col"
+        style={{
+          border: '1px solid rgba(200, 200, 200, 0.25)',
+          borderTop: '4px solid #84cc16',
+          borderRadius: '20px',
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
+        }}>
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-linear-to-r from-blue-50 to-white">
-          <div className="flex items-center gap-3">
-            <span className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
-              <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
-                <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                  d="M13.828 10.172a4 4 0 0 0-5.656 0l-4 4a4 4 0 0 0 5.656 5.656l1.102-1.101m-.758-4.899a4 4 0 0 0 5.656 0l4-4a4 4 0 0 0-5.656-5.656l-1.1 1.1" />
-              </svg>
-            </span>
-            <div>
-              <h2 className="text-base font-semibold text-gray-900">Campaign Landing Page URL</h2>
-              <p className="text-xs text-gray-400">Share this link in Google Ads, Meta Ads, etc.</p>
+        <div className="px-5 pt-4 pb-3 bg-white shrink-0 relative" style={{
+          backgroundImage: 'radial-gradient(circle, rgba(180, 190, 175, 0.4) 2.5px, transparent 2.5px)',
+          backgroundSize: '12px 2px',
+          backgroundPosition: '0 100%',
+          backgroundRepeat: 'repeat-x',
+          borderBottom: 'none',
+          paddingBottom: 'calc(0.75rem + 4px)'
+        }}>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 flex-1">
+              <div className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-110"
+                style={{
+                  background: 'linear-gradient(135deg, #f0fce8 0%, #e8fad1 100%)',
+                  border: '1px solid #d1faa0',
+                  cursor: 'default',
+                }}>
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#4d7c0f" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M13.828 10.172a4 4 0 0 0-5.656 0l-4 4a4 4 0 0 0 5.656 5.656l1.102-1.101m-.758-4.899a4 4 0 0 0 5.656 0l4-4a4 4 0 0 0-5.656-5.656l-1.1 1.1" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-xl font-bold text-gray-900 leading-tight tracking-tight">
+                  Campaign Landing Page URL
+                </h2>
+              </div>
             </div>
+            <button
+              onClick={onClose}
+              aria-label="Close"
+              className="p-1.5 text-gray-400 hover:text-gray-700 transition-all duration-200 cursor-pointer rounded-full shrink-0"
+              style={{
+                width: '44px',
+                height: '44px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                fontSize: '20px'
+              }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(132,204,22,0.1)'; e.currentTarget.style.color = '#336633'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#9ca3af'; }}
+            >
+              {XIcon}
+            </button>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">{XIcon}</button>
         </div>
 
-        <div className="px-6 py-6 space-y-5">
+        {/* Body */}
+        <div className="px-5 py-3 overflow-y-auto flex-1" style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '14px',
+        }}>
           {/* Campaign info */}
-          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
-            <span className="w-9 h-9 rounded-lg bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm shrink-0">
+          <div className="modal-section flex items-center gap-3 p-3 rounded-xl transition-all duration-300 hover:shadow-md"
+            style={{
+              background: 'linear-gradient(135deg, #fafbfc 0%, #f3f6f1 100%)',
+              border: '1.5px solid #e5e7e0',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
+              cursor: 'default',
+            }}>
+            <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0 font-bold text-sm transition-transform duration-300"
+              style={{
+                background: 'linear-gradient(135deg, #84cc16 0%, #65a30d 100%)',
+                color: '#1a3a00',
+                boxShadow: '0 2px 4px rgba(101,163,13,0.2)',
+              }}>
               {campaign.title?.[0]?.toUpperCase() || 'C'}
-            </span>
-            <div className="min-w-0">
-              <p className="text-sm font-semibold text-gray-800 truncate">{campaign.title}</p>
-              <p className="text-xs text-gray-400">{campaign.formStructure?.length || 0} form fields</p>
             </div>
-            <span className={`ml-auto text-xs px-2 py-0.5 rounded-full border font-medium shrink-0 ${STATUS_COLORS[campaign.status] || 'bg-gray-100 text-gray-500 border-gray-200'}`}>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-bold text-gray-900 truncate">{campaign.title}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{campaign.formStructure?.length || 0} form fields</p>
+            </div>
+            <span
+              style={{
+                fontSize: '11px',
+                fontWeight: 700,
+                padding: '6px 11px',
+                borderRadius: '8px',
+                flexShrink: 0,
+                transition: 'all 0.3s cubic-bezier(0.34, 1.3, 0.64, 1)',
+                letterSpacing: '0.3px',
+                textTransform: 'capitalize',
+                ...(campaign.status === 1 ? {
+                  background: 'linear-gradient(135deg, #dcfce7 0%, #bbf7d0 100%)',
+                  color: '#166534',
+                  border: '1px solid #86efac',
+                  boxShadow: '0 2px 4px rgba(34, 197, 94, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.7)',
+                } : campaign.status === 2 ? {
+                  background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
+                  color: '#1e40af',
+                  border: '1px solid #93c5fd',
+                  boxShadow: '0 2px 4px rgba(37, 99, 235, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.7)',
+                } : campaign.status === 3 ? {
+                  background: 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
+                  color: '#4b5563',
+                  border: '1px solid #d1d5db',
+                  boxShadow: '0 2px 4px rgba(75, 85, 99, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.7)',
+                } : {
+                  background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+                  color: '#991b1b',
+                  border: '1px solid #fca5a5',
+                  boxShadow: '0 2px 4px rgba(220, 38, 38, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.7)',
+                }),
+              }}
+              className="hover:scale-105 hover:shadow-md cursor-default"
+            >
               {STATUS_LABELS[campaign.status] || 'Unknown'}
             </span>
           </div>
 
           {/* URL box */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Public Form URL</label>
-            <div className="flex items-center gap-2 p-2.5 bg-gray-50 border border-gray-200 rounded-xl group">
-              <span className="flex-1 text-sm text-blue-700 font-mono break-all select-all">{url}</span>
+          <div className="modal-section">
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2" style={{ color: '#a1a1aa', letterSpacing: '0.09em' }}>Public Form URL</label>
+            <div className="flex items-center gap-2 p-3 rounded-xl transition-all duration-300 group focus-within:ring-2 focus-within:ring-lime-400"
+              style={{
+                background: '#f8fafc',
+                border: '1.5px solid #e5e7eb',
+              }}>
+              <span className="flex-1 text-sm font-mono break-all select-all transition-colors duration-200"
+                style={{ color: '#000000', fontWeight: 500, lineHeight: 1.5 }}>
+                {url}
+              </span>
               <button
                 type="button"
                 onClick={handleCopy}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all shrink-0
-                  ${copied ? 'bg-emerald-100 text-emerald-700' : 'bg-white border border-gray-200 text-gray-600 hover:border-blue-300 hover:text-blue-600 shadow-sm'}`}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0',
+                  padding: '6px 8px', flexShrink: 0,
+                  borderRadius: '7px', border: 'none', cursor: 'pointer',
+                  transition: 'all 0.2s cubic-bezier(0.34, 1.3, 0.64, 1)',
+                  ...(copied
+                    ? { background: 'linear-gradient(135deg, #f0fce8, #e8fad1)', boxShadow: '0 1px 3px rgba(101,163,13,0.15)' }
+                    : { background: 'linear-gradient(160deg, #b5f053 0%, #84cc16 40%, #65a30d 100%)', boxShadow: '0 2px 4px rgba(101,163,13,0.2)' }
+                  ),
+                }}
+                onMouseEnter={e => { if (!copied) { e.currentTarget.style.boxShadow = '0 4px 8px rgba(101,163,13,0.28)'; e.currentTarget.style.transform = 'translateY(-2px)'; } }}
+                onMouseLeave={e => { if (!copied) { e.currentTarget.style.boxShadow = '0 2px 4px rgba(101,163,13,0.2)'; e.currentTarget.style.transform = 'translateY(0)'; } }}
               >
-                {copied ? CheckIcon : CopyIcon}
-                {copied ? 'Copied!' : 'Copy'}
+                {copied ? (
+                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                ) : (
+                  <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" strokeWidth="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
+                )}
               </button>
             </div>
           </div>
 
-          {/* UTM helper */}
-          <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 space-y-2">
-            <p className="text-xs font-semibold text-blue-700 flex items-center gap-1.5">
-              <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeWidth="2" strokeLinecap="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" /></svg>
-              Ad Platform Usage Tips
-            </p>
-            <ul className="text-xs text-blue-600 space-y-1 list-disc list-inside">
-              <li><strong>Google Ads:</strong> Paste as the Final URL in your ad group</li>
-              <li><strong>Meta Ads:</strong> Use as Website URL in the ad creative</li>
-              <li>Add UTM params: <code className="bg-blue-100 px-1 rounded">?utm_source=google&utm_campaign=...</code></li>
-              <li>Leads submitted via this URL appear automatically in the <strong>Leads</strong> page</li>
-            </ul>
-          </div>
-
-          {/* Open in new tab */}
-          <a href={url} target="_blank" rel="noopener noreferrer"
-            className="flex items-center justify-center gap-2 w-full px-4 py-2.5 border-2 border-blue-200 text-blue-700 rounded-xl text-sm font-medium hover:bg-blue-50 transition-colors">
-            <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-              <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+          {/* Preview button */}
+          <a
+            href={url} target="_blank" rel="noopener noreferrer"
+            className="modal-section"
+            style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '7px',
+              padding: '10px 16px',
+              borderRadius: '10px',
+              fontSize: '13px', fontWeight: 600, color: '#1a3a00',
+              textDecoration: 'none',
+              background: 'linear-gradient(160deg, #b5f053 0%, #84cc16 40%, #65a30d 100%)',
+              border: 'none',
+              boxShadow: '0 2px 6px rgba(101,163,13,0.22)',
+              transition: 'all 0.3s cubic-bezier(0.34, 1.3, 0.64, 1)',
+              cursor: 'pointer',
+              position: 'relative',
+              overflow: 'hidden',
+              marginTop: '8px',
+              paddingTop: '14px',
+              borderTop: '1px solid rgba(132, 204, 22, 0.3)',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.boxShadow = '0 6px 16px rgba(101,163,13,0.35)';
+              e.currentTarget.style.transform = 'translateY(-3px) scale(1.02)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.boxShadow = '0 2px 6px rgba(101,163,13,0.22)';
+              e.currentTarget.style.transform = 'translateY(0) scale(1)';
+            }}
+          >
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24">
+              <path stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
                 d="M10 6H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
             Preview Landing Page
@@ -623,6 +812,9 @@ const CompanyCampaigns = () => {
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [editData, setEditData] = useState(null);
   const [rowToToggle, setRowToToggle] = useState(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [rowToDelete, setRowToDelete] = useState(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // NEW: import modal
   const [importModalOpen, setImportModalOpen] = useState(false);
@@ -644,24 +836,52 @@ const CompanyCampaigns = () => {
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [searchText, setSearchText] = useState('');
+  const [inputSearch, setInputSearch] = useState('');
   const [searchKey, setSearchKey] = useState('title');
   const [status, setStatus] = useState('');
+  const [refreshTick, setRefreshTick] = useState(0);
+  const searchDebounceRef = useRef(null);
 
-  const loadCampaigns = async () => {
-    try {
-      setLoading(true);
-      const data = await getCampaignsByCompany(user._id, { page, limit: pageSize, search: searchText, status });
-      const items = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
-      setValues(items);
-      setTotal(data.total || items.length);
-    } catch (_) {
-      setValues([]); setTotal(0);
-    } finally {
-      setLoading(false);
-    }
+  const handleSearchChange = (e) => {
+    const val = e.target.value;
+    setInputSearch(val);
+    clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => {
+      setPage(1);
+      setSearchText(val);
+    }, 350);
   };
 
-  useEffect(() => { loadCampaigns(); }, [page, pageSize, searchText, status]);
+  const handleStatusChange = (val) => {
+    setStatus(val);
+    setPage(1);
+  };
+
+  // loadCampaigns is used imperatively after create/delete — all params explicit
+  const loadCampaigns = () => setRefreshTick(t => t + 1);
+
+  useEffect(() => {
+    if (!user?._id) return;
+    let cancelled = false;
+    const fetch = async () => {
+      try {
+        setLoading(true);
+        const data = await getCampaignsByCompany(user._id, {
+          page, limit: pageSize, search: searchText, status,
+        });
+        if (cancelled) return;
+        const items = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
+        setValues(items);
+        setTotal(data.total ?? items.length);
+      } catch (_) {
+        if (!cancelled) { setValues([]); setTotal(0); }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    fetch();
+    return () => { cancelled = true; };
+  }, [user?._id, page, pageSize, searchText, status, refreshTick]);
 
   const handleAddField = () => {
     if (!newField.name.trim() || !newField.label.trim()) return;
@@ -701,14 +921,15 @@ const CompanyCampaigns = () => {
 
       if (editData) {
         await updateCampaign(editData._id, payload);
+        toast.success('Campaign updated successfully!');
       } else {
         await createCampaign(payload);
+        toast.success('Campaign created successfully!');
       }
       setModalOpen(false);
       loadCampaigns();
     } catch (e) {
-      alert(e.response?.data?.message || 'Failed to save campaign');
-      console.error('Error saving campaign:', e);
+      toast.error(e.response?.data?.message || 'Failed to save campaign');
     } finally {
       setModalLoading(false);
     }
@@ -736,21 +957,49 @@ const CompanyCampaigns = () => {
     {
       key: 'formStructure', label: 'Fields',
       render: v => (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
+        <span
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-linear-to-br from-lime-50 to-lime-100 text-lime-700 border border-lime-200 transition-all duration-300 hover:shadow-md hover:scale-105 cursor-default"
+          style={{
+            boxShadow: '0 0 16px rgba(132, 204, 22, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8)'
+          }}
+        >
+          <span className="w-2 h-2 rounded-full bg-lime-500" style={{ boxShadow: '0 0 6px rgba(132, 204, 22, 0.5)' }} />
           {Array.isArray(v) ? v.length : 0} fields
         </span>
       ),
     },
     {
       key: 'status', label: 'Status',
-      filter: { options: STATUS_OPTIONS, value: status, onChange: setStatus },
-      render: v => (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${STATUS_COLORS[v] || 'bg-gray-100 text-gray-600 border-gray-200'}`}>
-          {STATUS_LABELS[v] || v || '—'}
-        </span>
-      ),
+      filter: { options: STATUS_OPTIONS, value: status, onChange: handleStatusChange },
+      render: v => {
+        const statusStyles = {
+          1: { label: 'Active', bgGradient: 'from-rose-50 to-rose-100', text: 'text-rose-700', border: 'border-rose-300', dot: 'bg-rose-500', glow: 'rgba(239, 68, 68, 0.15)' },
+          2: { label: 'Started', bgGradient: 'from-emerald-50 to-emerald-100', text: 'text-emerald-700', border: 'border-emerald-300', dot: 'bg-emerald-500', glow: 'rgba(16, 185, 129, 0.15)' },
+          3: { label: 'Completed', bgGradient: 'from-slate-50 to-slate-100', text: 'text-slate-600', border: 'border-slate-300', dot: 'bg-slate-400', glow: 'rgba(100, 116, 139, 0.15)' },
+          4: { label: 'Cancelled', bgGradient: 'from-red-50 to-red-100', text: 'text-red-700', border: 'border-red-300', dot: 'bg-red-500', glow: 'rgba(239, 68, 68, 0.15)' },
+        };
+        const style = statusStyles[v] || statusStyles[1];
+        return (
+          <span
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-linear-to-br ${style.bgGradient} ${style.text} border ${style.border} transition-all duration-300 hover:shadow-md hover:scale-105 cursor-default`}
+            style={{
+              boxShadow: `0 0 16px ${style.glow}, inset 0 1px 0 rgba(255, 255, 255, 0.8)`
+            }}
+          >
+            <span className={`w-2 h-2 rounded-full ${style.dot}`} style={{ boxShadow: `0 0 6px ${style.glow}` }} />
+            {style.label}
+          </span>
+        );
+      },
     },
-    { key: 'createdAt', label: 'Created', format: 'date' },
+    {
+      key: 'createdAt', label: 'Created',
+      render: v => {
+        if (!v) return '—';
+        const date = new Date(v);
+        return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      }
+    },
   ];
 
   // Helper to export leads as CSV
@@ -781,6 +1030,7 @@ const CompanyCampaigns = () => {
     {
       key: 'edit', label: 'Edit', icon: EditIcon,
       onClick: row => {
+        hapticTap();
         setEditData(row);
         setModalFields({
           title: row.title || '',
@@ -793,8 +1043,17 @@ const CompanyCampaigns = () => {
       },
     },
     {
+      key: 'link', label: 'Get Link', icon: LinkIcon,
+      onClick: row => {
+        hapticTap();
+        setUrlCampaign(row);
+        setUrlModalOpen(true);
+      },
+    },
+    {
       key: 'import', label: 'Import Leads', icon: ImportIcon,
       onClick: row => {
+        hapticTap();
         setImportModalOpen(true);
       },
     },
@@ -802,9 +1061,33 @@ const CompanyCampaigns = () => {
       key: 'export', label: 'Export Leads', icon: (
         <svg width="15" height="15" fill="none" viewBox="0 0 24 24"><path stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M12 4v12m0 0-4-4m4 4 4-4M4 20h16" /></svg>
       ),
-      onClick: row => handleExportLeads(row),
+      onClick: row => { hapticTap(); handleExportLeads(row); },
+    },
+    {
+      key: 'delete', label: 'Delete', icon: TrashIcon, variant: 'danger',
+      onClick: row => {
+        hapticTap();
+        setRowToDelete(row);
+        setDeleteConfirmOpen(true);
+      },
     },
   ];
+
+  const handleConfirmDelete = async () => {
+    if (!rowToDelete) return;
+    setDeleteLoading(true);
+    try {
+      await deleteCampaign(rowToDelete._id);
+      setDeleteConfirmOpen(false);
+      setRowToDelete(null);
+      loadCampaigns();
+    } catch (e) {
+      alert(e.response?.data?.message || 'Failed to delete campaign');
+      console.error('Delete campaign error', e);
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
 
 
 
@@ -835,8 +1118,8 @@ const CompanyCampaigns = () => {
           <input
             type="text"
             placeholder="Search..."
-            value={searchText}
-            onChange={e => setSearchText(e.target.value)}
+            value={inputSearch}
+            onChange={handleSearchChange}
             style={{
               padding: '9px 14px 9px 36px',
               background: 'linear-gradient(175deg, #f4f6f3 0%, #ffffff 100%)',
@@ -874,32 +1157,32 @@ const CompanyCampaigns = () => {
               fontFamily: 'inherit',
               fontSize: '13.5px',
               fontWeight: '600',
-              color: '#831843',
+              color: '#4a1a6b',
               letterSpacing: '0.01em',
               whiteSpace: 'nowrap',
               position: 'relative',
               border: 'none',
-              background: 'linear-gradient(160deg, #fbcfe8 0%, #fbcfe8 40%, #fb7185 100%)',
+              background: 'linear-gradient(160deg, #f0d4f5 0%, #e8b8f0 40%, #dd7bdf 100%)',
               borderTop: '1px solid rgba(255,255,255,0.45)',
               borderBottom: '1px solid rgba(0,0,0,0.15)',
-              boxShadow: '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 4px 0 #db2777, 0 5px 6px rgba(219,39,119,0.35), 0 10px 20px rgba(251,113,133,0.20)',
+              boxShadow: '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 4px 0 #b84fbf, 0 5px 6px rgba(184,79,191,0.35), 0 10px 20px rgba(221,123,223,0.20)',
               transition: 'all 0.15s ease',
             }}
             onMouseEnter={e => {
               e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 5px 0 #db2777, 0 7px 10px rgba(219,39,119,0.40), 0 14px 24px rgba(251,113,133,0.22)';
+              e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 5px 0 #b84fbf, 0 7px 10px rgba(184,79,191,0.40), 0 14px 24px rgba(221,123,223,0.22)';
             }}
             onMouseLeave={e => {
               e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 4px 0 #db2777, 0 5px 6px rgba(219,39,119,0.35), 0 10px 20px rgba(251,113,133,0.20)';
+              e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 4px 0 #b84fbf, 0 5px 6px rgba(184,79,191,0.35), 0 10px 20px rgba(221,123,223,0.20)';
             }}
             onMouseDown={e => {
               e.currentTarget.style.transform = 'translateY(3px)';
-              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.12) inset, 0 1px 0 rgba(255,255,255,0.25) inset, 0 1px 0 #db2777, 0 2px 4px rgba(219,39,119,0.25)';
+              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.12) inset, 0 1px 0 rgba(255,255,255,0.25) inset, 0 1px 0 #b84fbf, 0 2px 4px rgba(184,79,191,0.25)';
             }}
             onMouseUp={e => {
               e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 5px 0 #db2777, 0 7px 10px rgba(219,39,119,0.40), 0 14px 24px rgba(251,113,133,0.22)';
+              e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 5px 0 #b84fbf, 0 7px 10px rgba(184,79,191,0.40), 0 14px 24px rgba(221,123,223,0.22)';
             }}
           >
             Import Leads
@@ -955,139 +1238,251 @@ const CompanyCampaigns = () => {
         </div>
       </div>
 
-      <Table
-        headers={tableHeaders} values={values} total={total} page={page} pageSize={pageSize}
-        loading={loading} onPageChange={setPage}
-        onPageSizeChange={size => { setPageSize(size); setPage(1); }}
-        actions={actions}
-      />
+      {loading ? (
+        <SkeletonLoader
+          rows={pageSize}
+          columns={7}
+          columnWidths={['40px', '1fr', '2fr', '110px', '120px', '140px', '160px']}
+          isMultiLine={[false, false, true, false, false, false, false]}
+        />
+      ) : (
+        <Table
+          headers={tableHeaders} values={values} total={total} page={page} pageSize={pageSize}
+          loading={false} onPageChange={setPage}
+          onPageSizeChange={size => { setPageSize(size); setPage(1); }}
+          actions={actions}
+        />
+      )}
 
 
       {/* ── Add/Edit Campaign Modal ── */}
       <Modal
         isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => !modalLoading && setModalOpen(false)}
         title={editData ? 'Edit Campaign' : 'Create Campaign'}
         size="lg"
+        icon={
+          <div className="w-9 h-9 rounded-lg bg-linear-to-br from-lime-100 to-lime-50 flex items-center justify-center shrink-0 border border-lime-200">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" className="text-lime-700">
+              <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" />
+              <rect x="9" y="3" width="6" height="4" rx="1" />
+              <path d="M9 12h6M9 16h4" />
+            </svg>
+          </div>
+        }
         footer={
-          !modalLoading && (
-            <div className="flex justify-end gap-3">
-              <button type="button"
-                className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all"
-                onClick={() => setModalOpen(false)}>
-                Cancel
-              </button>
-              <button type="submit" form="campaign-form"
-                className="px-5 py-2.5 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 transition-all shadow-sm">
-                {editData ? 'Save Changes' : 'Create Campaign'}
-              </button>
-            </div>
-          )
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              disabled={modalLoading}
+              className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 hover:border-gray-400 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={() => { hapticTap(); setModalOpen(false); }}
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="campaign-form"
+              disabled={modalLoading}
+              style={{
+                padding: '6px 16px', fontSize: '13px', fontWeight: '600', color: '#1a3a00',
+                border: 'none', borderRadius: '6px', cursor: modalLoading ? 'not-allowed' : 'pointer',
+                background: 'linear-gradient(160deg, #b5f053 0%, #84cc16 40%, #65a30d 100%)',
+                boxShadow: '0 2px 6px rgba(101,163,13,0.2)', transition: 'all 0.25s ease',
+                opacity: modalLoading ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '8px',
+              }}
+              onClick={() => !modalLoading && hapticTap()}
+              onMouseEnter={e => { if (!modalLoading) { e.currentTarget.style.boxShadow = '0 4px 12px rgba(101,163,13,0.3)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
+              onMouseLeave={e => { if (!modalLoading) { e.currentTarget.style.boxShadow = '0 2px 6px rgba(101,163,13,0.2)'; e.currentTarget.style.transform = 'translateY(0)'; } }}
+            >
+              {modalLoading && (
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ animation: 'spin 1s linear infinite' }}>
+                  <circle cx="12" cy="12" r="10" opacity="0.3" />
+                  <path d="M12 2a10 10 0 0 1 10 10" />
+                </svg>
+              )}
+              <span>{modalLoading ? (editData ? 'Saving...' : 'Creating...') : (editData ? 'Save Changes' : 'Create Campaign')}</span>
+            </button>
+          </div>
         }
       >
-        {modalLoading
-          ? <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" /></div>
-          : (
-            <form id="campaign-form" onSubmit={e => { e.preventDefault(); handleSubmit(); }} className="space-y-5">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input label="Campaign Title" name="title" placeholder="e.g. Q1 Lead Drive"
+        <form id="campaign-form" onSubmit={e => { e.preventDefault(); handleSubmit(); }} style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '2px' }}>
+
+          {/* ══════ Section 1: Core Campaign Info ══════ */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {/* Title + Status row */}
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+              {/* Title field */}
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: '13px', fontWeight: 700, color: '#111827', marginBottom: '6px', letterSpacing: '0.4px' }}>Campaign Title</div>
+                <Input
+                  name="title"
+                  placeholder="e.g. Q1 Lead Drive"
                   value={modalFields.title}
-                  onChange={e => setModalFields(p => ({ ...p, title: e.target.value }))} required />
-                {/* Status dropdown only in edit mode */}
-                {editData && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Status</label>
-                    <select
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                      value={modalFields.status}
-                      onChange={e => setModalFields(p => ({ ...p, status: Number(e.target.value) }))}
-                    >
-                      {STATUS_OPTIONS.filter(opt => opt.value !== '').map(opt => (
-                        <option key={opt.value} value={opt.value}>{opt.label}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-              <Input label="Description" name="description" type="textarea"
-                placeholder="What is this campaign about?"
-                value={modalFields.description}
-                onChange={e => setModalFields(p => ({ ...p, description: e.target.value }))} />
-
-              {/* Form Builder */}
-              <div>
-                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 border-b border-gray-100 pb-2">
-                  Lead Capture Form Fields
-                </h3>
-                <div className="bg-gray-50 rounded-lg border border-gray-200 p-4 space-y-3">
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    <Input label="Field Key" name="fname" placeholder="e.g. phone_number"
-                      value={newField.name} onChange={e => setNewField(p => ({ ...p, name: e.target.value }))} />
-                    <Input label="Display Label" name="flabel" placeholder="e.g. Phone Number"
-                      value={newField.label} onChange={e => setNewField(p => ({ ...p, label: e.target.value }))} />
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1.5">Field Type</label>
-                      <select
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                        value={newField.type}
-                        onChange={e => setNewField(p => ({ ...p, type: e.target.value }))}>
-                        {FIELD_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
-                      </select>
-                    </div>
-                    <Input label="Placeholder" name="fplaceholder" placeholder="Optional hint"
-                      value={newField.placeholder} onChange={e => setNewField(p => ({ ...p, placeholder: e.target.value }))} />
-                    {['dropdown', 'radio', 'checkbox'].includes(newField.type) && (
-                      <Input label="Options (comma-separated)" name="foptions" placeholder="Yes, No, Maybe"
-                        value={newField.options} onChange={e => setNewField(p => ({ ...p, options: e.target.value }))} />
-                    )}
-                    <div className="flex items-center gap-2 mt-6">
-                      <input type="checkbox" id="isReq" checked={newField.isRequired}
-                        onChange={e => setNewField(p => ({ ...p, isRequired: e.target.checked }))}
-                        className="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
-                      <label htmlFor="isReq" className="text-sm text-gray-700 cursor-pointer select-none">Required</label>
-                    </div>
-                  </div>
-                  <button type="button" onClick={handleAddField}
-                    className="px-4 py-2 bg-gray-800 text-white text-sm rounded-lg hover:bg-gray-900 transition-colors">
-                    + Add Field
-                  </button>
-
-                  {modalFields.formStructure.length > 0 && (
-                    <div className="mt-2 space-y-2 max-h-48 overflow-y-auto pr-1">
-                      {modalFields.formStructure.map((field, idx) => (
-                        <div key={idx} className="flex items-center justify-between bg-white border border-gray-200 rounded-lg px-3 py-2.5 shadow-sm">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <span className="text-xs font-mono bg-gray-100 text-gray-600 px-2 py-0.5 rounded shrink-0">{field.type}</span>
-                            <span className="text-sm font-medium text-gray-800 truncate">{field.label}</span>
-                            <span className="text-xs text-gray-400 hidden sm:inline truncate">{field.name}</span>
-                            {field.isRequired && <span className="text-xs text-red-500 font-medium shrink-0">*</span>}
-                          </div>
-                          <button type="button"
-                            onClick={() => setModalFields(p => ({ ...p, formStructure: p.formStructure.filter((_, i) => i !== idx) }))}
-                            className="text-red-400 hover:text-red-600 p-1 rounded hover:bg-red-50 ml-2 shrink-0">
-                            {XIcon}
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {modalFields.formStructure.length === 0 && (
-                    <p className="text-xs text-gray-400 text-center py-2">No fields added yet.</p>
-                  )}
-                </div>
+                  onChange={e => setModalFields(p => ({ ...p, title: e.target.value }))}
+                  disabled={modalLoading}
+                  required
+                />
               </div>
 
-              {/* ── NEW: note about URL generation ── */}
-              {!editData && (
-                <div className="flex items-start gap-2.5 px-3.5 py-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-700">
-                  <svg className="shrink-0 mt-0.5" width="14" height="14" fill="none" viewBox="0 0 24 24">
-                    <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
-                  </svg>
-                  After creating this campaign, a <strong>public landing page URL</strong> will be generated automatically. Use it in Google Ads, Meta Ads, or any other ad platform to capture leads directly into this campaign.
+              {/* Status field (edit mode only) */}
+              {editData && (
+                <div style={{ flex: '0 0 130px' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#111827', marginBottom: '6px', letterSpacing: '0.4px' }}>Status</div>
+                  <select
+                    style={{ width: '100%', padding: '9px 18px', borderRadius: '8px', border: '2px solid #e5e7eb', outline: 'none', fontSize: '13px', color: '#111827', backgroundColor: '#fafbfc', fontFamily: 'inherit', fontWeight: 500, transition: 'all 0.2s ease', cursor: 'pointer', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }}
+                    value={modalFields.status}
+                    onChange={e => setModalFields(p => ({ ...p, status: Number(e.target.value) }))}
+                    disabled={modalLoading}
+                    onFocus={e => { e.target.style.borderColor = '#84cc16'; e.target.style.boxShadow = '0 0 0 3px rgba(132,204,22,0.12), inset 0 1px 2px rgba(0,0,0,0.05)'; }}
+                    onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'inset 0 1px 2px rgba(0,0,0,0.05)'; }}
+                  >
+                    {STATUS_OPTIONS.filter(o => o.value !== '').map(o => (
+                      <option key={o.value} value={o.value}>{o.label}</option>
+                    ))}
+                  </select>
                 </div>
               )}
-            </form>
+            </div>
+
+            {/* Description field */}
+            <div>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#111827', marginBottom: '6px', letterSpacing: '0.4px' }}>Description</div>
+              <textarea
+                rows={3}
+                placeholder="What is this campaign about? (Optional context for the team)"
+                value={modalFields.description}
+                onChange={e => setModalFields(p => ({ ...p, description: e.target.value }))}
+                disabled={modalLoading}
+                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '2px solid #e5e7eb', outline: 'none', fontSize: '13px', color: '#111827', backgroundColor: '#fafbfc', fontFamily: 'inherit', fontWeight: 400, resize: 'vertical', minHeight: '72px', maxHeight: '140px', transition: 'all 0.2s ease', boxSizing: 'border-box', lineHeight: '1.6', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)' }}
+                onFocus={e => { e.target.style.borderColor = '#84cc16'; e.target.style.boxShadow = '0 0 0 3px rgba(132,204,22,0.12), inset 0 1px 2px rgba(0,0,0,0.05)'; }}
+                onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'inset 0 1px 2px rgba(0,0,0,0.05)'; }}
+              />
+            </div>
+          </div>
+
+          {/* ═══ Visual Divider ═══ */}
+          <div style={{ height: '1px', background: 'linear-gradient(90deg, #e5e7eb, #f3f4f6, #e5e7eb)', margin: '4px 0' }} />
+
+          {/* ══════ Section 2: Lead Capture Form ══════ */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 800, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.1em', paddingBottom: '2px' }}>
+              <span style={{ background: 'linear-gradient(135deg, #84cc16, #65a30d)', backgroundClip: 'text', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontWeight: 700 }}>Lead Capture Fields</span>
+            </div>
+
+            {/* Field builder section */}
+            <div style={{ background: 'linear-gradient(135deg, #fafbfc 0%, #f8fafc 100%)', border: '1.5px solid #e9ecef', borderRadius: '10px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+
+              {/* Input row with labels */}
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                {[
+                  { key: 'name', label: 'Field Key', placeholder: 'e.g. phone_number', flex: '1 1 100px', minWidth: '90px' },
+                  { key: 'label', label: 'Label', placeholder: 'e.g. Phone Number', flex: '1 1 100px', minWidth: '90px' },
+                  { key: 'type', label: 'Type', placeholder: 'text', isSelect: true, flex: '0 0 95px' },
+                  { key: 'placeholder', label: 'Placeholder', placeholder: 'optional', flex: '1 1 90px', minWidth: '80px' },
+                ].map(({ key, label, placeholder, flex, minWidth, isSelect }) => (
+                  <div key={key} style={{ flex, minWidth: minWidth || '70px' }}>
+                    <label style={{ fontSize: '10px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '5px', opacity: 0.9 }}>{label}</label>
+                    {isSelect ? (
+                      <select
+                        style={{ width: '100%', padding: '7px 9px', fontSize: '12px', fontWeight: 500, border: '1.5px solid #d1d5db', borderRadius: '7px', outline: 'none', color: '#111827', backgroundColor: '#fff', fontFamily: 'inherit', cursor: 'pointer', transition: 'all 0.15s ease', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.03)' }}
+                        value={newField.type}
+                        onChange={e => setNewField(p => ({ ...p, type: e.target.value }))}
+                        disabled={modalLoading}
+                        onFocus={e => { e.target.style.borderColor = '#84cc16'; e.target.style.boxShadow = '0 0 0 2px rgba(132,204,22,0.15), inset 0 1px 2px rgba(0,0,0,0.03)'; }}
+                        onBlur={e => { e.target.style.borderColor = '#d1d5db'; e.target.style.boxShadow = 'inset 0 1px 2px rgba(0,0,0,0.03)'; }}
+                      >
+                        {FIELD_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                      </select>
+                    ) : (
+                      <input
+                        style={{ width: '100%', padding: '7px 9px', fontSize: '12px', fontWeight: 500, border: '1.5px solid #d1d5db', borderRadius: '7px', outline: 'none', color: '#111827', backgroundColor: '#fff', fontFamily: 'inherit', transition: 'all 0.15s ease', boxSizing: 'border-box', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.03)' }}
+                        type="text"
+                        placeholder={placeholder}
+                        value={newField[key] || ''}
+                        onChange={e => setNewField(p => ({ ...p, [key]: e.target.value }))}
+                        disabled={modalLoading}
+                        onFocus={e => { e.target.style.borderColor = '#84cc16'; e.target.style.boxShadow = '0 0 0 2px rgba(132,204,22,0.15), inset 0 1px 2px rgba(0,0,0,0.03)'; }}
+                        onBlur={e => { e.target.style.borderColor = '#d1d5db'; e.target.style.boxShadow = 'inset 0 1px 2px rgba(0,0,0,0.03)'; }}
+                      />
+                    )}
+                  </div>
+                ))}
+
+                {/* Options field (conditional) */}
+                {['dropdown', 'radio', 'checkbox'].includes(newField.type) && (
+                  <div style={{ flex: '1 1 110px', minWidth: '100px' }}>
+                    <label style={{ fontSize: '10px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '5px', opacity: 0.9 }}>Options</label>
+                    <input
+                      style={{ width: '100%', padding: '7px 9px', fontSize: '12px', fontWeight: 500, border: '1.5px solid #d1d5db', borderRadius: '7px', outline: 'none', color: '#111827', backgroundColor: '#fff', fontFamily: 'inherit', transition: 'all 0.15s ease', boxSizing: 'border-box', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.03)' }}
+                      type="text"
+                      placeholder="a, b, c"
+                      value={newField.options || ''}
+                      onChange={e => setNewField(p => ({ ...p, options: e.target.value }))}
+                      disabled={modalLoading}
+                      onFocus={e => { e.target.style.borderColor = '#84cc16'; e.target.style.boxShadow = '0 0 0 2px rgba(132,204,22,0.15), inset 0 1px 2px rgba(0,0,0,0.03)'; }}
+                      onBlur={e => { e.target.style.borderColor = '#d1d5db'; e.target.style.boxShadow = 'inset 0 1px 2px rgba(0,0,0,0.03)'; }}
+                    />
+                  </div>
+                )}
+
+                {/* Required checkbox + Add button */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 500, color: '#4b5563', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', paddingBottom: '2px' }}>
+                    <input type="checkbox" checked={newField.isRequired}
+                      onChange={e => setNewField(p => ({ ...p, isRequired: e.target.checked }))}
+                      style={{ accentColor: '#84cc16', cursor: 'pointer', width: '16px', height: '16px' }} />
+                    <span>Required</span>
+                  </label>
+                  <button type="button" onClick={handleAddField} disabled={modalLoading}
+                    style={{ padding: '7px 12px', fontSize: '12px', fontWeight: 600, color: '#1a3a00', border: 'none', borderRadius: '7px', cursor: modalLoading ? 'not-allowed' : 'pointer', background: 'linear-gradient(160deg, #b5f053 0%, #84cc16 40%, #65a30d 100%)', boxShadow: '0 2px 4px rgba(101,163,13,0.2)', whiteSpace: 'nowrap', transition: 'all 0.2s ease', opacity: modalLoading ? 0.6 : 1, transform: 'translateY(0)' }}
+                    onMouseEnter={e => { if (!modalLoading) { e.currentTarget.style.boxShadow = '0 4px 8px rgba(101,163,13,0.25)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
+                    onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 4px rgba(101,163,13,0.2)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                  >
+                    + Add Field
+                  </button>
+                </div>
+              </div>
+
+              {/* Field list/chips */}
+              {modalFields.formStructure.length > 0 ? (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '92px', overflowY: 'auto', borderTop: '1px solid rgba(229,231,235,0.5)', paddingTop: '8px' }}>
+                  {modalFields.formStructure.map((field, idx) => (
+                    <div key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, #f0fce8 0%, #e8fad1 100%)', border: '1px solid #d1faa0', borderRadius: '22px', padding: '4px 10px 4px 10px', fontSize: '12px', fontWeight: 500, color: '#2d5a0e', lineHeight: 1.4, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
+                      <span style={{ fontWeight: 600 }}>{field.label}</span>
+                      <span style={{ color: '#7ba82e', fontSize: '11px', fontWeight: 400 }}>({field.type})</span>
+                      {field.isRequired && <span style={{ color: '#dc2626', fontWeight: 700, fontSize: '13px', lineHeight: 1 }}>*</span>}
+                      <button type="button"
+                        onClick={() => setModalFields(p => ({ ...p, formStructure: p.formStructure.filter((_, i) => i !== idx) }))}
+                        style={{ color: '#a3a3a3', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px 0 4px', fontSize: '16px', lineHeight: 1, display: 'flex', alignItems: 'center', transition: 'color 0.15s' }}
+                        onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                        onMouseLeave={e => e.currentTarget.style.color = '#a3a3a3'}
+                      >×</button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p style={{ fontSize: '12px', color: '#d1d5db', textAlign: 'center', margin: 0, padding: '6px 0 4px', fontWeight: 500 }}>No fields added yet. Start by filling in the form above.</p>
+              )}
+            </div>
+          </div>
+
+          {/* ═══ Visual Divider ═══ */}
+          {!editData && (
+            <>
+              <div style={{ height: '1px', background: 'linear-gradient(90deg, #e5e7eb, #f3f4f6, #e5e7eb)', margin: '4px 0' }} />
+
+              {/* Info banner */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '11px 12px', background: 'linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%)', border: '1px solid #fbbbcc', borderRadius: '9px', fontSize: '12px', color: '#be185d', lineHeight: '1.5', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
+                <svg style={{ flexShrink: 0, marginTop: '2px' }} width="16" height="16" fill="none" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" opacity="0.3" />
+                  <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" d="M13 16h-1v-4h-1m1-4h.01" />
+                </svg>
+                <span><strong>Pro tip:</strong> A public landing page URL will be auto-generated. Use it in Google Ads, Meta Ads, or any platform to capture leads directly.</span>
+              </div>
+            </>
           )}
+        </form>
       </Modal>
 
       {/* ── Confirm Toggle Modal ── */}
@@ -1098,6 +1493,17 @@ const CompanyCampaigns = () => {
         title="Change Status"
         message={<>Change status for <span className="font-semibold">"{rowToToggle?.title}"</span>?</>}
         confirmLabel="Confirm"
+      />
+
+      {/* Delete confirm dialog */}
+      <ConfirmDialog
+        isOpen={deleteConfirmOpen}
+        onClose={() => { setDeleteConfirmOpen(false); setRowToDelete(null); }}
+        onConfirm={handleConfirmDelete}
+        title="Delete Campaign"
+        message={<>Are you sure you want to delete <span className="font-semibold text-gray-800">"{rowToDelete?.title}"</span>? This action cannot be undone.</>}
+        confirmLabel={deleteLoading ? 'Deleting…' : 'Delete'}
+        variant="danger"
       />
 
       {/* ── Import Leads Modal ── */}
