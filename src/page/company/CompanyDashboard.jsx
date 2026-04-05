@@ -6,6 +6,9 @@ import { fetchCreditUsage } from '../../api/creditApi';
 import { fetchPerformanceMetrics } from '../../api/performanceApi';
 import { fetchAnalyticsData } from '../../api/analyticsApi';
 import { Bar, Line, Pie } from 'react-chartjs-2';
+import { companyDashboard } from '../../api/companyAndPackageApi';
+import PropTypes from 'prop-types';
+import dayjs from 'dayjs';
 
 // ─── Design tokens (mirrors Table.js / PageHeader style) ───────────────────
 const s = {
@@ -369,138 +372,294 @@ const chartOpts = (label) => ({
   } : undefined,
 });
 
-const AdvancedAnalyticsDashboard = () => {
-  const [analytics, setAnalytics] = useState(null);
-  const [loading, setLoading] = useState(true);
+// Error Boundary for Chart Components
+class ChartErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch(error, info) {
+    // Log error if needed
+  }
+  render() {
+    if (this.state.hasError) {
+      return <div style={{ color: 'red', fontSize: 13, padding: 12, background: '#fff0f0', borderRadius: 8 }}>Unable to render chart.</div>;
+    }
+    return this.props.children;
+  }
+}
+ChartErrorBoundary.propTypes = { children: PropTypes.node };
 
-  useEffect(() => {
-    fetchAnalyticsData()
-      .then(setAnalytics)
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return (
-    <>
-      {[0,1,2].map(i => (
-        <div key={i} style={{ ...s.panel, padding: '20px 22px', marginBottom: 16 }}>
-          <Shimmer h={200} r={10} />
-        </div>
-      ))}
-    </>
-  );
-
-  if (!analytics) return (
-    <div style={{ ...s.panel, padding: '24px', textAlign: 'center', color: '#9aaa98', fontSize: 13 }}>
-      No analytics data available.
-    </div>
-  );
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <Section title="Total Leads">
-        <Bar data={analytics.totalLeads} options={chartOpts('bar')} />
-      </Section>
-      <Section title="Conversion Rate">
-        <Line data={analytics.conversionRate} options={chartOpts('line')} />
-      </Section>
-      <Section title="Revenue Growth">
-        <Pie data={analytics.revenueGrowth} options={chartOpts('pie')} />
-      </Section>
-    </div>
-  );
+const isValidChartData = (data) => {
+  if (!data || !Array.isArray(data.labels) || !Array.isArray(data.datasets)) return false;
+  if (data.labels.length === 0 || data.datasets.length === 0) return false;
+  return data.datasets.every(ds => Array.isArray(ds.data) && ds.data.length === data.labels.length);
 };
 
-// ─── Main Dashboard ──────────────────────────────────────────────────────────
 const CompanyDashboard = () => {
   const { user } = useAuth();
-  const [stats, setStats] = useState({});
+  const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [credits, setCredits] = useState(0);
+  const [error, setError] = useState(null);
+  const [filters, setFilters] = useState({
+    startDate: '',
+    endDate: '',
+    campigneId: '',
+  });
+
+  // For date input defaults
+  const today = dayjs().format('YYYY-MM-DD');
+  const weekAgo = dayjs().subtract(7, 'day').format('YYYY-MM-DD');
 
   useEffect(() => {
-    const fetchStats = async () => {
+    const fetchDashboard = async () => {
       setLoading(true);
+      setError(null);
       try {
-        const companyId = user?.company?._id || JSON.parse(localStorage.getItem('_id'));
+        const companyId = user?._id || user?.company?._id;
         if (!companyId) throw new Error('Company ID not found');
-        const res = await fetch(`/api/company/${companyId}/stats`);
-        const data = await res.json();
-        setStats(data.stats);
-        setCredits(data.credits);
+        const params = { companyId };
+        if (filters.startDate) params.startDate = filters.startDate;
+        if (filters.endDate) params.endDate = filters.endDate;
+        if (filters.campigneId) params.campigneId = filters.campigneId;
+        const data = await companyDashboard(params);
+        setDashboard(data);
       } catch (e) {
-        console.error('Failed to fetch stats:', e);
+        setError(e.message || 'Failed to load dashboard');
       } finally {
         setLoading(false);
       }
     };
-    fetchStats();
-  }, [user]);
+    fetchDashboard();
+  }, [user, filters]);
 
+  // Card data
+  const cardData = dashboard?.cardData || {};
   const statCards = [
     {
-      label: 'Total Leads', value: stats.totalLeads, bgColor: 'bg-blue-50',
+      label: 'Total Leads', value: cardData.totalLeads, bgColor: 'bg-blue-50',
       icon: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" /></svg>,
     },
     {
-      label: 'Conversion Rate', value: stats.conversionRate != null ? `${stats.conversionRate}%` : undefined, bgColor: 'bg-green-50',
-      icon: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.745 3.745 0 011.043 3.296A3.745 3.745 0 0121 12z" /></svg>,
+      label: 'Total Conversions', value: cardData.totalConversions, bgColor: 'bg-green-50',
+      icon: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12c0 1.268-.63 2.39-1.593 3.068a3.745 3.745 0 01-1.043 3.296 3.745 3.745 0 01-3.296 1.043A3.745 3.745 0 0112 21c-1.268 0-2.39-.63-3.068-1.593a3.746 3.746 0 01-3.296-1.043 3.745 3.745 0 01-1.043-3.296A3.745 3.745 0 013 12c0-1.268.63-2.39 1.593-3.068a3.745 3.745 0 011.043-3.296 3.746 3.746 0 013.296-1.043A3.746 3.746 0 0112 3c1.268 0 2.39-.63 3.068 1.593a3.746 3.746 0 013.296 1.043 3.745 3.745 0 011.043 3.296A3.745 3.745 0 0121 12z" /></svg>,
     },
     {
-      label: 'Revenue Growth', value: stats.revenueGrowth != null ? `$${stats.revenueGrowth}` : undefined, bgColor: 'bg-yellow-50',
-      icon: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M2.25 18L9 11.25l4.306 4.307a11.95 11.95 0 015.814-5.519l2.74-1.22m0 0l-5.94-2.28m5.94 2.28l-2.28 5.941" /></svg>,
-    },
-    {
-      label: 'Active Campaigns', value: stats.activeCampaigns, bgColor: 'bg-purple-50',
+      label: 'Active Campaigns', value: cardData.activeCampignes, bgColor: 'bg-purple-50',
       icon: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M10.34 15.84c-.688-.06-1.386-.09-2.09-.09H7.5a4.5 4.5 0 110-9h.75c.704 0 1.402-.03 2.09-.09m0 9.18c.253.962.584 1.892.985 2.783.247.55.06 1.21-.463 1.511l-.657.38c-.551.318-1.26.117-1.527-.461a20.845 20.845 0 01-1.44-4.282m3.102.069a18.03 18.03 0 01-.59-4.59c0-1.586.205-3.124.59-4.59m0 9.18a23.848 23.848 0 018.835 2.535M10.34 6.66a23.847 23.847 0 008.835-2.535m0 0A23.74 23.74 0 0018.795 3m.38 1.125a23.91 23.91 0 011.014 5.395m-1.014 8.855c-.118.38-.245.754-.38 1.125m.38-1.125a23.91 23.91 0 001.014-5.395m0-3.46c.495.413.811 1.035.811 1.73 0 .695-.316 1.317-.811 1.73m0-3.46a24.347 24.347 0 010 3.46" /></svg>,
     },
     {
-      label: 'Credits Remaining', value: credits, bgColor: 'bg-red-50',
+      label: 'Credits Left', value: cardData.creditsLeft, bgColor: 'bg-red-50',
       icon: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a2.25 2.25 0 00-2.25-2.25H15a3 3 0 11-6 0H5.25A2.25 2.25 0 003 12m18 0v6a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 18v-6m18 0V9M3 12V9m18 0a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 9m18 0V6a2.25 2.25 0 00-2.25-2.25H5.25A2.25 2.25 0 003 6v3" /></svg>,
+    },
+    {
+      label: 'Employees', value: cardData.totalEmployees, bgColor: 'bg-yellow-50',
+      icon: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>,
+    },
+    {
+      label: 'New Leads (Month)', value: cardData.newLeadsThisMonth, bgColor: 'bg-blue-50',
+      icon: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>,
+    },
+    {
+      label: 'Lost Leads', value: cardData.lostLeads, bgColor: 'bg-red-50',
+      icon: <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>,
     },
   ];
 
+  // Graph data
+  const leadGraph = dashboard?.graphData?.leadGraph || [];
+  const conversionGraph = dashboard?.graphData?.conversionGraph || [];
+
+  // Employee performance
+  const employeePerformance = dashboard?.employeePerformance || [];
+
+  // Suggestions
+  const suggestions = dashboard?.suggestions || [];
+
   return (
-    <div style={{ padding: '8px 4px' }}>
-
-      {/* ── Page header ── */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 22, fontWeight: 700, color: '#1e2b1a', marginBottom: 2 }}>
-          Dashboard
+    <div style={{ padding: '12px 0', maxWidth: 1100, margin: '0 auto' }}>
+      <div style={{ marginBottom: 16 }}>
+        <div style={{ fontSize: 20, fontWeight: 700, color: '#1e2b1a', marginBottom: 1 }}>
+          Company Dashboard
         </div>
-        <div style={{ fontSize: 13, color: '#9aaa98' }}>
-          Welcome back, {user?.name || 'there'} — here's what's happening.
+        <div style={{ fontSize: 12, color: '#7a8a7a' }}>
+          Welcome, {user?.name || 'there'} — quick stats & insights below.
         </div>
       </div>
-
-      {/* ── Stat cards row ── */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-        gap: 14,
-        marginBottom: 20,
+      {/* Filter Bar */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 18, background: '#f8faf7', borderRadius: 8, padding: '10px 14px' }}>
+        <label style={{ fontSize: 12, color: '#374140', fontWeight: 500 }}>
+          Start Date:
+          <input
+            type="date"
+            value={filters.startDate || weekAgo}
+            max={filters.endDate || today}
+            onChange={e => setFilters(f => ({ ...f, startDate: e.target.value }))}
+            style={{ marginLeft: 6, fontSize: 12, padding: '2px 6px', borderRadius: 4, border: '1px solid #e4ebe0' }}
+          />
+        </label>
+        <label style={{ fontSize: 12, color: '#374140', fontWeight: 500 }}>
+          End Date:
+          <input
+            type="date"
+            value={filters.endDate || today}
+            min={filters.startDate || weekAgo}
+            max={today}
+            onChange={e => setFilters(f => ({ ...f, endDate: e.target.value }))}
+            style={{ marginLeft: 6, fontSize: 12, padding: '2px 6px', borderRadius: 4, border: '1px solid #e4ebe0' }}
+          />
+        </label>
+        <label style={{ fontSize: 12, color: '#374140', fontWeight: 500 }}>
+          Campaign ID:
+          <input
+            type="text"
+            value={filters.campigneId}
+            placeholder="(optional)"
+            onChange={e => setFilters(f => ({ ...f, campigneId: e.target.value }))}
+            style={{ marginLeft: 6, fontSize: 12, padding: '2px 6px', borderRadius: 4, border: '1px solid #e4ebe0', width: 120 }}
+          />
+        </label>
+        <button
+          style={{ ...s.limeBtn, fontSize: 12, padding: '6px 16px', marginLeft: 8 }}
+          onClick={() => setFilters({ startDate: '', endDate: '', campigneId: '' })}
+        >
+          Reset
+        </button>
+      </div>
+      {error && <div style={{ color: 'red', marginBottom: 10 }}>{error}</div>}
+      {/* Stat cards */}
+      <div className="dashboard-cards" style={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 18,
+        marginBottom: 28,
+        justifyContent: 'flex-start',
       }}>
-        {statCards.map((c, i) => <StatCard key={i} {...c} loading={loading} />)}
+        {statCards.map((c, i) => (
+          <div
+            key={i}
+            style={{
+              minWidth: 180,
+              maxWidth: 210,
+              flex: '1 1 16%',
+              background: '#fff',
+              borderRadius: 14,
+              boxShadow: '0 2px 12px 0 rgba(60,80,120,0.06)',
+              margin: '0 0 0 0',
+              padding: 0,
+              display: 'flex',
+              alignItems: 'stretch',
+              transition: 'box-shadow 0.18s',
+              border: '1px solid #f0f2f7',
+            }}
+          >
+            <StatCard {...c} loading={loading} />
+          </div>
+        ))}
       </div>
-
-      {/* ── Main content grid ── */}
-      <div style={{
+      {/* Graphs */}
+      <div className="dashboard-grid" style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))',
-        gap: 14,
-        alignItems: 'start',
+        gridTemplateColumns: '1fr 1fr',
+        gap: 12,
+        marginBottom: 18,
+        width: '100%',
+        maxWidth: '100%',
       }}>
-        <ActivityTimeline />
-        <CreditTracker />
-        <PerformanceEvaluation />
-        <DataImportExportTools />
+        <Section title="Leads">
+          <ChartErrorBoundary>
+            {loading ? <Shimmer h={120} r={8} /> : isValidChartData({
+              labels: leadGraph.map(g => g._id),
+              datasets: [{ label: 'Leads', data: leadGraph.map(g => g.count), backgroundColor: '#84cc16' }],
+            }) ? (
+              <Bar
+                data={{
+                  labels: leadGraph.map(g => g._id),
+                  datasets: [{ label: 'Leads', data: leadGraph.map(g => g.count), backgroundColor: '#84cc16' }],
+                }}
+                options={{ ...chartOpts('bar'), plugins: { legend: { display: false } }, aspectRatio: 2.2 }}
+              />
+            ) : <div style={{ color: '#9aaa98', fontSize: 12 }}>No data.</div>}
+          </ChartErrorBoundary>
+        </Section>
+        <Section title="Conversions">
+          <ChartErrorBoundary>
+            {loading ? <Shimmer h={120} r={8} /> : isValidChartData({
+              labels: conversionGraph.map(g => g._id),
+              datasets: [{ label: 'Conversions', data: conversionGraph.map(g => g.count), borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.1)', tension: 0.4 }],
+            }) ? (
+              <Line
+                data={{
+                  labels: conversionGraph.map(g => g._id),
+                  datasets: [{ label: 'Conversions', data: conversionGraph.map(g => g.count), borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.1)', tension: 0.4 }],
+                }}
+                options={{ ...chartOpts('line'), plugins: { legend: { display: false } }, aspectRatio: 2.2 }}
+              />
+            ) : <div style={{ color: '#9aaa98', fontSize: 12 }}>No data.</div>}
+          </ChartErrorBoundary>
+        </Section>
       </div>
-
-      {/* ── Analytics (full width) ── */}
-      <div style={{ marginTop: 14 }}>
-        <AdvancedAnalyticsDashboard />
-      </div>
-
+      {/* Employee Performance */}
+      <Section title="Employee Performance">
+        {loading ? <Shimmer h={80} r={8} /> : employeePerformance.length === 0 ? (
+          <div style={{ color: '#9aaa98', fontSize: 12 }}>No employee data.</div>
+        ) : (
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, minWidth: 340 }}>
+              <thead>
+                <tr style={{ background: '#f8faf7' }}>
+                  <th style={{ textAlign: 'left', padding: '6px 8px', fontWeight: 600 }}>Name</th>
+                  <th style={{ textAlign: 'left', padding: '6px 8px', fontWeight: 600 }}>Leads</th>
+                  <th style={{ textAlign: 'left', padding: '6px 8px', fontWeight: 600 }}>Conversions</th>
+                  <th style={{ textAlign: 'left', padding: '6px 8px', fontWeight: 600 }}>Email</th>
+                </tr>
+              </thead>
+              <tbody>
+                {employeePerformance.map((emp, i) => (
+                  <tr key={i} style={{ borderBottom: '1px solid #e4ebe0' }}>
+                    <td style={{ padding: '6px 8px' }}>{emp.employee?.name || '—'}</td>
+                    <td style={{ padding: '6px 8px' }}>{emp.totalLeads ?? '—'}</td>
+                    <td style={{ padding: '6px 8px' }}>{emp.conversions ?? '—'}</td>
+                    <td style={{ padding: '6px 8px' }}>{emp.employee?.email || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </Section>
+      {/* Suggestions */}
+      <Section title="Suggestions & Alerts">
+        {loading ? <Shimmer h={40} r={8} /> : suggestions.length === 0 ? (
+          <div style={{ color: '#9aaa98', fontSize: 12 }}>No suggestions.</div>
+        ) : (
+          <ul style={{ margin: 0, padding: 0, listStyle: 'disc inside', color: '#374140', fontSize: 12 }}>
+            {suggestions.map((s, i) => <li key={i} style={{ marginBottom: 4 }}>{s}</li>)}
+          </ul>
+        )}
+      </Section>
+      {/* Responsive tweaks for mobile/tabs */}
+      <style>{`
+        @media (max-width: 1200px) {
+          .dashboard-cards > div { flex-basis: 30% !important; }
+        }
+        @media (max-width: 900px) {
+          .dashboard-cards > div { flex-basis: 45% !important; }
+          .dashboard-grid { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 600px) {
+          .dashboard-cards > div { flex-basis: 100% !important; max-width: 100% !important; }
+          .dashboard-grid, .dashboard-cards { grid-template-columns: 1fr !important; }
+          .dashboard-cards { gap: 8px !important; }
+        }
+        .dashboard-cards > div:hover {
+          box-shadow: 0 4px 18px 0 rgba(60,80,120,0.13);
+          border-color: #e0e7ef;
+        }
+      `}</style>
     </div>
   );
 };

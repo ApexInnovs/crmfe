@@ -58,3 +58,8 @@ export const LoginCompany = async (data) => {
   const response = await axiosInstance.post("/company/login", data);
   return response.data;
 };
+
+export const companyDashboard = async (params = {}) => {
+  const response = await axiosInstance.get(`/dashboard/company`, { params });
+  return response.data;
+}

@@ -44,12 +44,12 @@ const companyRoutes = [
     icon: TbUserHeart,
     component: CompanyCustomers,
   },
-  {
-    id: "subscription",
-    label: "Subscription",
-    icon: TbCreditCard,
-    component: CompanySubscription,
-  },
+  // {
+  //   id: "subscription",
+  //   label: "Subscription",
+  //   icon: TbCreditCard,
+  //   component: CompanySubscription,
+  // },
 ];
 
 export default companyRoutes;
