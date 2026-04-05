@@ -29,6 +29,13 @@ export const deleteCampaign = async (id) => {
   return response.data;
 };
 
+export const searchCampaigns = async (companyId, search) => {
+  const response = await axiosInstance.get(`/campigne/company/${companyId}`, {
+    params: { search, limit: 50 },
+  });
+  return response.data.data || [];
+};
+
 // ─── LEADS ────────────────────────────────────────────────────────────────────
 
 export const createLead = async (data) => {
@@ -60,6 +67,13 @@ export const importLeadsFromFile = async (data) => {
   // data = { campaignId, leads: [...], company, createdBy }
   const response = await axiosInstance.post("/leads/import", data);
   return response.data;
+};
+
+export const exportLeads = async (campaignId) => {
+  const response = await axiosInstance.get("/leads", {
+    params: { campigne: campaignId, limit: 9999 },
+  });
+  return response.data.data || [];
 };
 
 // ─── CLIENTS ──────────────────────────────────────────────────────────────────
@@ -100,16 +114,22 @@ export const addClientNote = async (id, data) => {
 };
 
 export const fetchLeadPipeline = async (companyId) => {
-  const response = await axiosInstance.get('/leads/pipeline', { params: companyId ? { company: companyId } : {} });
+  const response = await axiosInstance.get("/leads/pipeline", {
+    params: companyId ? { company: companyId } : {},
+  });
   return response.data;
 };
 
 export const fetchActivityTimeline = async (companyId) => {
-  const response = await axiosInstance.get('/leads/activity-timeline', { params: companyId ? { company: companyId } : {} });
+  const response = await axiosInstance.get("/leads/activity-timeline", {
+    params: companyId ? { company: companyId } : {},
+  });
   return response.data;
 };
 
 export const fetchLeadInsights = async (companyId) => {
-  const response = await axiosInstance.get('/leads/insights', { params: companyId ? { company: companyId } : {} });
+  const response = await axiosInstance.get("/leads/insights", {
+    params: companyId ? { company: companyId } : {},
+  });
   return response.data;
 };

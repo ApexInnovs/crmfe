@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
 import Table from '../../components/common/Table';
 import { SkeletonLoader } from '../../components/common/Skeleton';
@@ -12,6 +13,8 @@ import {
   getCampaignsByCompany,
   importLeadsFromFile, // NEW: POST /leads/import  { campaignId, leads: [...] }
   deleteCampaign,
+  searchCampaigns,
+  exportLeads,
 } from '../../api/campigneAndLeadApi';
 import { DndProvider, useDrag, useDrop } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
@@ -197,9 +200,9 @@ async function parsePdf(file) {
 const ACCEPTED = '.csv,.xlsx,.xls,.pdf';
 
 
-function ImportLeadsModal({ isOpen, onClose, campaigns, onImported }) {
+function ImportLeadsModal({ isOpen, onClose, campaigns, onImported, preselectedCampaignId }) {
   const { user } = useAuth();
-  const [step, setStep] = useState(1); // 1=select campaign, 2=upload, 3=preview, 4=done
+  const [step, setStep] = useState(1);
   const [selectedCampaign, setSelectedCampaign] = useState('');
   const [externalCampaign, setExternalCampaign] = useState(false);
   const [externalCampaignName, setExternalCampaignName] = useState('');
@@ -210,42 +213,116 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported }) {
   const [parsing, setParsing] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
-  const fileRef = useRef();
+  const [campaignSearch, setCampaignSearch] = useState('');
+  const [campaignSearchResults, setCampaignSearchResults] = useState([]);
+  const [campaignSearchLoading, setCampaignSearchLoading] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const fileRef = useRef(null);
+  const searchInputRef = useRef(null);
+  const dropdownPortalRef = useRef(null);
 
-  // reset on open/close
+  // Auto-select campaign if preselected
+  useEffect(() => {
+    if (isOpen && preselectedCampaignId) {
+      setSelectedCampaign(preselectedCampaignId);
+      setStep(2);
+    }
+  }, [isOpen, preselectedCampaignId]);
+
+  // Debounced campaign search
+  useEffect(() => {
+    if (!campaignSearch.trim()) {
+      setCampaignSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setCampaignSearchLoading(true);
+      try {
+        const results = await searchCampaigns(user._id, campaignSearch);
+        setCampaignSearchResults(results);
+      } catch (err) {
+        console.error('Campaign search failed:', err);
+        setCampaignSearchResults([]);
+      } finally {
+        setCampaignSearchLoading(false);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [campaignSearch, user._id]);
+
+  // Close dropdown on click outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      const isClickOnInput = searchInputRef.current && searchInputRef.current.contains(e.target);
+      const isClickOnDropdown = dropdownPortalRef.current && dropdownPortalRef.current.contains(e.target);
+
+      if (!isClickOnInput && !isClickOnDropdown) {
+        setDropdownOpen(false);
+      }
+    };
+    if (dropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [dropdownOpen]);
+
+  // Update dropdown position when opening
+  useEffect(() => {
+    if (dropdownOpen && searchInputRef.current) {
+      const rect = searchInputRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + window.scrollY + 6,
+        left: rect.left + window.scrollX,
+        width: rect.width,
+      });
+    }
+  }, [dropdownOpen]);
+
+  // Reset on close
   useEffect(() => {
     if (!isOpen) {
-      setStep(1); setSelectedCampaign(''); setFile(null); setFileUrl('');
-      setParsedRows([]); setParseError(''); setImportResult(null);
-      setExternalCampaign(false); setExternalCampaignName('');
+      setStep(1);
+      setSelectedCampaign('');
+      setExternalCampaign(false);
+      setExternalCampaignName('');
+      setFile(null);
+      setFileUrl('');
+      setParsedRows([]);
+      setParseError('');
+      setParsing(false);
+      setImporting(false);
+      setImportResult(null);
+      setCampaignSearch('');
+      setCampaignSearchResults([]);
+      setDropdownOpen(false);
     }
   }, [isOpen]);
 
-  // Helper to fetch and parse file from URL
   const handleUrlParse = async () => {
-    setParseError('');
+    if (!fileUrl.trim()) return;
     setParsing(true);
+    setParseError('');
     try {
-      let rows = [];
-      if (!fileUrl) throw new Error('Please enter a file URL.');
-      const res = await fetch(fileUrl);
-      if (!res.ok) throw new Error('Failed to fetch file from URL.');
+      const res = await fetch(fileUrl.trim());
+      if (!res.ok) throw new Error('Failed to fetch file from URL');
       const urlLower = fileUrl.toLowerCase();
+      let rows = [];
       if (urlLower.endsWith('.csv')) {
         const text = await res.text();
         rows = parseCsv(text);
       } else if (urlLower.endsWith('.xlsx') || urlLower.endsWith('.xls')) {
         const blob = await res.blob();
-        const file = new File([blob], 'import.xlsx');
-        rows = await parseExcel(file);
+        const f2 = new File([blob], 'import.xlsx');
+        rows = await parseExcel(f2);
       } else {
         throw new Error('Only .csv, .xlsx, .xls URLs supported.');
       }
-      if (rows.length === 0) throw new Error('No data rows found in file.');
+      if (rows.length === 0) throw new Error('No data rows found.');
       setParsedRows(rows);
       setStep(3);
     } catch (err) {
-      setParseError(err.message || 'Failed to parse file from URL.');
+      setParseError(err.message || 'Failed to parse URL.');
     } finally {
       setParsing(false);
     }
@@ -279,6 +356,8 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported }) {
 
   const handleImport = async () => {
     setImporting(true);
+    setParseError('');
+    const toastId = toast.loading(`Importing ${parsedRows.length} leads...`);
     try {
       const result = await importLeadsFromFile({
         campaignId: externalCampaign ? undefined : selectedCampaign,
@@ -289,8 +368,15 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported }) {
       setImportResult(result);
       setStep(4);
       onImported?.();
+      if (result.failed > 0) {
+        toast.success(`Imported ${result.imported} leads (${result.failed} failed)`, { id: toastId });
+      } else {
+        toast.success(`Successfully imported ${result.imported} leads!`, { id: toastId });
+      }
     } catch (err) {
-      setParseError(err.message || 'Import failed.');
+      const msg = err.response?.data?.message || err.message || 'Import failed.';
+      setParseError(msg);
+      toast.error(msg, { id: toastId });
     } finally {
       setImporting(false);
     }
@@ -298,142 +384,327 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported }) {
 
   const previewHeaders = parsedRows.length > 0 ? Object.keys(parsedRows[0]) : [];
   const previewRows = parsedRows.slice(0, 5);
+  const selectedCampaignObj = campaigns.find(c => c._id === selectedCampaign);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl mx-4 overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 bg-linear-to-r from-violet-50 to-white">
-          <div className="flex items-center gap-3">
-            <span className="w-9 h-9 rounded-xl bg-violet-100 flex items-center justify-center text-violet-600">
-              <svg width="20" height="20" fill="none" viewBox="0 0 24 24">
-                <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                  d="M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1m-4-8-4-4m0 0L8 8m4-4v12" />
-              </svg>
-            </span>
-            <div>
-              <h2 className="text-base font-semibold text-gray-900">Import Leads</h2>
-              <p className="text-xs text-gray-400">Upload Excel, CSV or PDF with client data</p>
-            </div>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors">{XIcon}</button>
-        </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm p-4">
+      {/* Gradient backdrop base */}
+      <div className="absolute inset-0" style={{
+        background: 'linear-gradient(to bottom, rgba(220,220,225,0.5), rgba(180,180,190,0.6), rgba(140,140,150,0.8))',
+      }} />
+      {/* Grain overlay */}
+      <div className="absolute inset-0 pointer-events-none" style={{
+        filter: 'url(#modal-grain)', opacity: 1, mixBlendMode: 'multiply',
+      }} />
+      {/* Click to close */}
+      <div className="absolute inset-0 cursor-pointer" onClick={onClose} />
 
-        {/* Step indicators */}
-        <div className="flex items-center gap-1 px-6 pt-4">
-          {['Select Campaign', 'Upload File', 'Preview', 'Done'].map((label, i) => (
-            <React.Fragment key={i}>
-              <div className="flex items-center gap-1.5">
-                <span className={`w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center border-2 transition-all
-                  ${step > i + 1 ? 'bg-emerald-500 border-emerald-500 text-white'
-                    : step === i + 1 ? 'bg-violet-600 border-violet-600 text-white'
-                      : 'bg-white border-gray-200 text-gray-400'}`}>
-                  {step > i + 1 ? '✓' : i + 1}
-                </span>
-                <span className={`text-xs font-medium hidden sm:inline ${step === i + 1 ? 'text-violet-700' : 'text-gray-400'}`}>{label}</span>
+      <style>{`
+        @keyframes importModalEntrance { 
+          from { opacity: 0; transform: scale(0.94) translateY(12px); }
+          to { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        @keyframes importSlideUp {
+          from { opacity: 0; transform: translateY(16px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+        .import-modal-content {
+          animation: importModalEntrance 0.36s cubic-bezier(0.34, 1.3, 0.64, 1) both;
+        }
+        .import-section {
+          animation: importSlideUp 0.32s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+          opacity: 0;
+        }
+        .import-section:nth-child(1) { animation-delay: 0.08s; }
+        .import-section:nth-child(2) { animation-delay: 0.14s; }
+        .import-section:nth-child(3) { animation-delay: 0.20s; }
+        .import-section:nth-child(4) { animation-delay: 0.26s; }
+      `}</style>
+
+      {/* Modal */}
+      <div className="import-modal-content relative bg-white w-full max-w-2xl mx-auto overflow-hidden flex flex-col"
+        style={{
+          border: '1px solid rgba(200, 200, 200, 0.25)',
+          borderTop: '4px solid #84cc16',
+          borderRadius: '20px',
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8)',
+          maxHeight: '85vh',
+        }}>
+
+        {/* Header */}
+        <div className="px-5 pt-4 pb-3 bg-white shrink-0 relative" style={{
+          backgroundImage: 'radial-gradient(circle, rgba(132, 204, 22, 0.25) 2.5px, transparent 2.5px)',
+          backgroundSize: '12px 2px',
+          backgroundPosition: '0 100%',
+          backgroundRepeat: 'repeat-x',
+          paddingBottom: 'calc(0.75rem + 4px)'
+        }}>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3 flex-1 min-w-0">
+              <div className="shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300 hover:scale-110"
+                style={{
+                  background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
+                  border: '1px solid #bbf7d0',
+                  cursor: 'default',
+                }}>
+                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="#65a30d" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1m-4-8-4-4m0 0L8 8m4-4v12" />
+                </svg>
               </div>
-              {i < 3 && <div className={`flex-1 h-0.5 mx-1 rounded-full ${step > i + 1 ? 'bg-emerald-300' : 'bg-gray-100'}`} />}
-            </React.Fragment>
-          ))}
+              <div className="flex-1 min-w-0">
+                <h2 className="text-xl font-bold text-gray-900 leading-tight tracking-tight">Import Leads</h2>
+                {/* <p className="text-xs text-gray-400 mt-0.5">Upload Excel, CSV or PDF with client data</p> */}
+              </div>
+            </div>
+            <button onClick={onClose} aria-label="Close"
+              className="p-1.5 text-gray-400 hover:text-gray-700 transition-all duration-200 cursor-pointer rounded-full shrink-0"
+              style={{ width: '44px', height: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'rgba(132,204,22,0.1)'; e.currentTarget.style.color = '#4b7c0f'; }}
+              onMouseLeave={e => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = '#9ca3af'; }}
+            >{XIcon}</button>
+          </div>
+
+          {/* Step indicators */}
+          <div className="flex items-center gap-1 mt-3">
+            {['Campaign', 'Upload', 'Preview', 'Done'].map((label, i) => (
+              <React.Fragment key={i}>
+                <div className="flex items-center gap-1.5">
+                  <div className={`w-6 h-6 flex items-center justify-center transition-all`}>
+                    {step > i + 1 ? (
+                      <img src="/image.png" alt="done" style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
+                    ) : (
+                      <span className={step === i + 1 ? ' text-sm font-bold rounded-full w-6 h-6 flex items-center justify-center bg-lime-500 text-white' : 'text-gray-400 text-sm font-bold rounded-full w-6 h-6 flex items-center justify-center border-2 border-gray-200'}>{i + 1}</span>
+                    )}
+                  </div>
+                  <span className={`text-xs font-medium hidden sm:inline ${step === i + 1 ? 'text-lime-700 font-semibold' : 'text-gray-400'}`}>{label}</span>
+                </div>
+                {i < 3 && <div className={`flex-1 h-0.5 mx-1 rounded-full ${step > i + 1 ? 'bg-lime-300' : 'bg-gray-100'}`} />}
+              </React.Fragment>
+            ))}
+          </div>
         </div>
 
         {/* Body */}
-        <div className="px-6 py-5 min-h-55">
-          {/* Step 1 */}
+        <div className="px-5 py-4 overflow-y-auto flex-1" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+
+          {/* Step 1: Select Campaign */}
           {step === 1 && (
-            <div className="space-y-3">
-              <p className="text-sm text-gray-600 mb-2">Which campaign should these leads be linked to?</p>
-              <div className="flex items-center gap-3 mb-2">
-                <label className="flex items-center gap-2 text-xs font-medium">
-                  <input type="checkbox" checked={externalCampaign} onChange={e => setExternalCampaign(e.target.checked)} />
-                  Import for external/third-party campaign
-                </label>
-              </div>
+            <div className="import-section" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <p className="text-sm text-gray-600">Which campaign should these leads be linked to?</p>
+
+              <label className="flex items-center gap-2 text-xs font-medium text-gray-600 cursor-pointer">
+                <input type="checkbox" checked={externalCampaign} onChange={e => setExternalCampaign(e.target.checked)}
+                  style={{ accentColor: '#84cc16', width: '16px', height: '16px' }} />
+                Import for external/third-party campaign
+              </label>
+
               {!externalCampaign ? (
-                <div className="grid gap-2 max-h-64 overflow-y-auto pr-1">
-                  {campaigns.map((c) => (
-                    <button key={c._id} type="button"
-                      onClick={() => { setSelectedCampaign(c._id); setStep(2); }}
-                      className={`flex items-center gap-3 w-full text-left px-4 py-3 rounded-xl border-2 transition-all hover:border-violet-400
-                        ${selectedCampaign === c._id ? 'border-violet-500 bg-violet-50' : 'border-gray-200 bg-white'}`}>
-                      <span className="w-8 h-8 rounded-lg bg-violet-100 flex items-center justify-center text-violet-600 font-bold text-sm shrink-0">
-                        {c.title?.[0]?.toUpperCase() || 'C'}
-                      </span>
-                      <div className="min-w-0">
-                        <p className="text-sm font-semibold text-gray-800 truncate">{c.title}</p>
-                        <p className="text-xs text-gray-400 truncate">{c.description || 'No description'}</p>
-                      </div>
-                      <span className={`ml-auto text-xs px-2 py-0.5 rounded-full border font-medium shrink-0 ${STATUS_COLORS[c.status] || 'bg-gray-100 text-gray-500 border-gray-200'}`}>
-                        {STATUS_LABELS[c.status] || 'Unknown'}
-                      </span>
-                    </button>
-                  ))}
-                  {campaigns.length === 0 && (
-                    <p className="text-center text-sm text-gray-400 py-6">No campaigns found. Create one first.</p>
+                <>
+                  {/* Campaign dropdown search */}
+                  <div style={{ position: 'relative' }}>
+                    <div style={{ position: 'relative' }}>
+                      <svg style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#84cc16', pointerEvents: 'none' }}
+                        width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+                      </svg>
+                      <input ref={searchInputRef} type="text" placeholder="Search campaigns..."
+                        value={campaignSearch}
+                        onChange={e => { setCampaignSearch(e.target.value); setDropdownOpen(true); }}
+                        onFocus={() => { setDropdownOpen(true); }}
+                        style={{
+                          width: '100%', padding: '8px 12px 8px 32px', fontSize: '13px', border: '1.5px solid #e5e7eb',
+                          borderRadius: '10px', outline: 'none', background: '#fafbfc', boxSizing: 'border-box',
+                          transition: 'all 0.2s ease',
+                        }}
+                        onKeyDown={e => { if (e.key === 'Escape') setDropdownOpen(false); }}
+                      />
+                      {campaignSearchLoading && (
+                        <svg style={{ position: 'absolute', right: '10px', top: '50%', transform: 'translateY(-50%)', animation: 'spin 1s linear infinite', color: '#84cc16' }}
+                          width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <circle cx="12" cy="12" r="10" opacity="0.3" /><path d="M12 2A10 10 0 0 1 22 12" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Dropdown menu portal */}
+                  {dropdownOpen && createPortal(
+                    <div ref={dropdownPortalRef} style={{
+                      position: 'fixed', top: `${dropdownPosition.top}px`, left: `${dropdownPosition.left}px`, width: `${dropdownPosition.width}px`,
+                      background: 'white', border: '1.5px solid #e5e7eb', borderRadius: '10px',
+                      boxShadow: '0 8px 24px rgba(0, 0, 0, 0.12)',
+                      maxHeight: '240px', overflowY: 'auto', zIndex: 9999,
+                    }}>
+                      {campaignSearchLoading ? (
+                        <div style={{ padding: '20px', textAlign: 'center', fontSize: '13px', color: '#9ca3af' }}>Searching...</div>
+                      ) : campaignSearchResults.length > 0 ? (
+                        campaignSearchResults.map((c) => (
+                          <button key={c._id} type="button"
+                            onClick={() => { setSelectedCampaign(c._id); setDropdownOpen(false); setCampaignSearch(''); setStep(2); }}
+                            style={{
+                              display: 'flex', alignItems: 'center', gap: '10px', width: '100%', textAlign: 'left',
+                              padding: '10px 12px', cursor: 'pointer',
+                              border: 'none', background: 'white',
+                              transition: 'all 0.15s ease',
+                              borderBottom: '1px solid #f3f4f6',
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background = '#f9fafb'; }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'white'; }}
+                          >
+                            <div style={{
+                              width: '34px', height: '34px', borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              background: 'linear-gradient(135deg, #84cc16 0%, #65a30d 100%)', color: 'white',
+                              fontWeight: 700, fontSize: '13px', flexShrink: 0,
+                            }}>
+                              {c.title?.[0]?.toUpperCase() || 'C'}
+                            </div>
+                            <div style={{ minWidth: 0, flex: 1 }}>
+                              <p style={{ fontSize: '13px', fontWeight: 600, color: '#111827', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</p>
+                              <p style={{ fontSize: '11px', color: '#9ca3af', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.description || 'No description'}</p>
+                            </div>
+                            <span style={{
+                              fontSize: '11px', fontWeight: 700, padding: '4px 10px', borderRadius: '8px', flexShrink: 0, whiteSpace: 'nowrap',
+                              ...({
+                                1: { background: 'linear-gradient(135deg, #dcfce7, #bbf7d0)', color: '#166534', border: '1px solid #86efac' },
+                                2: { background: 'linear-gradient(135deg, #dbeafe, #bfdbfe)', color: '#1e40af', border: '1px solid #93c5fd' },
+                                3: { background: 'linear-gradient(135deg, #f3f4f6, #e5e7eb)', color: '#4b5563', border: '1px solid #d1d5db' },
+                                4: { background: 'linear-gradient(135deg, #fee2e2, #fecaca)', color: '#991b1b', border: '1px solid #fca5a5' },
+                              }[c.status] || { background: '#f3f4f6', color: '#4b5563', border: '1px solid #d1d5db' }),
+                            }}>
+                              {STATUS_LABELS[c.status] || 'Unknown'}
+                            </span>
+                          </button>
+                        ))
+                      ) : campaignSearch.trim() ? (
+                        <div style={{ padding: '20px', textAlign: 'center', fontSize: '13px', color: '#9ca3af' }}>No campaigns found</div>
+                      ) : (
+                        <div style={{ padding: '20px', textAlign: 'center', fontSize: '13px', color: '#9ca3af' }}>Start typing to search campaigns</div>
+                      )}
+                    </div>,
+                    document.body
                   )}
-                </div>
+
+                  <style>{`
+                    @keyframes spin {
+                      from { transform: translateY(-50%) rotate(0deg); }
+                      to { transform: translateY(-50%) rotate(360deg); }
+                    }
+                  `}</style>
+                </>
               ) : (
-                <div className="space-y-2">
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <Input label="External Campaign Name" value={externalCampaignName} onChange={e => setExternalCampaignName(e.target.value)} placeholder="e.g. Google Ads Campaign" />
-                  <button type="button" className="px-4 py-2 bg-violet-600 text-white rounded-lg mt-2" disabled={!externalCampaignName.trim()} onClick={() => setStep(2)}>
-                    Next: Upload/Import File
+                  <button type="button" disabled={!externalCampaignName.trim()} onClick={() => setStep(2)}
+                    style={{
+                      padding: '10px 20px', fontSize: '13px', fontWeight: 600, color: 'white', border: 'none',
+                      borderRadius: '10px', cursor: externalCampaignName.trim() ? 'pointer' : 'not-allowed',
+                      background: 'linear-gradient(160deg, #c0eb75 0%, #84cc16 40%, #65a30d 100%)',
+                      boxShadow: '0 2px 6px rgba(132,204,22,0.25)', opacity: externalCampaignName.trim() ? 1 : 0.5,
+                      transition: 'all 0.2s ease', alignSelf: 'flex-start',
+                    }}>
+                    Next: Upload File
                   </button>
                 </div>
               )}
             </div>
           )}
 
-          {/* Step 2 */}
+          {/* Step 2: Upload File */}
           {step === 2 && (
-            <div className="space-y-4">
-              <p className="text-sm text-gray-600">
-                Upload your client data file or import from a URL. Supported: <strong>.xlsx, .xls, .csv, .pdf</strong>
+            <div className="import-section" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {/* Selected campaign chip */}
+              {selectedCampaignObj && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderRadius: '10px',
+                  background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)', border: '1px solid #bbf7d0',
+                }}>
+                  <div style={{
+                    width: '24px', height: '24px', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    background: 'linear-gradient(135deg, #84cc16, #65a30d)', color: 'white', fontWeight: 700, fontSize: '11px',
+                  }}>{selectedCampaignObj.title?.[0]?.toUpperCase() || 'C'}</div>
+                  <span style={{ fontSize: '13px', fontWeight: 600, color: '#4b7c0f' }}>{selectedCampaignObj.title}</span>
+                  <button type="button" onClick={() => { setSelectedCampaign(''); setStep(1); }}
+                    style={{ marginLeft: 'auto', fontSize: '11px', color: '#84cc16', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}>
+                    Change
+                  </button>
+                </div>
+              )}
+
+              <p style={{ fontSize: '13px', color: '#6b7280' }}>
+                Upload your client data file. Supported: <strong>.xlsx, .xls, .csv, .pdf</strong>
               </p>
-              <div className="flex flex-col md:flex-row gap-4">
-                {/* File upload */}
-                <div className="flex-1">
+
+              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                {/* File upload dropzone */}
+                <div style={{ flex: '1 1 200px' }}>
                   <label
-                    className="flex flex-col items-center justify-center gap-3 w-full h-40 border-2 border-dashed border-violet-200 rounded-xl cursor-pointer bg-violet-50/40 hover:bg-violet-50 transition-colors group"
                     onClick={() => fileRef.current?.click()}
+                    style={{
+                      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px',
+                      width: '100%', height: '140px', border: '2px dashed #bbf7d0', borderRadius: '14px', cursor: 'pointer',
+                      background: 'linear-gradient(135deg, #f0fdf4 0%, #f2fde8 100%)',
+                      transition: 'all 0.2s ease',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#84cc16'; e.currentTarget.style.background = 'linear-gradient(135deg, #dcfce7 0%, #d8f5b8 100%)'; }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#bbf7d0'; e.currentTarget.style.background = 'linear-gradient(135deg, #f0fdf4 0%, #f2fde8 100%)'; }}
                   >
-                    <span className="w-12 h-12 rounded-2xl bg-violet-100 flex items-center justify-center text-violet-500 group-hover:scale-110 transition-transform">
-                      <svg width="24" height="24" fill="none" viewBox="0 0 24 24">
-                        <path stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+                    <div style={{
+                      width: '42px', height: '42px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      background: 'linear-gradient(135deg, #dcfce7, #bbf7d0)', transition: 'transform 0.2s ease',
+                    }}>
+                      <svg width="22" height="22" fill="none" viewBox="0 0 24 24">
+                        <path stroke="#65a30d" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                           d="M7 16a4 4 0 0 1-.88-7.903A5 5 0 1 1 15.9 6L16 6a5 5 0 0 1 1 9.9M15 13l-3-3m0 0-3 3m3-3v12" />
                       </svg>
-                    </span>
-                    <div className="text-center">
-                      <p className="text-sm font-semibold text-violet-700">Click to upload file</p>
-                      <p className="text-xs text-gray-400 mt-0.5">Excel, CSV, or PDF — max 10 MB</p>
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                      <p style={{ fontSize: '13px', fontWeight: 600, color: '#65a30d', margin: 0 }}>Click to upload file</p>
+                      <p style={{ fontSize: '11px', color: '#9ca3af', margin: '2px 0 0' }}>Max 10 MB</p>
                     </div>
                     <input ref={fileRef} type="file" accept={ACCEPTED} className="hidden" onChange={handleFileChange} />
                   </label>
                 </div>
+
                 {/* URL import */}
-                <div className="flex-1 flex flex-col gap-2">
-                  <label className="text-xs font-semibold text-gray-500">Or import from file URL (.csv, .xlsx, .xls)</label>
-                  <input
-                    type="text"
-                    className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-violet-500 outline-none"
-                    placeholder="Paste Excel/CSV file URL here"
-                    value={fileUrl}
-                    onChange={e => setFileUrl(e.target.value)}
+                <div style={{ flex: '1 1 200px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <label style={{ fontSize: '11px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Or import from URL</label>
+                  <input type="text" placeholder="Paste file URL here"
+                    value={fileUrl} onChange={e => setFileUrl(e.target.value)}
+                    style={{
+                      padding: '9px 12px', fontSize: '13px', border: '1.5px solid #e5e7eb', borderRadius: '10px',
+                      outline: 'none', background: '#fafbfc', boxSizing: 'border-box', transition: 'all 0.2s ease',
+                    }}
+                    onFocus={e => { e.target.style.borderColor = '#84cc16'; e.target.style.boxShadow = '0 0 0 3px rgba(132,204,22,0.12)'; }}
+                    onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none'; }}
                   />
-                  <button type="button" className="px-4 py-2 bg-violet-600 text-white rounded-lg mt-1" disabled={!fileUrl.trim() || parsing} onClick={handleUrlParse}>
-                    {parsing ? 'Parsing…' : 'Import from URL'}
+                  <button type="button" disabled={!fileUrl.trim() || parsing} onClick={handleUrlParse}
+                    style={{
+                      padding: '9px 16px', fontSize: '13px', fontWeight: 600, color: 'white', border: 'none',
+                      borderRadius: '10px', cursor: (!fileUrl.trim() || parsing) ? 'not-allowed' : 'pointer',
+                      background: 'linear-gradient(160deg, #c0eb75 0%, #84cc16 40%, #65a30d 100%)',
+                      boxShadow: '0 2px 6px rgba(132,204,22,0.2)', opacity: (!fileUrl.trim() || parsing) ? 0.5 : 1,
+                      transition: 'all 0.2s ease',
+                    }}>
+                    {parsing ? 'Parsing\u2026' : 'Import from URL'}
                   </button>
                 </div>
               </div>
+
               {parsing && (
-                <div className="flex flex-col items-center justify-center py-10 gap-3">
-                  <div className="w-10 h-10 rounded-full border-4 border-violet-200 border-t-violet-600 animate-spin" />
-                  <p className="text-sm text-gray-500">Parsing file…</p>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 0', gap: '10px' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', border: '3px solid #dcfce7', borderTopColor: '#84cc16', animation: 'spin 1s linear infinite' }} />
+                  <p style={{ fontSize: '13px', color: '#6b7280' }}>Parsing file\u2026</p>
                 </div>
               )}
+
               {parseError && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px',
+                  background: 'linear-gradient(135deg, #fef2f2, #fee2e2)', border: '1px solid #fca5a5',
+                  borderRadius: '10px', fontSize: '13px', color: '#dc2626',
+                }}>
                   <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" /><path d="M12 8v4m0 4h.01" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
                   {parseError}
                 </div>
@@ -441,32 +712,42 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported }) {
             </div>
           )}
 
-          {/* Step 3 */}
+          {/* Step 3: Preview */}
           {step === 3 && (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-gray-700">
-                  Found <strong>{parsedRows.length}</strong> rows in <span className="font-mono text-xs bg-gray-100 px-1.5 py-0.5 rounded">{file?.name}</span>
+            <div className="import-section" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <p style={{ fontSize: '13px', color: '#374151', margin: 0 }}>
+                  Found <strong>{parsedRows.length}</strong> rows in <span style={{
+                    fontFamily: 'monospace', fontSize: '12px', background: '#f3f4f6', padding: '2px 6px', borderRadius: '4px'
+                  }}>{file?.name || 'URL import'}</span>
                 </p>
                 <button type="button" onClick={() => { setFile(null); setParsedRows([]); setStep(2); }}
-                  className="text-xs text-violet-600 hover:underline">Change file</button>
+                  style={{ fontSize: '12px', color: '#84cc16', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}>
+                  Change file
+                </button>
               </div>
 
-              {/* Preview table */}
-              <div className="overflow-x-auto border border-gray-200 rounded-xl">
-                <table className="min-w-full text-xs">
-                  <thead className="bg-gray-50">
-                    <tr>
+              <div style={{ overflowX: 'auto', border: '1.5px solid #e5e7eb', borderRadius: '12px' }}>
+                <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
+                  <thead>
+                    <tr style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)' }}>
                       {previewHeaders.map((h) => (
-                        <th key={h} className="px-3 py-2 text-left font-semibold text-gray-600 border-b border-gray-200 whitespace-nowrap">{h}</th>
+                        <th key={h} style={{
+                          padding: '8px 12px', textAlign: 'left', fontWeight: 700, color: '#4b7c0f',
+                          borderBottom: '1.5px solid #bbf7d0', whiteSpace: 'nowrap', fontSize: '11px',
+                          textTransform: 'uppercase', letterSpacing: '0.05em',
+                        }}>{h}</th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {previewRows.map((row, ri) => (
-                      <tr key={ri} className={ri % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}>
+                      <tr key={ri} style={{ background: ri % 2 === 0 ? '#ffffff' : '#fafbfc' }}>
                         {previewHeaders.map((h) => (
-                          <td key={h} className="px-3 py-2 text-gray-700 max-w-40 truncate border-b border-gray-100">{String(row[h] ?? '')}</td>
+                          <td key={h} style={{
+                            padding: '7px 12px', color: '#374151', maxWidth: '160px', overflow: 'hidden',
+                            textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderBottom: '1px solid #f3f4f6',
+                          }}>{String(row[h] ?? '')}</td>
                         ))}
                       </tr>
                     ))}
@@ -474,32 +755,64 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported }) {
                 </table>
               </div>
               {parsedRows.length > 5 && (
-                <p className="text-xs text-gray-400 text-center">Showing 5 of {parsedRows.length} rows</p>
+                <p style={{ fontSize: '11px', color: '#9ca3af', textAlign: 'center', margin: 0 }}>Showing 5 of {parsedRows.length} rows</p>
               )}
+
               {parseError && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 12px',
+                  background: 'linear-gradient(135deg, #fef2f2, #fee2e2)', border: '1px solid #fca5a5',
+                  borderRadius: '10px', fontSize: '13px', color: '#dc2626',
+                }}>
                   {parseError}
                 </div>
               )}
             </div>
           )}
 
-          {/* Step 4 */}
+          {/* Step 4: Done */}
           {step === 4 && (
-            <div className="flex flex-col items-center justify-center py-6 gap-4 text-center">
-              <span className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center">
-                <svg width="32" height="32" fill="none" viewBox="0 0 24 24">
+            <div className="import-section" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px 0', gap: '14px', textAlign: 'center' }}>
+              <div style={{
+                width: '56px', height: '56px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                background: 'linear-gradient(135deg, #dcfce7, #bbf7d0)', boxShadow: '0 4px 12px rgba(34,197,94,0.15)',
+              }}>
+                <svg width="28" height="28" fill="none" viewBox="0 0 24 24">
                   <path stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
-              </span>
+              </div>
               <div>
-                <p className="text-base font-semibold text-gray-900">Import Successful!</p>
-                <p className="text-sm text-gray-500 mt-1">
-                  {importResult?.imported ?? parsedRows.length} leads have been added to your campaign.
+                <p style={{ fontSize: '16px', fontWeight: 700, color: '#111827', margin: 0 }}>Import Successful!</p>
+                <p style={{ fontSize: '13px', color: '#6b7280', marginTop: '4px' }}>
+                  {importResult?.imported ?? parsedRows.length} leads added.
+                  {importResult?.failed > 0 && <span style={{ color: '#dc2626' }}> {importResult.failed} rows failed.</span>}
                 </p>
               </div>
+
+              {importResult?.failedRows?.length > 0 && (
+                <div style={{
+                  width: '100%', maxHeight: '120px', overflowY: 'auto', padding: '10px', borderRadius: '10px',
+                  background: '#fef2f2', border: '1px solid #fecaca', textAlign: 'left',
+                }}>
+                  <p style={{ fontSize: '11px', fontWeight: 700, color: '#991b1b', marginBottom: '4px' }}>Failed Rows:</p>
+                  {importResult.failedRows.map((fr, i) => (
+                    <p key={i} style={{ fontSize: '11px', color: '#dc2626', margin: '2px 0' }}>
+                      Row {fr.rowIndex}: {fr.error}
+                    </p>
+                  ))}
+                </div>
+              )}
+
               <button onClick={onClose}
-                className="mt-2 px-6 py-2.5 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 transition-colors shadow-sm">
+                style={{
+                  marginTop: '4px', padding: '10px 24px', fontSize: '13px', fontWeight: 600, color: 'white',
+                  border: 'none', borderRadius: '10px', cursor: 'pointer',
+                  background: 'linear-gradient(160deg, #34d399, #059669)', boxShadow: '0 2px 6px rgba(5,150,105,0.25)',
+                  transition: 'all 0.2s ease',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(5,150,105,0.3)'; }}
+                onMouseLeave={e => { e.currentTarget.style.transform = 'translateY(0)'; e.currentTarget.style.boxShadow = '0 2px 6px rgba(5,150,105,0.25)'; }}
+              >
                 Done
               </button>
             </div>
@@ -507,16 +820,34 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported }) {
         </div>
 
         {/* Footer */}
-        {(step === 3) && (
-          <div className="flex justify-end gap-3 px-6 pb-5">
+        {step === 3 && (
+          <div style={{
+            display: 'flex', justifyContent: 'flex-end', gap: '10px', padding: '0 20px 16px',
+          }}>
             <button type="button" onClick={() => setStep(2)}
-              className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+              style={{
+                padding: '9px 18px', fontSize: '13px', fontWeight: 500, color: '#4b5563',
+                border: '1.5px solid #d1d5db', borderRadius: '10px', cursor: 'pointer',
+                background: 'white', transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={e => { e.currentTarget.style.borderColor = '#9ca3af'; e.currentTarget.style.background = '#f9fafb'; }}
+              onMouseLeave={e => { e.currentTarget.style.borderColor = '#d1d5db'; e.currentTarget.style.background = 'white'; }}
+            >
               Back
             </button>
             <button type="button" onClick={handleImport} disabled={importing}
-              className="px-5 py-2 text-sm font-medium text-white bg-violet-600 rounded-lg hover:bg-violet-700 transition-colors shadow-sm disabled:opacity-60 flex items-center gap-2">
-              {importing && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-              {importing ? 'Importing…' : `Import ${parsedRows.length} Leads`}
+              style={{
+                padding: '9px 22px', fontSize: '13px', fontWeight: 600, color: 'white', border: 'none',
+                borderRadius: '10px', cursor: importing ? 'not-allowed' : 'pointer',
+                background: 'linear-gradient(160deg, #c0eb75 0%, #84cc16 40%, #65a30d 100%)',
+                boxShadow: '0 2px 6px rgba(132,204,22,0.25)', opacity: importing ? 0.7 : 1,
+                transition: 'all 0.2s ease', display: 'flex', alignItems: 'center', gap: '8px',
+              }}
+              onMouseEnter={e => { if (!importing) { e.currentTarget.style.boxShadow = '0 4px 12px rgba(132,204,22,0.35)'; e.currentTarget.style.transform = 'translateY(-1px)'; } }}
+              onMouseLeave={e => { if (!importing) { e.currentTarget.style.boxShadow = '0 2px 6px rgba(132,204,22,0.25)'; e.currentTarget.style.transform = 'translateY(0)'; } }}
+            >
+              {importing && <span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 1s linear infinite', display: 'inline-block' }} />}
+              {importing ? 'Importing\u2026' : `Import ${parsedRows.length} Leads`}
             </button>
           </div>
         )}
@@ -818,6 +1149,7 @@ const CompanyCampaigns = () => {
 
   // NEW: import modal
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [importPreselectedCampaign, setImportPreselectedCampaign] = useState(null);
 
   // NEW: URL modal
   const [urlModalOpen, setUrlModalOpen] = useState(false);
@@ -1004,15 +1336,41 @@ const CompanyCampaigns = () => {
 
   // Helper to export leads as CSV
   const handleExportLeads = async (campaign) => {
+    const toastId = toast.loading(`Exporting ${campaign.title} leads...`);
     try {
-      // You may want to fetch leads for the campaign from API here
-      // For demo, just show a sample CSV
-      const res = await fetch(`/api/leads?campaignId=${campaign._id}`); // Adjust API as needed
-      if (!res.ok) throw new Error('Failed to fetch leads');
-      const leads = await res.json();
-      if (!Array.isArray(leads) || leads.length === 0) throw new Error('No leads found');
-      const headers = Object.keys(leads[0]);
-      const csv = [headers.join(',')].concat(leads.map(row => headers.map(h => '"' + String(row[h] ?? '').replace(/"/g, '""') + '"').join(','))).join('\r\n');
+      const leads = await exportLeads(campaign._id);
+
+      if (!leads || leads.length === 0) {
+        toast.error('No leads found to export', { id: toastId });
+        return;
+      }
+
+      // Flatten each lead: spread leadData fields + simple scalar fields only
+      const flatLeads = leads.map((lead) => {
+        const row = {};
+        // Dynamic form fields from leadData
+        if (lead.leadData && typeof lead.leadData === 'object') {
+          Object.entries(lead.leadData).forEach(([k, v]) => {
+            row[k] = v ?? '';
+          });
+        }
+        row['Status'] = lead.status ?? '';
+        row['Next Meeting'] = lead.nextMeetingDate
+          ? new Date(lead.nextMeetingDate).toLocaleDateString()
+          : '';
+        row['Assigned To'] = lead.assignedTo?.name ?? '';
+        row['Created At'] = lead.createdAt
+          ? new Date(lead.createdAt).toLocaleDateString()
+          : '';
+        return row;
+      });
+
+      const headers = Object.keys(flatLeads[0]);
+      const csv = [headers.join(',')].concat(
+        flatLeads.map(row =>
+          headers.map(h => '"' + String(row[h] ?? '').replace(/"/g, '""') + '"').join(',')
+        )
+      ).join('\r\n');
       const blob = new Blob([csv], { type: 'text/csv' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -1021,8 +1379,12 @@ const CompanyCampaigns = () => {
       document.body.appendChild(a);
       a.click();
       setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
-    } catch (e) {
-      alert(e.message || 'Export failed');
+
+      toast.success(`Exported ${leads.length} leads!`, { id: toastId });
+    } catch (error) {
+      const errorMsg = error.response?.data?.message || error.message || 'Export failed';
+      toast.error(errorMsg, { id: toastId });
+      console.error('Export error:', error);
     }
   };
 
@@ -1054,6 +1416,7 @@ const CompanyCampaigns = () => {
       key: 'import', label: 'Import Leads', icon: ImportIcon,
       onClick: row => {
         hapticTap();
+        setImportPreselectedCampaign(row._id);
         setImportModalOpen(true);
       },
     },
@@ -1454,10 +1817,10 @@ const CompanyCampaigns = () => {
                       {field.isRequired && <span style={{ color: '#dc2626', fontWeight: 700, fontSize: '13px', lineHeight: 1 }}>*</span>}
                       <button type="button"
                         onClick={() => setModalFields(p => ({ ...p, formStructure: p.formStructure.filter((_, i) => i !== idx) }))}
-                        style={{ color: '#a3a3a3', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px 0 4px', fontSize: '16px', lineHeight: 1, display: 'flex', alignItems: 'center', transition: 'color 0.15s' }}
+                        style={{ color: '#a3a3a3', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px 0 4px', fontSize: '14px', lineHeight: 1, display: 'flex', alignItems: 'center', transition: 'color 0.15s' }}
                         onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
                         onMouseLeave={e => e.currentTarget.style.color = '#a3a3a3'}
-                      >×</button>
+                      >{TrashIcon}</button>
                     </div>
                   ))}
                 </div>
@@ -1509,9 +1872,10 @@ const CompanyCampaigns = () => {
       {/* ── Import Leads Modal ── */}
       <ImportLeadsModal
         isOpen={importModalOpen}
-        onClose={() => setImportModalOpen(false)}
+        onClose={() => { setImportModalOpen(false); setImportPreselectedCampaign(null); }}
         campaigns={values}
         onImported={loadCampaigns}
+        preselectedCampaignId={importPreselectedCampaign}
       />
 
       {/* ── Campaign URL Modal ── */}

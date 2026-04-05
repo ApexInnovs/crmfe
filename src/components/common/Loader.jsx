@@ -1,8 +1,6 @@
 import React from 'react';
 
 const Loader = () => {
-  const letters = ['L', 'o', 'a', 'd', 'i', 'n', 'g'];
-
   return (
     <div style={{
       display: 'flex',
@@ -10,150 +8,247 @@ const Loader = () => {
       justifyContent: 'center',
       height: '100%',
       width: '100%',
-      minHeight: '340px',
+      minHeight: '100vh',
     }}>
       <style>{`
-        @keyframes spin-cw  { to { transform: rotate(360deg); } }
-        @keyframes spin-ccw { to { transform: rotate(-360deg); } }
-
-        @keyframes core-pulse {
-          0%,100% { transform: scale(1);   box-shadow: 0 0 0 0 rgba(99,102,241,0.5), 0 0 20px 4px rgba(99,102,241,0.2); }
-          50%      { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(99,102,241,0), 0 0 32px 8px rgba(99,102,241,0.35); }
+        .typewriter {
+          --blue: #5C86FF;
+          --blue-dark: #275EFE;
+          --key: #fff;
+          --paper: #EEF0FD;
+          --text: #D3D4EC;
+          --tool: #FBC56C;
+          --duration: 3s;
+          position: relative;
+          -webkit-animation: bounce05 var(--duration) linear infinite;
+          animation: bounce05 var(--duration) linear infinite;
         }
 
-        @keyframes sat-orbit {
-          0%   { transform: rotate(var(--start)) translateX(52px) rotate(calc(-1 * var(--start))); }
-          100% { transform: rotate(calc(var(--start) + 360deg)) translateX(52px) rotate(calc(-1 * (var(--start) + 360deg))); }
+        .typewriter .slide {
+          width: 92px;
+          height: 20px;
+          border-radius: 3px;
+          margin-left: 14px;
+          transform: translateX(14px);
+          background: linear-gradient(var(--blue), var(--blue-dark));
+          -webkit-animation: slide05 var(--duration) ease infinite;
+          animation: slide05 var(--duration) ease infinite;
         }
 
-        @keyframes spark {
-          0%   { transform: rotate(var(--a)) translateX(0px) scale(1); opacity: 1; }
-          100% { transform: rotate(var(--a)) translateX(70px) scale(0); opacity: 0; }
+        .typewriter .slide:before, .typewriter .slide:after,
+        .typewriter .slide i:before {
+          content: "";
+          position: absolute;
+          background: var(--tool);
         }
 
-        @keyframes ripple {
-          0%   { transform: scale(0.5); opacity: 0.6; }
-          100% { transform: scale(2.2); opacity: 0; }
+        .typewriter .slide:before {
+          width: 2px;
+          height: 8px;
+          top: 6px;
+          left: 100%;
         }
 
-        @keyframes progress {
-          0%   { width: 0%;   opacity: 1; }
-          80%  { width: 100%; opacity: 1; }
-          100% { width: 100%; opacity: 0; }
+        .typewriter .slide:after {
+          left: 94px;
+          top: 3px;
+          height: 14px;
+          width: 6px;
+          border-radius: 3px;
         }
 
-        @keyframes letter-wave {
-          0%,100% { transform: translateY(0px); }
-          50%      { transform: translateY(-5px); }
+        .typewriter .slide i {
+          display: block;
+          position: absolute;
+          right: 100%;
+          width: 6px;
+          height: 4px;
+          top: 4px;
+          background: var(--tool);
         }
 
-        .loader-ring-outer {
-          position: absolute; width: 120px; height: 120px;
-          border-radius: 50%;
-          border: 2px dashed rgba(99,102,241,0.35);
-          animation: spin-cw 8s linear infinite;
+        .typewriter .slide i:before {
+          right: 100%;
+          top: -2px;
+          width: 4px;
+          border-radius: 2px;
+          height: 14px;
         }
-        .loader-ring-mid {
-          position: absolute; width: 90px; height: 90px;
-          border-radius: 50%;
-          border: 2px solid transparent;
-          border-top-color: #6366f1; border-right-color: #818cf8;
-          animation: spin-ccw 1.2s cubic-bezier(0.6,0,0.4,1) infinite;
+
+        .typewriter .paper {
+          position: absolute;
+          left: 24px;
+          top: -26px;
+          width: 40px;
+          height: 46px;
+          border-radius: 5px;
+          background: var(--paper);
+          transform: translateY(46px);
+          -webkit-animation: paper05 var(--duration) linear infinite;
+          animation: paper05 var(--duration) linear infinite;
         }
-        .loader-ring-inner {
-          position: absolute; width: 66px; height: 66px;
-          border-radius: 50%;
-          border: 2px solid transparent;
-          border-bottom-color: #a5b4fc; border-left-color: #c7d2fe;
-          animation: spin-cw 0.9s cubic-bezier(0.6,0,0.4,1) infinite;
+
+        .typewriter .paper:before {
+          content: "";
+          position: absolute;
+          left: 6px;
+          right: 6px;
+          top: 7px;
+          border-radius: 2px;
+          height: 4px;
+          transform: scaleY(0.8);
+          background: var(--text);
+          box-shadow: 0 12px 0 var(--text), 0 24px 0 var(--text), 0 36px 0 var(--text);
         }
-        .loader-core {
-          width: 28px; height: 28px; border-radius: 50%;
-          background: linear-gradient(135deg, #6366f1, #818cf8);
-          animation: core-pulse 1.8s ease-in-out infinite;
+
+        .typewriter .keyboard {
+          width: 120px;
+          height: 56px;
+          margin-top: -10px;
+          z-index: 1;
+          position: relative;
         }
-        .loader-sat {
-          position: absolute; top: 50%; left: 50%;
-          border-radius: 50%;
-          animation: sat-orbit var(--dur) linear infinite;
+
+        .typewriter .keyboard:before, .typewriter .keyboard:after {
+          content: "";
+          position: absolute;
         }
-        .loader-spark {
-          position: absolute; width: 3px; height: 3px;
-          border-radius: 50%; background: #6366f1;
-          animation: spark 1.6s ease-out infinite;
-          animation-delay: var(--d);
+
+        .typewriter .keyboard:before {
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          border-radius: 7px;
+          background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+          transform: perspective(10px) rotateX(2deg);
+          transform-origin: 50% 100%;
         }
-        .loader-ripple {
-          position: absolute; width: 60px; height: 60px;
-          border-radius: 50%;
-          border: 1.5px solid rgba(99,102,241,0.5);
-          animation: ripple 2.4s ease-out infinite;
+
+        .typewriter .keyboard:after {
+          left: 2px;
+          top: 25px;
+          width: 11px;
+          height: 4px;
+          border-radius: 2px;
+          box-shadow: 15px 0 0 var(--key), 30px 0 0 var(--key), 45px 0 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 10px 0 var(--key);
+          -webkit-animation: keyboard05 var(--duration) linear infinite;
+          animation: keyboard05 var(--duration) linear infinite;
         }
-        .loader-bar-fill {
-          height: 100%; border-radius: 99px;
-          background: linear-gradient(90deg, #6366f1, #a5b4fc, #6366f1);
-          animation: progress 2.2s ease-in-out infinite;
+
+        @keyframes bounce05 {
+          85%, 92%, 100% {
+            transform: translateY(0);
+          }
+
+          89% {
+            transform: translateY(-4px);
+          }
+
+          95% {
+            transform: translateY(2px);
+          }
         }
-        .loader-letter {
-          display: inline-block;
-          font-size: 15px; font-weight: 600;
-          color: #6366f1; letter-spacing: 0.05em;
-          animation: letter-wave 1.4s ease-in-out infinite;
+
+        @keyframes slide05 {
+          5% {
+            transform: translateX(14px);
+          }
+
+          15%, 30% {
+            transform: translateX(6px);
+          }
+
+          40%, 55% {
+            transform: translateX(0);
+          }
+
+          65%, 70% {
+            transform: translateX(-4px);
+          }
+
+          80%, 89% {
+            transform: translateX(-12px);
+          }
+
+          100% {
+            transform: translateX(14px);
+          }
+        }
+
+        @keyframes paper05 {
+          5% {
+            transform: translateY(46px);
+          }
+
+          20%, 30% {
+            transform: translateY(34px);
+          }
+
+          40%, 55% {
+            transform: translateY(22px);
+          }
+
+          65%, 70% {
+            transform: translateY(10px);
+          }
+
+          80%, 85% {
+            transform: translateY(0);
+          }
+
+          92%, 100% {
+            transform: translateY(46px);
+          }
+        }
+
+        @keyframes keyboard05 {
+          5%, 12%, 21%, 30%, 39%, 48%, 57%, 66%, 75%, 84% {
+            box-shadow: 15px 0 0 var(--key), 30px 0 0 var(--key), 45px 0 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 12px 0 var(--key), 60px 12px 0 var(--key), 68px 12px 0 var(--key), 83px 10px 0 var(--key);
+          }
+
+          9% {
+            box-shadow: 15px 2px 0 var(--key), 30px 0 0 var(--key), 45px 0 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 10px 0 var(--key);
+          }
+
+          18% {
+            box-shadow: 15px 0 0 var(--key), 30px 0 0 var(--key), 45px 0 0 var(--key), 60px 2px 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 10px 0 var(--key);
+          }
+
+          27% {
+            box-shadow: 15px 0 0 var(--key), 30px 0 0 var(--key), 45px 0 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 12px 0 var(--key), 37px 10px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 10px 0 var(--key);
+          }
+
+          36% {
+            box-shadow: 15px 0 0 var(--key), 30px 0 0 var(--key), 45px 0 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 12px 0 var(--key), 60px 12px 0 var(--key), 68px 12px 0 var(--key), 83px 10px 0 var(--key);
+          }
+
+          45% {
+            box-shadow: 15px 0 0 var(--key), 30px 0 0 var(--key), 45px 0 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 2px 0 var(--key), 22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 10px 0 var(--key);
+          }
+
+          54% {
+            box-shadow: 15px 0 0 var(--key), 30px 2px 0 var(--key), 45px 0 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 10px 0 var(--key);
+          }
+
+          63% {
+            box-shadow: 15px 0 0 var(--key), 30px 0 0 var(--key), 45px 0 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 12px 0 var(--key);
+          }
+
+          72% {
+            box-shadow: 15px 0 0 var(--key), 30px 0 0 var(--key), 45px 2px 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 10px 0 var(--key), 37px 10px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 10px 0 var(--key);
+          }
+
+          81% {
+            box-shadow: 15px 0 0 var(--key), 30px 0 0 var(--key), 45px 0 0 var(--key), 60px 0 0 var(--key), 75px 0 0 var(--key), 90px 0 0 var(--key), 22px 10px 0 var(--key), 37px 12px 0 var(--key), 52px 10px 0 var(--key), 60px 10px 0 var(--key), 68px 10px 0 var(--key), 83px 10px 0 var(--key);
+          }
         }
       `}</style>
 
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2rem', position: 'relative' }}>
-
-        {/* Ripple rings */}
-        <div style={{ position: 'absolute', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '120px', height: '120px' }}>
-          {[0, 0.8, 1.6].map((delay, i) => (
-            <div key={i} className="loader-ripple" style={{ animationDelay: `${delay}s` }} />
-          ))}
-        </div>
-
-        {/* Spinner stack */}
-        <div style={{ position: 'relative', width: '120px', height: '120px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div className="loader-ring-outer" />
-          <div className="loader-ring-mid" />
-          <div className="loader-ring-inner" />
-
-          {/* Satellites */}
-          {[
-            { start: '0deg',   dur: '2s',   size: 10, color: '#6366f1' },
-            { start: '90deg',  dur: '2.8s', size: 8,  color: '#818cf8' },
-            { start: '180deg', dur: '2s',   size: 6,  color: '#a5b4fc' },
-            { start: '270deg', dur: '2.8s', size: 5,  color: '#c7d2fe' },
-          ].map((s, i) => (
-            <div key={i} className="loader-sat" style={{
-              '--start': s.start, '--dur': s.dur,
-              width: `${s.size}px`, height: `${s.size}px`,
-              marginTop: `-${s.size / 2}px`, marginLeft: `-${s.size / 2}px`,
-              background: s.color,
-            }} />
-          ))}
-
-          {/* Sparks */}
-          <div style={{ position: 'absolute', width: 0, height: 0 }}>
-            {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, i) => (
-              <div key={i} className="loader-spark" style={{ '--a': `${angle}deg`, '--d': `${i * 0.2}s` }} />
-            ))}
-          </div>
-
-          <div className="loader-core" />
-        </div>
-
-        {/* Progress bar */}
-        <div style={{ width: '160px', height: '3px', background: 'rgba(99,102,241,0.15)', borderRadius: '99px', overflow: 'hidden' }}>
-          <div className="loader-bar-fill" />
-        </div>
-
-        {/* Wave text */}
-        <div style={{ display: 'flex', alignItems: 'flex-end', gap: '2px' }}>
-          {letters.map((l, i) => (
-            <span key={i} className="loader-letter" style={{ animationDelay: `${i * 0.07}s` }}>{l}</span>
-          ))}
-        </div>
-
+      <div className="typewriter">
+        <div className="slide"><i></i></div>
+        <div className="paper"></div>
+        <div className="keyboard"></div>
       </div>
     </div>
   );

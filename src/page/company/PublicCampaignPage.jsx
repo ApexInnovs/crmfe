@@ -1,30 +1,23 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import axiosInstance from '../../utils/axiosInstance';
 import Loader from '../../components/common/Loader';
-
-/**
- * Expert-level campaign landing page with professional form UI/UX
- * Features: animated hero, progress tracking, inline validation, smooth interactions
- */
+import toast from 'react-hot-toast';
 
 const PublicCampaignPage = () => {
   const { campaignId } = useParams();
-  console.log("the campaign id is ", campaignId)
+  console.log("the campaign id is ", campaignId);
   const [campaign, setCampaign] = useState(null);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({});
   const [fieldErrors, setFieldErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
-  // Track if already submitted for this campaign
   const [alreadySubmitted, setAlreadySubmitted] = useState(false);
-  const [currentStep, setCurrentStep] = useState(0);
   const [touchedFields, setTouchedFields] = useState({});
+  const [focusedField, setFocusedField] = useState(null);
 
-  // Load campaign on mount
   useEffect(() => {
-    // Check localStorage for already submitted campaigns
     const submittedArr = JSON.parse(localStorage.getItem('submittedCampaigns') || '[]');
     if (submittedArr.includes(campaignId)) {
       setAlreadySubmitted(true);
@@ -37,7 +30,6 @@ const PublicCampaignPage = () => {
         const res = await axiosInstance.get(`/campigne/${campaignId}`);
         console.log('Campaign loaded successfully:', res.data);
         const data = res.data;
-        // Ensure company data is available
         if (!data.company) {
           console.warn('Campaign loaded but company data is missing:', data);
         }
@@ -57,7 +49,6 @@ const PublicCampaignPage = () => {
     loadCampaign();
   }, [campaignId]);
 
-  // Validate a single field
   const validateField = (field, value) => {
     if (field.isRequired && !value?.toString().trim()) {
       return `${field.label} is required`;
@@ -74,32 +65,23 @@ const PublicCampaignPage = () => {
     return '';
   };
 
-  // Handle field change with debounced validation
   const handleChange = (fieldName, value) => {
     setFormData(prev => ({ ...prev, [fieldName]: value }));
-    
     const field = campaign.formStructure.find(f => f.name === fieldName);
     if (touchedFields[fieldName]) {
       const error = validateField(field, value);
-      setFieldErrors(prev => ({
-        ...prev,
-        [fieldName]: error
-      }));
+      setFieldErrors(prev => ({ ...prev, [fieldName]: error }));
     }
   };
 
-  // Handle field blur - trigger validation
   const handleBlur = (fieldName) => {
+    setFocusedField(null);
     setTouchedFields(prev => ({ ...prev, [fieldName]: true }));
     const field = campaign.formStructure.find(f => f.name === fieldName);
     const error = validateField(field, formData[fieldName]);
-    setFieldErrors(prev => ({
-      ...prev,
-      [fieldName]: error
-    }));
+    setFieldErrors(prev => ({ ...prev, [fieldName]: error }));
   };
 
-  // Validate all fields
   const validateForm = () => {
     const newErrors = {};
     campaign.formStructure.forEach(field => {
@@ -110,15 +92,11 @@ const PublicCampaignPage = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!validateForm()) {
-      return;
-    }
+    if (!validateForm()) return;
     setSubmitting(true);
     try {
-      // Extract company ID - handle both object and string formats
       let companyId = null;
       if (campaign?.company) {
         if (typeof campaign.company === 'object' && campaign.company._id) {
@@ -141,15 +119,14 @@ const PublicCampaignPage = () => {
       };
       console.log('Submitting lead with payload:', payload);
       await axiosInstance.post('/leads', payload);
+      toast.success('Response submitted successfully!');
       setSuccess(true);
-      // Store campaignId in localStorage array
       let submittedArr = JSON.parse(localStorage.getItem('submittedCampaigns') || '[]');
       if (!submittedArr.includes(campaignId)) {
         submittedArr.push(campaignId);
         localStorage.setItem('submittedCampaigns', JSON.stringify(submittedArr));
       }
       setAlreadySubmitted(true);
-      // Reset form after success
       setTimeout(() => {
         setFormData({});
         setFieldErrors({});
@@ -158,8 +135,8 @@ const PublicCampaignPage = () => {
     } catch (error) {
       const errorMsg = error.response?.data?.message || 'Failed to submit form';
       console.error('Submission error:', error.response?.data || error.message);
+      toast.error(errorMsg);
       setFieldErrors({ _form: errorMsg });
-      console.error('Submission failed:', error);
     } finally {
       setSubmitting(false);
     }
@@ -167,7 +144,7 @@ const PublicCampaignPage = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-50 via-blue-50 to-purple-50">
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF' }}>
         <Loader />
       </div>
     );
@@ -175,38 +152,27 @@ const PublicCampaignPage = () => {
 
   if (!campaign) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-50 via-blue-50 to-purple-50 px-4">
-        <div className="text-center max-w-md">
-          <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-red-100 flex items-center justify-center">
-            <svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF', padding: '1.5rem' }}>
+        <style>{GLOBAL_STYLES}</style>
+        <div style={{ textAlign: 'center', maxWidth: '28rem' }} className="cmp-fadein">
+          <div style={{ width: '4rem', height: '4rem', margin: '0 auto 1.5rem', borderRadius: '50%', background: '#FEE2E2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-3">Campaign Not Found</h1>
-          <p className="text-gray-600 text-base mb-6">
+          <h1 style={{ fontFamily: "'Roboto', sans-serif", fontSize: '1.875rem', fontWeight: 700, color: '#1C1917', marginBottom: '0.75rem' }}>Campaign Not Found</h1>
+          <p style={{ fontFamily: "'Roboto', sans-serif", color: '#78716C', fontSize: '1rem', marginBottom: '1.5rem', lineHeight: 1.6 }}>
             This campaign link may have expired or is no longer available.
           </p>
-          {/* Debug information - only show in development */}
           {process.env.NODE_ENV === 'development' && (
-            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg text-left">
-              <p className="text-xs font-mono text-blue-700 mb-2 font-semibold">Debug Info:</p>
-              <p className="text-xs text-blue-600 font-mono break-all">Campaign ID: {campaignId}</p>
-              <p className="text-xs text-blue-600 font-mono mt-1">Check browser console (F12) for error details</p>
+            <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: '0.75rem', textAlign: 'left' }}>
+              <p style={{ fontSize: '0.75rem', fontFamily: 'monospace', color: '#1D4ED8', marginBottom: '0.25rem', fontWeight: 600 }}>Debug Info:</p>
+              <p style={{ fontSize: '0.75rem', fontFamily: "'Roboto Mono', monospace", color: '#2563EB', wordBreak: 'break-all' }}>Campaign ID: {campaignId}</p>
             </div>
           )}
-          <div className="flex flex-col gap-3">
-            <button 
-              onClick={() => window.location.href = '/'}
-              className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors"
-            >
-              Go to Dashboard
-            </button>
-            <button 
-              onClick={() => window.location.reload()}
-              className="px-6 py-2.5 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-            >
-              Try Again
-            </button>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            <button onClick={() => window.location.href = '/'} className="cmp-btn-primary">Go to Dashboard</button>
+            <button onClick={() => window.location.reload()} className="cmp-btn-outline">Try Again</button>
           </div>
         </div>
       </div>
@@ -215,307 +181,213 @@ const PublicCampaignPage = () => {
 
   if (campaign.status !== 2) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-linear-to-br from-slate-50 via-blue-50 to-purple-50 px-4">
-        <div className="text-center max-w-md">
-          <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-yellow-100 flex items-center justify-center">
-            <svg className="w-8 h-8 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF', padding: '1.5rem' }}>
+        <style>{GLOBAL_STYLES}</style>
+        <div style={{ textAlign: 'center', maxWidth: '28rem' }} className="cmp-fadein">
+          <div style={{ width: '4rem', height: '4rem', margin: '0 auto 1.5rem', borderRadius: '50%', background: '#FEF3C7', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#D97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-3">Campaign Not Active</h1>
-          <p className="text-gray-600 text-base mb-6">
-            This campaign is not currently accepting responses. It may not be started yet or has ended.
+          <h1 style={{ fontFamily: "'Roboto', sans-serif", fontSize: '1.875rem', fontWeight: 700, color: '#1C1917', marginBottom: '0.75rem' }}>Campaign Not Started</h1>
+          <p style={{ fontFamily: "'DM Sans', sans-serif", color: '#78716C', fontSize: '1rem', lineHeight: 1.6 }}>
+            This campaign is not currently accepting responses. It may not have started yet or has ended.
           </p>
         </div>
       </div>
     );
   }
 
-  const totalFields = campaign.formStructure?.length || 0;
-  const completedFields = Object.values(touchedFields).filter(Boolean).length;
-  const progressPercent = totalFields > 0 ? Math.round((completedFields / totalFields) * 100) : 0;
-
   return (
-    <div className="min-h-screen bg-linear-to-br from-slate-50 via-blue-50 to-purple-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-2xl mx-auto">
-        {/* ═══ Hero Section ═══ */}
-        {!success && (
-          <div className="mb-12 animate-fade-in">
-            <div className="relative rounded-3xl overflow-hidden shadows lg">
-              {/* Background gradient */}
-              <div className="absolute inset-0 bg-linear-to-br from-blue-600 via-purple-600 to-indigo-700" />
-              
-              {/* Decorative blobs */}
-              <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-20 -mt-20 blur-3xl" />
-              <div className="absolute bottom-0 left-0 w-40 h-40 bg-blue-300/10 rounded-full -ml-20 -mb-20 blur-3xl" />
-              
-              {/* Content */}
-              <div className="relative px-8 py-12 sm:px-12 sm:py-16">
-                <div className="flex items-start gap-4 mb-6">
-                  <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center shrink-0 border border-white/20">
-                    <svg className="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
-                  </div>
-                  <div>
-                    <h1 className="text-3xl sm:text-4xl font-bold text-white leading-tight mb-3">
-                      {campaign.title}
-                    </h1>
-                    {campaign.description && (
-                      <p className="text-blue-100 text-lg leading-relaxed max-w-xl">
-                        {campaign.description}
-                      </p>
-                    )}
-                  </div>
-                </div>
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(135deg, #FFFFFF 0%, #FAFAF9 50%, #F5F3F0 100%)', padding: '2.5rem 1rem 3rem' }}>
+      <style>{GLOBAL_STYLES}</style>
 
-                {/* Trust indicators */}
-                <div className="flex items-center gap-6 pt-8 border-t border-white/10">
-                  <div>
-                    <p className="text-blue-100 text-sm">Form fields</p>
-                    <p className="text-white text-2xl font-bold">{totalFields}</p>
-                  </div>
-                  <div className="w-px h-12 bg-white/10" />
-                  <div>
-                    <p className="text-blue-100 text-sm">Estimated time</p>
-                    <p className="text-white text-2xl font-bold">2 min</p>
-                  </div>
-                </div>
-              </div>
+      <div style={{ maxWidth: '38rem', margin: '0 auto' }}>
+
+        {/* ── Hero ── */}
+        {!success && (
+          <div className="cmp-fadein" style={{ marginBottom: '1.75rem' }}>
+            <div style={{ marginBottom: '0.5rem' }}>
+              <div style={{ width: '2.5rem', height: '2px', background: 'linear-gradient(90deg, #86EFAC, #16A34A)', borderRadius: '1px', marginBottom: '1rem' }} />
+              <h1 style={{ fontFamily: "'Roboto', sans-serif", fontSize: '1.75rem', fontWeight: 700, color: '#1C1917', margin: '0 0 0.5rem', letterSpacing: '-0.02em' }}>{campaign.title}</h1>
+              {campaign.description && (
+                <p style={{ fontFamily: "'Roboto', sans-serif", fontSize: '0.9375rem', color: '#78716C', margin: '0', lineHeight: 1.55 }}>{campaign.description}</p>
+              )}
             </div>
           </div>
         )}
 
-        {/* ═══ Success Screen ═══ */}
+        {/* ── Success Screen ── */}
         {(success || alreadySubmitted) && (
-          <div className="text-center animate-fade-in py-12">
-            <div className="w-24 h-24 mx-auto mb-8 rounded-full bg-linear-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-lg animate-scale-in">
-              <svg className="w-12 h-12 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+          <div className="cmp-fadein" style={{ textAlign: 'center', padding: '3rem 1.5rem' }}>
+            <div style={{ width: '5rem', height: '5rem', margin: '0 auto 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center', animation: 'cmp-scalein 0.45s cubic-bezier(.34,1.56,.64,1) both' }}>
+              <img src="/image.png" alt="success" style={{ width: '48px', height: '48px' }} />
             </div>
-            
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Thank You!</h2>
-            <p className="text-lg text-gray-600 mb-8 max-w-md mx-auto">
+            <h2 style={{ fontFamily: "'Roboto', sans-serif", fontSize: '2rem', fontWeight: 700, color: '#1C1917', marginBottom: '0.75rem', letterSpacing: '-0.02em' }}>
+              Thank You!
+            </h2>
+            <p style={{ fontFamily: "'Roboto', sans-serif", fontSize: '0.9375rem', color: '#78716C', maxWidth: '26rem', margin: '0 auto 2rem', lineHeight: 1.6 }}>
               {alreadySubmitted
                 ? 'You have already submitted your information for this campaign.'
-                : "Your information has been successfully submitted. We'll get back to you shortly with more details about our offerings."}
+                : "Your response has been recorded. We'll be in touch shortly."}
             </p>
-
-            {/* Success badges */}
-            <div className="grid grid-cols-3 gap-4 mb-8 max-w-sm mx-auto">
-              <div className="p-4 bg-white rounded-xl border border-emerald-100">
-                <svg className="w-6 h-6 text-emerald-600 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
-                <p className="text-xs font-medium text-gray-700">Submitted</p>
-              </div>
-              <div className="p-4 bg-white rounded-xl border border-emerald-100">
-                <svg className="w-6 h-6 text-emerald-600 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                <p className="text-xs font-medium text-gray-700">Verified</p>
-              </div>
-              <div className="p-4 bg-white rounded-xl border border-emerald-100">
-                <svg className="w-6 h-6 text-emerald-600 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 10l-2 1m0 0l-2-1m2 1v2.5M20 7l-2 1m2-1l-2-1m2 1v2.5M14 4l-2 1m2-1L12 3m2 1v2.5" />
-                </svg>
-                <p className="text-xs font-medium text-gray-700">Secured</p>
-              </div>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 1rem', background: '#F0FDF4', border: '1px solid #DBEAFE', borderRadius: '999px' }}>
+              <img src="/image.png" alt="verified" style={{ width: '16px', height: '16px' }} />
+              <span style={{ fontFamily: "'Roboto', sans-serif", fontSize: '0.75rem', color: '#16A34A', fontWeight: 500 }}>Securely recorded</span>
             </div>
-
-            <p className="text-sm text-gray-500">
-              A confirmation email will be sent to your inbox shortly.
-            </p>
           </div>
         )}
 
-        {/* ═══ Form Section ═══ */}
+        {/* ── Form Card ── */}
         {!success && (
-          <div className="bg-white rounded-2xl shadow-lg backdrop-blur-sm border border-gray-100 overflow-hidden animate-fade-in">
-            {/* Progress bar */}
-            <div className="h-1 bg-gray-100 relative">
-              <div
-                className="h-full bg-linear-to-r from-blue-500 via-purple-500 to-indigo-600 transition-all duration-500"
-                style={{ width: `${progressPercent}%` }}
-              />
+          <div className="cmp-card cmp-fadein" style={{ animationDelay: '0.1s' }}>
+
+            {/* Card header */}
+            <div className="cmp-card-header">
+              <h2 className="cmp-card-title">Share Your Details</h2>
+              <p className="cmp-card-subtitle">All fields marked <span style={{ color: '#DC2626', fontWeight: 600 }}>*</span> are required</p>
             </div>
 
-            {/* Form content */}
-            <div className="p-8 sm:p-12">
-              {/* Progress text */}
-              {totalFields > 0 && (
-                <div className="mb-8 flex items-center justify-between">
-                  <h2 className="text-2xl font-bold text-gray-900">Share Your Details</h2>
-                  <div className="text-right">
-                    <p className="text-3xl font-bold text-transparent bg-clip-text bg-linear-to-r from-blue-600 to-purple-600">
-                      {progressPercent}%
-                    </p>
-                    <p className="text-xs text-gray-500 font-medium">Complete</p>
-                  </div>
+            {/* Form error */}
+            {fieldErrors._form && (
+              <div className="cmp-form-error cmp-shake">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: '2px' }}>
+                  <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+                <div>
+                  <p style={{ fontWeight: 600, color: '#991B1B' }}>{fieldErrors._form}</p>
+                  <p style={{ fontSize: '0.75rem', color: '#B91C1C', marginTop: '0.2rem' }}>
+                    {fieldErrors._form.includes('company')
+                      ? 'The campaign has missing company info. Please contact the organizer.'
+                      : 'Please check your information and try again.'}
+                  </p>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Form error */}
-              {fieldErrors._form && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3 animate-shake">
-                  <svg className="w-5 h-5 text-red-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <div>
-                    <p className="font-medium text-red-900">{fieldErrors._form}</p>
-                    <p className="text-xs text-red-700 mt-1">
-                      {fieldErrors._form.includes('company') 
-                        ? 'The campaign seems to be missing company information. Please contact the organizer.' 
-                        : 'Please check your information and try again.'}
-                    </p>
-                  </div>
-                </div>
-              )}
+            {/* Fields */}
+            <form onSubmit={handleSubmit}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                {campaign.formStructure?.map((field, idx) => {
+                  const error = fieldErrors[field.name];
+                  const isTouched = touchedFields[field.name];
+                  const hasValue = formData[field.name] && (Array.isArray(formData[field.name]) ? formData[field.name].length > 0 : String(formData[field.name]).trim() !== '');
+                  const isValid = !error && isTouched && hasValue;
+                  const showError = error && isTouched;
 
-              {/* Form fields */}
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-6">
-                  {campaign.formStructure?.map((field, idx) => {
-                    const error = fieldErrors[field.name];
-                    const isTouched = touchedFields[field.name];
-                    const hasValue = formData[field.name];
-                    const isValid = !error && isTouched && hasValue;
+                  const inputState = showError ? 'error' : isValid ? 'valid' : 'default';
 
-                    return (
-                      <div
-                        key={field.name}
-                        className="group animate-fade-in"
-                        style={{
-                          animationDelay: `${idx * 50}ms`,
-                          animationFillMode: 'both'
-                        }}
-                      >
-                        {/* Label with icon */}
-                        <div className="flex items-center gap-2 mb-3">
-                          <label className="text-sm font-semibold text-gray-900">
-                            {field.label}
-                          </label>
-                          {field.isRequired && (
-                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-red-500" title="Required field" />
-                          )}
-                          {isValid && (
-                            <svg className="w-4 h-4 text-emerald-600 shrink-0 animate-scale-in" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                            </svg>
-                          )}
-                        </div>
-
-                        {/* Text input, email, number, date */}
-                        {['text', 'email', 'number', 'date'].includes(field.type) && (
-                          <input
-                            type={field.type}
-                            name={field.name}
-                            placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
-                            value={formData[field.name] || ''}
-                            onChange={(e) => handleChange(field.name, e.target.value)}
-                            onBlur={() => handleBlur(field.name)}
-                            disabled={submitting}
-                            className={`w-full px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all duration-200 placeholder:text-gray-400 focus:outline-none
-                              ${error && isTouched
-                                ? 'border-red-300 bg-red-50 focus:ring-2 focus:ring-red-200'
-                                : isValid
-                                ? 'border-emerald-300 bg-emerald-50 focus:ring-2 focus:ring-emerald-200'
-                                : 'border-gray-200 bg-gray-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
-                              }
-                              ${submitting ? 'opacity-60 cursor-not-allowed' : 'cursor-text'}
-                            `}
-                          />
+                  return (
+                    <div
+                      key={field.name}
+                      className="cmp-field-fadein"
+                      style={{ animationDelay: `${0.15 + idx * 0.06}s` }}
+                    >
+                      {/* Label */}
+                      <label className="cmp-label">
+                        {field.label}
+                        {field.isRequired && <span style={{ color: '#DC2626', marginLeft: '3px' }}>*</span>}
+                        {isValid && (
+                          <span className="cmp-valid-badge cmp-scalein">
+                            <img src="/image.png" alt="valid" style={{ width: '20px', height: '20px' }} />
+                          </span>
                         )}
+                      </label>
 
-                        {/* Textarea */}
-                        {field.type === 'textarea' && (
-                          <textarea
-                            name={field.name}
-                            placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
-                            value={formData[field.name] || ''}
-                            onChange={(e) => handleChange(field.name, e.target.value)}
-                            onBlur={() => handleBlur(field.name)}
-                            disabled={submitting}
-                            rows="4"
-                            className={`w-full px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all duration-200 placeholder:text-gray-400 focus:outline-none resize-none
-                              ${error && isTouched
-                                ? 'border-red-300 bg-red-50 focus:ring-2 focus:ring-red-200'
-                                : isValid
-                                ? 'border-emerald-300 bg-emerald-50 focus:ring-2 focus:ring-emerald-200'
-                                : 'border-gray-200 bg-gray-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
-                              }
-                              ${submitting ? 'opacity-60 cursor-not-allowed' : 'cursor-text'}
-                            `}
-                          />
-                        )}
+                      {/* ── text / email / number / date ── */}
+                      {['text', 'email', 'number', 'date'].includes(field.type) && (
+                        <input
+                          type={field.type}
+                          name={field.name}
+                          placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
+                          value={formData[field.name] || ''}
+                          onChange={(e) => handleChange(field.name, e.target.value)}
+                          onBlur={() => handleBlur(field.name)}
+                          disabled={submitting}
+                          className={`cmp-input cmp-input--${inputState}`}
+                        />
+                      )}
 
-                        {/* Dropdown */}
-                        {field.type === 'dropdown' && (
+                      {/* ── textarea ── */}
+                      {field.type === 'textarea' && (
+                        <textarea
+                          name={field.name}
+                          placeholder={field.placeholder || `Enter ${field.label.toLowerCase()}`}
+                          value={formData[field.name] || ''}
+                          onChange={(e) => handleChange(field.name, e.target.value)}
+                          onBlur={() => handleBlur(field.name)}
+                          disabled={submitting}
+                          rows={4}
+                          className={`cmp-input cmp-textarea cmp-input--${inputState}`}
+                        />
+                      )}
+
+                      {/* ── dropdown ── */}
+                      {field.type === 'dropdown' && (
+                        <div className="cmp-select-wrap">
                           <select
                             name={field.name}
                             value={formData[field.name] || ''}
                             onChange={(e) => handleChange(field.name, e.target.value)}
                             onBlur={() => handleBlur(field.name)}
                             disabled={submitting}
-                            className={`w-full px-4 py-3 rounded-xl border-2 text-sm font-medium transition-all duration-200 focus:outline-none appearance-none bg-no-repeat bg-right pr-10
-                              ${error && isTouched
-                                ? 'border-red-300 bg-red-50 focus:ring-2 focus:ring-red-200'
-                                : isValid
-                                ? 'border-emerald-300 bg-emerald-50 focus:ring-2 focus:ring-emerald-200'
-                                : 'border-gray-200 bg-gray-50 focus:border-blue-500 focus:ring-2 focus:ring-blue-100'
-                              }
-                              ${submitting ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}
-                            `}
-                            style={{
-                              backgroundImage: `url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e")`,
-                              backgroundSize: '1.5rem',
-                              backgroundPosition: 'right 0.75rem center'
-                            }}
+                            className={`cmp-input cmp-select cmp-input--${inputState}`}
                           >
                             <option value="">Select {field.label}</option>
                             {field.options?.map(opt => (
                               <option key={opt} value={opt}>{opt}</option>
                             ))}
                           </select>
-                        )}
+                          <div className="cmp-select-arrow">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="6 9 12 15 18 9" />
+                            </svg>
+                          </div>
+                        </div>
+                      )}
 
-                        {/* Radio buttons */}
-                        {field.type === 'radio' && (
-                          <div className="grid grid-cols-2 gap-3">
-                            {field.options?.map(opt => (
-                              <label key={opt} className="relative flex items-center p-3 border-2 border-gray-200 rounded-xl cursor-pointer transition-all group hover:border-blue-400 hover:bg-blue-50"
-                                style={{
-                                  borderColor: formData[field.name] === opt ? '#3b82f6' : undefined,
-                                  backgroundColor: formData[field.name] === opt ? '#eff6ff' : undefined
-                                }}
-                              >
+                      {/* ── radio ── */}
+                      {field.type === 'radio' && (
+                        <div className="cmp-option-grid">
+                          {field.options?.map(opt => {
+                            const checked = formData[field.name] === opt;
+                            return (
+                              <label key={opt} className={`cmp-option-item${checked ? ' cmp-option-item--selected' : ''}`}>
+                                <span className={`cmp-radio-dot${checked ? ' cmp-radio-dot--checked' : ''}`} />
                                 <input
                                   type="radio"
                                   name={field.name}
                                   value={opt}
-                                  checked={formData[field.name] === opt}
+                                  checked={checked}
                                   onChange={(e) => handleChange(field.name, e.target.value)}
                                   onBlur={() => handleBlur(field.name)}
                                   disabled={submitting}
-                                  className="w-4 h-4 rounded-full cursor-pointer"
+                                  style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}
                                 />
-                                <span className="ml-3 text-sm font-medium text-gray-700">{opt}</span>
+                                <span className="cmp-option-label">{opt}</span>
                               </label>
-                            ))}
-                          </div>
-                        )}
+                            );
+                          })}
+                        </div>
+                      )}
 
-                        {/* Checkbox */}
-                        {field.type === 'checkbox' && (
-                          <div className="space-y-2">
-                            {field.options?.map(opt => (
-                              <label key={opt} className="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-xl cursor-pointer transition-all hover:border-blue-400 hover:bg-blue-50">
+                      {/* ── checkbox ── */}
+                      {field.type === 'checkbox' && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.625rem' }}>
+                          {field.options?.map(opt => {
+                            const checked = (formData[field.name] || []).includes(opt);
+                            return (
+                              <label key={opt} className={`cmp-option-item${checked ? ' cmp-option-item--selected' : ''}`}>
+                                <span className={`cmp-checkbox-box${checked ? ' cmp-checkbox-box--checked' : ''}`}>
+                                  {checked && (
+                                    <img src="/image.png" alt="checked" style={{ width: '16px', height: '16px' }} />
+                                  )}
+                                </span>
                                 <input
                                   type="checkbox"
                                   name={field.name}
                                   value={opt}
-                                  checked={(formData[field.name] || []).includes(opt)}
+                                  checked={checked}
                                   onChange={(e) => {
                                     const newVal = formData[field.name] || [];
                                     if (e.target.checked) {
@@ -526,189 +398,409 @@ const PublicCampaignPage = () => {
                                   }}
                                   onBlur={() => handleBlur(field.name)}
                                   disabled={submitting}
-                                  className="w-4 h-4 rounded cursor-pointer"
+                                  style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}
                                 />
-                                <span className="text-sm font-medium text-gray-700">{opt}</span>
+                                <span className="cmp-option-label">{opt}</span>
                               </label>
-                            ))}
-                          </div>
-                        )}
+                            );
+                          })}
+                        </div>
+                      )}
 
-                        {/* Error message with animation */}
-                        {error && isTouched && (
-                          <div className="mt-2 flex items-start gap-2 text-red-600 text-xs font-medium animate-slide-in-up">
-                            <svg className="w-4 h-4 mt-0.5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                              <path fillRule="evenodd" d="M18.101 12.93a1 1 0 00-1.414-1.414L10 17.586l-6.687-6.687a1 1 0 00-1.414 1.414l8 8a1 1 0 001.414 0l8-8z" clipRule="evenodd" />
-                            </svg>
-                            <span>{error}</span>
-                          </div>
-                        )}
-
-                        {/* Hint text */}
-                        {!error && field.placeholder && (
-                          <p className="mt-2 text-xs text-gray-500">
-                            💡 {field.placeholder}
-                          </p>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Submit button */}
-                <div className="pt-6">
-                  <button
-                    type="submit"
-                    disabled={submitting}
-                    className="w-full px-6 py-4 bg-linear-to-r from-blue-600 via-purple-600 to-indigo-600 text-white font-semibold rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl hover:scale-105 disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100 group relative overflow-hidden"
-                  >
-                    <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors" />
-                    <div className="relative flex items-center justify-center gap-2">
-                      {submitting ? (
-                        <>
-                          <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" opacity="0.25" />
-                            <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      {/* Error */}
+                      {showError && (
+                        <div className="cmp-error-msg cmp-slidein">
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}>
+                            <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
                           </svg>
-                          Submitting...
-                        </>
-                      ) : (
-                        <>
-                          Submit
-                          <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                          </svg>
-                        </>
+                          <span>{error}</span>
+                        </div>
                       )}
                     </div>
-                  </button>
+                  );
+                })}
+              </div>
 
-                  {/* Trust text */}
-                  <p className="mt-4 text-center text-xs text-gray-500 flex items-center justify-center gap-2">
-                    <svg className="w-4 h-4 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
-                    </svg>
-                    Your information is secure and encrypted
-                  </p>
-                </div>
-              </form>
-            </div>
+              {/* Submit */}
+              <div style={{ marginTop: '2rem' }}>
+                <button
+                  type="submit"
+                  disabled={submitting}
+                  className="cmp-submit"
+                >
+                  {submitting ? (
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.625rem' }}>
+                      <svg className="cmp-spinner" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" opacity="0.25" />
+                        <path fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Submitting…
+                    </span>
+                  ) : (
+                    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                      Submit Response
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="cmp-submit-arrow">
+                        <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
+                      </svg>
+                    </span>
+                  )}
+                </button>
+
+                <p style={{ marginTop: '1rem', textAlign: 'center', fontFamily: "'DM Sans', sans-serif", fontSize: '0.75rem', color: '#A8A29E', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.375rem' }}>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#A8A29E" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                  Your information is private and secure
+                </p>
+              </div>
+            </form>
           </div>
         )}
 
         {/* Footer */}
-        <div className="text-center mt-8 text-xs text-gray-500">
-          <p>Powered by <span className="font-semibold text-gray-700">CRM Lead Capture System</span></p>
-        </div>
+        <p style={{ textAlign: 'center', marginTop: '1.5rem', fontFamily: "'Satisfy', cursive", fontSize: '0.7rem', color: '#C1BAB3' }}>
+          Cally
+        </p>
       </div>
-
-      {/* CSS animations */}
-      <style>{`
-        @keyframes fade-in {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes scale-in {
-          from {
-            opacity: 0;
-            transform: scale(0.8);
-          }
-          to {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-
-        @keyframes slide-in-up {
-          from {
-            opacity: 0;
-            transform: translateY(8px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-5px); }
-          75% { transform: translateX(5px); }
-        }
-
-        .animate-fade-in {
-          animation: fade-in 0.6s ease-out forwards;
-          opacity: 0;
-        }
-
-        .animate-scale-in {
-          animation: scale-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-        }
-
-        .animate-slide-in-up {
-          animation: slide-in-up 0.3s ease-out forwards;
-        }
-
-        .animate-shake {
-          animation: shake 0.4s ease-in-out;
-        }
-
-        .shadows {
-          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-        }
-
-        .bg-linear-to-br {
-          background: linear-gradient(to bottom right, var(--tw-gradient-stops));
-        }
-
-        .bg-linear-to-r {
-          background: linear-gradient(to right, var(--tw-gradient-stops));
-        }
-
-        .from-slate-50 {
-          --tw-gradient-from: rgb(248 250 252);
-          --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(248 250 252 / 0));
-        }
-
-        .via-blue-50 {
-          --tw-gradient-stops: var(--tw-gradient-from), rgb(239 246 255), var(--tw-gradient-to, rgb(239 246 255 / 0));
-        }
-
-        .to-purple-50 {
-          --tw-gradient-to: rgb(250 245 255);
-        }
-
-        .from-blue-600 {
-          --tw-gradient-from: rgb(37 99 235);
-          --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(37 99 235 / 0));
-        }
-
-        .via-purple-600 {
-          --tw-gradient-stops: var(--tw-gradient-from), rgb(147 51 234), var(--tw-gradient-to, rgb(147 51 234 / 0));
-        }
-
-        .to-indigo-600 {
-          --tw-gradient-to: rgb(79 70 229);
-        }
-
-        .from-emerald-400 {
-          --tw-gradient-from: rgb(52 211 153);
-          --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(52 211 153 / 0));
-        }
-
-        .to-teal-600 {
-          --tw-gradient-to: rgb(13 148 136);
-        }
-      `}</style>
     </div>
   );
 };
+
+/* ─────────────────────────────────────────────────────────────────
+   Global styles — scoped via .cmp- prefix
+───────────────────────────────────────────────────────────────── */
+const GLOBAL_STYLES = `
+  @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap');
+
+  /* ── Animations ── */
+  @keyframes cmp-fadein {
+    from { opacity: 0; transform: translateY(14px); }
+    to   { opacity: 1; transform: translateY(0);    }
+  }
+  @keyframes cmp-scalein {
+    from { opacity: 0; transform: scale(0.7); }
+    to   { opacity: 1; transform: scale(1);   }
+  }
+  @keyframes cmp-slidein {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0);    }
+  }
+  @keyframes cmp-shake {
+    0%,100% { transform: translateX(0);   }
+    20%     { transform: translateX(-6px);}
+    40%     { transform: translateX(6px); }
+    60%     { transform: translateX(-4px);}
+    80%     { transform: translateX(4px); }
+  }
+  @keyframes cmp-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .cmp-fadein       { animation: cmp-fadein  0.55s cubic-bezier(.22,1,.36,1) both; }
+  .cmp-scalein      { animation: cmp-scalein 0.3s  cubic-bezier(.34,1.56,.64,1) both; }
+  .cmp-slidein      { animation: cmp-slidein 0.25s ease-out both; }
+  .cmp-shake        { animation: cmp-shake   0.4s  ease-in-out; }
+  .cmp-field-fadein { animation: cmp-fadein  0.5s  cubic-bezier(.22,1,.36,1) both; opacity: 0; }
+  .cmp-spinner      { animation: cmp-spin    0.8s  linear infinite; }
+
+  /* ── Hero ── */
+  .cmp-hero {
+    position: relative;
+    background: transparent;
+    border-radius: 0;
+    padding: 0;
+    overflow: visible;
+  }
+
+  /* ── Card (shadcn style) ── */
+  .cmp-card {
+    background: linear-gradient(180deg, #FFFFFF 0%, #FAFAF9 100%);
+    border-radius: 0.5rem;
+    border: 1px solid #E7E1D8;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 0 0 1px rgba(255,255,255,0.4) inset;
+    overflow: hidden;
+  }
+  .cmp-card-header {
+    padding: 1.5rem 1.75rem 1.25rem;
+    border-bottom: 1px solid #EFEBE8;
+  }
+  @media (max-width: 480px) {
+    .cmp-card-header { padding: 1.25rem 1.125rem 1rem; }
+    .cmp-card form, .cmp-card > form { padding: 1.25rem 1.125rem 1.5rem; }
+  }
+  .cmp-card-title {
+    font-family: 'Roboto', sans-serif;
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1C1917;
+    margin: 0 0 0.25rem;
+    letter-spacing: -0.015em;
+  }
+  .cmp-card-subtitle {
+    font-family: 'Roboto', sans-serif;
+    font-size: 0.75rem;
+    color: #A8A29E;
+    margin: 0;
+  }
+  .cmp-card form {
+    padding: 1.75rem;
+  }
+  @media (max-width: 480px) {
+    .cmp-card form { padding: 1.25rem 1.125rem 1.5rem; }
+  }
+
+  /* ── Form error banner (shadcn style) ── */
+  .cmp-form-error {
+    margin: 0 1.75rem 1.25rem;
+    padding: 0.875rem 1rem;
+    background: #FFFAFB;
+    border: 1px solid #F87171;
+    border-radius: 0.4rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.625rem;
+    font-family: 'Roboto', sans-serif;
+    font-size: 0.8125rem;
+  }
+  @media (max-width: 480px) {
+    .cmp-form-error { margin: 0 1.125rem 1rem; }
+  }
+
+  /* ── Label (shadcn style) ── */
+  .cmp-label {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-family: 'Roboto', sans-serif;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #1C1917;
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.003em;
+  }
+  .cmp-valid-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.375rem;
+    height: 1.375rem;
+    border-radius: 50%;
+    background: transparent;
+    color: #fff;
+    margin-left: 0.25rem;
+    flex-shrink: 0;
+  }
+
+  /* ── Input base (shadcn style) ── */
+  .cmp-input {
+    width: 100%;
+    box-sizing: border-box;
+    font-family: 'Roboto', sans-serif;
+    font-size: 0.9375rem;
+    font-weight: 400;
+    color: #1C1917;
+    padding: 0.75rem 0.875rem;
+    border: 1px solid #D4D3CF;
+    border-radius: 0.375rem;
+    background: linear-gradient(180deg, #FAFAF9 0%, #FFFFFF 100%);
+    transition: all 0.18s ease;
+    outline: none;
+    appearance: none;
+  }
+  .cmp-input::placeholder { color: #A8A29E; font-weight: 400; }
+  .cmp-input:hover { 
+    border-color: #C1BAB3; 
+    background: linear-gradient(180deg, #FFFFFF 0%, #FAFAF9 100%);
+  }
+  .cmp-input:focus {
+    border-color: #78716C;
+    background: linear-gradient(180deg, #FEFDFB 0%, #FFFAF8 100%);
+    box-shadow: 0 0 0 3px rgba(120, 113, 108, 0.05), 0 0 0 1px rgba(255,255,255,0.3) inset;
+  }
+  .cmp-input:disabled { 
+    opacity: 0.5; 
+    cursor: not-allowed; 
+    background: linear-gradient(180deg, #F5F0E8 0%, #EEEBE8 100%); 
+  }
+
+  .cmp-input--error {
+    border-color: #F87171;
+    background: linear-gradient(180deg, #FFFAFB 0%, #FFFBF9 100%);
+  }
+  .cmp-input--error:focus {
+    border-color: #DC2626;
+    background: linear-gradient(180deg, #FFFBF9 0%, #FFFDFC 100%);
+    box-shadow: 0 0 0 3px rgba(220,38,38,0.05), 0 0 0 1px rgba(255,255,255,0.3) inset;
+  }
+  .cmp-input--valid {
+    border-color: #86EFAC;
+    background: linear-gradient(180deg, #F7FFFE 0%, #FFFBFD 100%);
+  }
+  .cmp-input--valid:focus {
+    border-color: #16A34A;
+    background: linear-gradient(180deg, #FFFCFB 0%, #FFFEF9 100%);
+    box-shadow: 0 0 0 3px rgba(22,163,74,0.05), 0 0 0 1px rgba(255,255,255,0.3) inset;
+  }
+
+  .cmp-textarea { resize: vertical; min-height: 5.5rem; line-height: 1.5; }
+
+  /* ── Select ── */
+  .cmp-select-wrap { position: relative; }
+  .cmp-select { padding-right: 2.5rem; cursor: pointer; }
+  .cmp-select-arrow {
+    position: absolute;
+    right: 0.875rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #78716C;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+  }
+
+  /* ── Radio & Checkbox option items ── */
+  .cmp-option-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+    gap: 0.5rem;
+  }
+  @media (max-width: 360px) {
+    .cmp-option-grid { grid-template-columns: 1fr; }
+  }
+  .cmp-option-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 0.875rem;
+    border: 1px solid #D4D3CF;
+    border-radius: 0.375rem;
+    background: linear-gradient(180deg, #FAFAF9 0%, #FFFFFF 100%);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    user-select: none;
+  }
+  .cmp-option-item:hover {
+    border-color: #78716C;
+    background: linear-gradient(180deg, #FFFFFF 0%, #FAFAF9 100%);
+    box-shadow: 0 0 0 1px rgba(120, 113, 108, 0.05) inset;
+  }
+  .cmp-option-item--selected {
+    border-color: #78716C;
+    background: linear-gradient(180deg, #FFFCF9 0%, #FAFAF9 100%);
+    box-shadow: 0 0 0 2.5px rgba(120,113,108,0.06), 0 0 0 1px rgba(255,255,255,0.4) inset;
+  }
+  .cmp-option-label {
+    font-family: 'Roboto', sans-serif;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: #1C1917;
+  }
+
+  /* Radio dot */
+  .cmp-radio-dot {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    border: 1.5px solid #D4D3CF;
+    background: #fff;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .cmp-radio-dot--checked {
+    border-color: #78716C;
+    background: #78716C;
+    box-shadow: inset 0 0 0 2.5px #fff;
+  }
+
+  /* Checkbox box */
+  .cmp-checkbox-box {
+    width: 1rem;
+    height: 1rem;
+    border-radius: 0.25rem;
+    border: 1.5px solid #D4D3CF;
+    background: #fff;
+    flex-shrink: 0;
+    transition: all 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .cmp-checkbox-box--checked {
+    border-color: #78716C;
+    background: #78716C;
+  }
+
+  /* ── Error message (shadcn style) ── */
+  .cmp-error-msg {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.4rem;
+    font-family: 'Roboto', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #DC2626;
+  }
+
+  /* ── Submit button (shadcn style) ── */
+  .cmp-submit {
+    width: 100%;
+    padding: 0.625rem 1.25rem;
+    background: linear-gradient(180deg, #2D2926 0%, #1C1917 100%);
+    color: #FAFAF9;
+    font-family: 'Roboto', sans-serif;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    border: 1px solid #1C1917;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: 0 1px 2px rgba(28,25,23,0.05);
+    letter-spacing: 0.003em;
+  }
+  .cmp-submit:hover:not(:disabled) {
+    background: linear-gradient(180deg, #3D3935 0%, #2D2926 100%);
+    border-color: #2D2926;
+    box-shadow: 0 3px 8px rgba(28,25,23,0.12), 0 0 0 1px rgba(255,255,255,0.1) inset;
+  }
+  .cmp-submit:active:not(:disabled) {
+    box-shadow: 0 1px 2px rgba(28,25,23,0.05), 0 0 0 1px rgba(255,255,255,0.08) inset;
+  }
+  .cmp-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+  .cmp-submit-arrow { transition: transform 0.15s ease; }
+  .cmp-submit:hover:not(:disabled) .cmp-submit-arrow { transform: translateX(2px); }
+
+  /* ── Utility buttons (error/inactive screens) ── */
+  .cmp-btn-primary {
+    padding: 0.625rem 1.25rem;
+    background: #1C1917;
+    color: #FAFAF9;
+    font-family: 'Roboto', sans-serif;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    border: none;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .cmp-btn-primary:hover { background: #292524; }
+  .cmp-btn-outline {
+    padding: 0.625rem 1.25rem;
+    background: transparent;
+    color: #57534E;
+    font-family: 'Roboto', sans-serif;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    border: 1px solid #D4D3CF;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+  .cmp-btn-outline:hover { background: #FAF9F7; border-color: #78716C; }
+`;
 
 export default PublicCampaignPage;
