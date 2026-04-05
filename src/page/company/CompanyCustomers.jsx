@@ -64,6 +64,7 @@ const ConvertedClientsPage = () => {
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [searchText, setSearchText] = useState('');
+  const [searchKey, setSearchKey] = useState('lead_id.leadData.name');
   const [status, setStatus] = useState('');
 
   const load = async () => {
@@ -71,7 +72,11 @@ const ConvertedClientsPage = () => {
       setLoading(true);
       const params = { page, limit: pageSize, company: user._id };
       if (status !== '') params.status = status;
-      if (searchText) params.search = searchText;
+      if (searchText) {
+        if (searchKey === 'lead_id.leadData.name') params.leadName = searchText;
+        else if (searchKey === 'managedBy') params.managedBy = searchText;
+        else params.search = searchText;
+      }
       if (selectedCampaign) params.campaign = selectedCampaign;
       const data = await getClients(params);
       const items = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
@@ -432,9 +437,9 @@ const ConvertedClientsPage = () => {
         total={total}
         page={page}
         pageSize={pageSize}
-        searchKeys={['_id', 'managedBy']}
-        searchKey={''}
-        onSearchKeyChange={() => { }}
+        searchKeys={['lead_id.leadData.name', 'managedBy']}
+        searchKey={searchKey}
+        onSearchKeyChange={setSearchKey}
         searchText={searchText}
         onSearchTextChange={t => { setSearchText(t); setPage(1); }}
         loading={loading}
