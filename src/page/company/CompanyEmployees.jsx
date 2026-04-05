@@ -345,14 +345,22 @@ const CompanyEmployees = () => {
               >
                 Cancel
               </button>
-              <button
-                type="submit"
-                form="employee-form"
-                className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all shadow-sm ${modalFields.password !== modalFields.confirmPassword ? 'bg-gray-300 text-gray-400 cursor-not-allowed' : 'text-white bg-emerald-600 hover:bg-emerald-700'}`}
-                disabled={modalFields.password !== modalFields.confirmPassword}
-              >
-                {editData ? "Save Changes" : "Add Employee"}
-              </button>
+              {(() => {
+                const phone = modalFields.phone;
+                const isPhoneValid = phone === '' || /^[789]\d{9}$/.test(phone);
+                const isPasswordMatch = modalFields.password === modalFields.confirmPassword;
+                const isButtonDisabled = !isPhoneValid || !isPasswordMatch;
+                return (
+                  <button
+                    type="submit"
+                    form="employee-form"
+                    className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all shadow-sm ${isButtonDisabled ? 'bg-gray-300 text-gray-400 cursor-not-allowed' : 'text-white bg-emerald-600 hover:bg-emerald-700'}`}
+                    disabled={isButtonDisabled}
+                  >
+                    {editData ? "Save Changes" : "Add Employee"}
+                  </button>
+                );
+              })()}
             </div>
           )
         }
@@ -396,9 +404,16 @@ const CompanyEmployees = () => {
                 <Input
                   label="Phone"
                   name="phone"
-                  placeholder="+1 555 000 0000"
+                  placeholder="9876543210"
                   value={modalFields.phone}
                   onChange={f("phone")}
+                  error={
+                    modalFields.phone &&
+                    !/^[789]\d{9}$/.test(modalFields.phone)
+                      ? 'Enter a valid 10-digit Indian number starting with 7, 8, or 9.'
+                      : ''
+                  }
+                  maxLength={10}
                 />
               </div>
               <div className="py-0.1">

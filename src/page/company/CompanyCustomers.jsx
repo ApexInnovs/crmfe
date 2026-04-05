@@ -253,11 +253,23 @@ const ConvertedClientsPage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-1">
                       <div>
                         <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">Start Date</label>
-                        <input type="date" className="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-emerald-500 outline-none" value={proj.startDate ? proj.startDate.slice(0,10) : ''} onChange={e => handleChange(idx, 'startDate', e.target.value)} />
+                        <input
+                          type="date"
+                          className="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
+                          value={proj.startDate ? proj.startDate.slice(0,10) : ''}
+                          min={new Date().toISOString().slice(0,10)}
+                          onChange={e => handleChange(idx, 'startDate', e.target.value)}
+                        />
                       </div>
                       <div>
                         <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">Deadline</label>
-                        <input type="date" className="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-emerald-500 outline-none" value={proj.deadline ? proj.deadline.slice(0,10) : ''} onChange={e => handleChange(idx, 'deadline', e.target.value)} />
+                        <input
+                          type="date"
+                          className="w-full px-2 py-1 border border-gray-300 rounded text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
+                          value={proj.deadline ? proj.deadline.slice(0,10) : ''}
+                          min={proj.startDate ? proj.startDate.slice(0,10) : new Date().toISOString().slice(0,10)}
+                          onChange={e => handleChange(idx, 'deadline', e.target.value)}
+                        />
                       </div>
                       <div>
                         <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">Budget ($)</label>
@@ -331,9 +343,10 @@ const ConvertedClientsPage = () => {
 
   const tableHeaders = [
     {
-      key: '_id',
-      label: 'Client ID',
-      render: v => <span className="font-mono text-xs text-gray-500">{v}</span>,
+      key: 'lead_id.leadData.name',
+      label: 'Client Name',
+      render: (v, row) => <span className="font-mono text-xs text-gray-500">{row.lead_id?.leadData?.name || '—'}</span>,
+      searchable: true,
     },
     {
       key: 'managedBy',
@@ -540,11 +553,23 @@ const ConvertedClientsPage = () => {
                         <Input label="Project Status" name="projStatus" type="select" value={modalFields.projectDetails.status} onChange={proj('status')} options={projectStatusOptions} />
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1.5">Start Date</label>
-                          <input type="date" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" value={modalFields.projectDetails.startDate} onChange={proj('startDate')} />
+                          <input
+                            type="date"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                            value={modalFields.projectDetails.startDate}
+                            min={new Date().toISOString().slice(0,10)}
+                            onChange={proj('startDate')}
+                          />
                         </div>
                         <div>
                           <label className="block text-sm font-medium text-gray-700 mb-1.5">Deadline</label>
-                          <input type="date" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none" value={modalFields.projectDetails.deadline} onChange={proj('deadline')} />
+                          <input
+                            type="date"
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
+                            value={modalFields.projectDetails.deadline}
+                            min={modalFields.projectDetails.startDate ? modalFields.projectDetails.startDate : new Date().toISOString().slice(0,10)}
+                            onChange={proj('deadline')}
+                          />
                         </div>
                         <Input label="Budget ($)" name="projBudget" type="number" placeholder="e.g. 5000" value={modalFields.projectDetails.budget} onChange={proj('budget')} min="0" required={false} />
                       </div>

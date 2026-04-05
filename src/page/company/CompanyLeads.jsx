@@ -169,7 +169,9 @@ const CompanyLeads = () => {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
-  // Remove search, add campaign filter
+  // Search and filters
+  const [searchText, setSearchText] = useState('');
+  const [searchKey, setSearchKey] = useState('leadName');
   const [filterCampaign, setFilterCampaign] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
 
@@ -179,6 +181,8 @@ const CompanyLeads = () => {
       const params = { page, limit: pageSize, company: user._id };
       if (filterStatus) params.status = filterStatus;
       if (filterCampaign) params.campigne = filterCampaign;
+      if (searchText) params.search = searchText;
+      if (searchKey) params.searchKey = searchKey;
       const data = await getLeads(params);
       const items = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
       setValues(items);
@@ -190,7 +194,7 @@ const CompanyLeads = () => {
     }
   };
 
-  useEffect(() => { load(); }, [page, pageSize, filterStatus, filterCampaign]);
+  useEffect(() => { load(); }, [page, pageSize, filterStatus, filterCampaign, searchText, searchKey]);
 
   const loadCampaigns = async () => {
     try {
@@ -289,6 +293,12 @@ const CompanyLeads = () => {
   );
   const tableHeaders = [
     {
+      key: 'leadName',
+      label: 'Lead Name',
+      render: (v, row) => row?.leadData?.name || <span className="text-xs text-gray-400">—</span>,
+      searchable: true,
+    },
+    {
       key: 'campigne',
       label: <span title="Campaign"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" className="inline mr-1"><path stroke="#6366f1" strokeWidth="2" d="M4 7h16M4 12h16M4 17h16" /></svg>Camp.</span>,
       render: v => v?.title || <span className="text-xs text-gray-400">—</span>,
@@ -322,7 +332,8 @@ const CompanyLeads = () => {
       label: <span title="Assigned To"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" className="inline mr-1"><circle cx="12" cy="8" r="4" stroke="#f43f5e" strokeWidth="2" /><path stroke="#f43f5e" strokeWidth="2" d="M4 20c0-2.21 3.582-4 8-4s8 1.79 8 4" /></svg>Assigned To</span>,
       render: v => (typeof v === 'object' && v !== null && v.name)
         ? v.name
-        : <span className="text-xs text-gray-400">—</span>
+        : <span className="text-xs text-gray-400">—</span>,
+      searchable: true,
     },
     {
       key: 'callRecording',
@@ -423,6 +434,11 @@ const CompanyLeads = () => {
         onPageChange={setPage}
         onPageSizeChange={size => { setPageSize(size); setPage(1); }}
         actions={actions}
+        searchKeys={['leadName', 'assignedTo']}
+        searchKey={searchKey}
+        onSearchKeyChange={setSearchKey}
+        searchText={searchText}
+        onSearchTextChange={t => { setSearchText(t); setPage(1); }}
       />
 
       {/* Call Recording Modal */}
