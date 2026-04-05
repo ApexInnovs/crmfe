@@ -29,6 +29,11 @@ export const deleteCampaign = async (id) => {
   return response.data;
 };
 
+export const restoreCampaign = async (id) => {
+  const response = await axiosInstance.patch(`/campigne/${id}/restore`);
+  return response.data;
+};
+
 export const searchCampaigns = async (companyId, search) => {
   const response = await axiosInstance.get(`/campigne/company/${companyId}`, {
     params: { search, limit: 50 },

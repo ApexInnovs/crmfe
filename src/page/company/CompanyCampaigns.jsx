@@ -13,6 +13,7 @@ import {
   getCampaignsByCompany,
   importLeadsFromFile, // NEW: POST /leads/import  { campaignId, leads: [...] }
   deleteCampaign,
+  restoreCampaign,
   searchCampaigns,
   exportLeads,
 } from '../../api/campigneAndLeadApi';
@@ -1158,7 +1159,18 @@ const CompanyCampaigns = () => {
   // NEW: success toast for created campaign URL
   const [newCampaignUrl, setNewCampaignUrl] = useState(null);
 
-  const initialFields = { title: '', description: '', formStructure: [], status: 1 };
+  // Default Name field that cannot be deleted
+  const DEFAULT_NAME_FIELD = {
+    name: 'name',
+    label: 'Name',
+    type: 'text',
+    isRequired: true,
+    placeholder: 'Enter your Name',
+    isDefaultRequired: true, // Flag to prevent deletion
+    options: [],
+  };
+
+  const initialFields = { title: '', description: '', formStructure: [DEFAULT_NAME_FIELD], status: 1 };
   const [modalFields, setModalFields] = useState(initialFields);
 
   const emptyField = { name: '', label: '', type: 'text', isRequired: false, placeholder: '', options: '' };
@@ -1171,6 +1183,7 @@ const CompanyCampaigns = () => {
   const [inputSearch, setInputSearch] = useState('');
   const [searchKey, setSearchKey] = useState('title');
   const [status, setStatus] = useState('');
+  const [showDeleted, setShowDeleted] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
   const searchDebounceRef = useRef(null);
 
@@ -1199,7 +1212,7 @@ const CompanyCampaigns = () => {
       try {
         setLoading(true);
         const data = await getCampaignsByCompany(user._id, {
-          page, limit: pageSize, search: searchText, status,
+          page, limit: pageSize, search: searchText, status, showDeleted,
         });
         if (cancelled) return;
         const items = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
@@ -1213,7 +1226,7 @@ const CompanyCampaigns = () => {
     };
     fetch();
     return () => { cancelled = true; };
-  }, [user?._id, page, pageSize, searchText, status, refreshTick]);
+  }, [user?._id, page, pageSize, searchText, status, showDeleted, refreshTick]);
 
   const handleAddField = () => {
     if (!newField.name.trim() || !newField.label.trim()) return;
@@ -1281,7 +1294,21 @@ const CompanyCampaigns = () => {
   };
 
   const tableHeaders = [
-    { key: 'title', label: 'Title', searchable: true },
+    {
+      key: 'title',
+      label: 'Title',
+      searchable: true,
+      render: (v, row) => (
+        <span style={{
+          textDecoration: row.deleted ? 'line-through' : 'none',
+          color: row.deleted ? '#9ca3af' : '#374151',
+          opacity: row.deleted ? 0.7 : 1,
+        }}>
+          {v}
+          {row.deleted && <span style={{ marginLeft: '8px', fontSize: '11px', color: '#9ca3af', fontStyle: 'italic' }}>(deleted)</span>}
+        </span>
+      ),
+    },
     {
       key: 'description', label: 'Description',
       render: v => <span className="text-xs text-gray-500">{v || '—'}</span>,
@@ -1394,10 +1421,23 @@ const CompanyCampaigns = () => {
       onClick: row => {
         hapticTap();
         setEditData(row);
+        // Ensure the default Name field exists and mark it
+        let formStructure = (row.formStructure || []).map(field => {
+          // Mark Name field as default (required)
+          if (field.name === 'name') {
+            return { ...field, isDefaultRequired: true };
+          }
+          return field;
+        });
+
+        const hasNameField = formStructure.some(f => f.name === 'name');
+        if (!hasNameField) {
+          formStructure = [DEFAULT_NAME_FIELD, ...formStructure];
+        }
         setModalFields({
           title: row.title || '',
           description: row.description || '',
-          formStructure: row.formStructure || [],
+          formStructure,
           status: row.status || 1,
         });
         setNewField(emptyField);
@@ -1427,11 +1467,22 @@ const CompanyCampaigns = () => {
       onClick: row => { hapticTap(); handleExportLeads(row); },
     },
     {
-      key: 'delete', label: 'Delete', icon: TrashIcon, variant: 'danger',
+      key: 'delete', label: showDeleted ? 'Restore' : 'Delete',
+      icon: showDeleted ? (
+        <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M3 10a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4M3 10l1 12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2l1-12m-2-2v-2a2 2 0 0 0-2-2h-8a2 2 0 0 0-2 2v2" /></svg>
+      ) : TrashIcon,
+      variant: showDeleted ? 'success' : 'danger',
       onClick: row => {
         hapticTap();
-        setRowToDelete(row);
-        setDeleteConfirmOpen(true);
+        if (showDeleted) {
+          // Restore action
+          setRowToDelete(row); // Reuse setRowToDelete for the row
+          setDeleteConfirmOpen(true); // Reuse delete confirm for restore
+        } else {
+          // Delete action
+          setRowToDelete(row);
+          setDeleteConfirmOpen(true);
+        }
       },
     },
   ];
@@ -1440,15 +1491,35 @@ const CompanyCampaigns = () => {
     if (!rowToDelete) return;
     setDeleteLoading(true);
     try {
-      await deleteCampaign(rowToDelete._id);
+      if (showDeleted) {
+        // Restore action
+        await restoreCampaign(rowToDelete._id);
+        toast.success('Campaign restored successfully!');
+      } else {
+        // Delete action
+        await deleteCampaign(rowToDelete._id);
+        toast.success('Campaign deleted successfully!');
+      }
       setDeleteConfirmOpen(false);
       setRowToDelete(null);
       loadCampaigns();
     } catch (e) {
-      alert(e.response?.data?.message || 'Failed to delete campaign');
-      console.error('Delete campaign error', e);
+      toast.error(e.response?.data?.message || `Failed to ${showDeleted ? 'restore' : 'delete'} campaign`);
+      console.error('Delete/restore campaign error', e);
     } finally {
       setDeleteLoading(false);
+    }
+  };
+
+  const handleRestore = async (row) => {
+    hapticTap();
+    try {
+      await restoreCampaign(row._id);
+      toast.success('Campaign restored successfully!');
+      loadCampaigns();
+    } catch (e) {
+      toast.error(e.response?.data?.message || 'Failed to restore campaign');
+      console.error('Restore campaign error', e);
     }
   };
 
@@ -1554,7 +1625,7 @@ const CompanyCampaigns = () => {
             onClick={() => {
               hapticTap();
               setEditData(null);
-              setModalFields(initialFields);
+              setModalFields({ ...initialFields, formStructure: [DEFAULT_NAME_FIELD] });
               setNewField(emptyField);
               setModalOpen(true);
             }}
@@ -1598,6 +1669,39 @@ const CompanyCampaigns = () => {
           >
             New Campaign
           </button>
+
+          {/* Show deleted checkbox */}
+          <label style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 14px',
+            borderRadius: '11px',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            fontSize: '13px',
+            fontWeight: '500',
+            color: showDeleted ? '#991b1b' : '#6b7280',
+            background: showDeleted ? 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)' : 'linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%)',
+            border: showDeleted ? '1px solid #fca5a5' : '1px solid #d1d5db',
+            transition: 'all 0.2s ease',
+          }}>
+            <input
+              type="checkbox"
+              checked={showDeleted}
+              onChange={(e) => {
+                setShowDeleted(e.target.checked);
+                setPage(1);
+              }}
+              style={{
+                accentColor: '#991b1b',
+                width: '16px',
+                height: '16px',
+                cursor: 'pointer',
+              }}
+            />
+            Show Deleted
+          </label>
         </div>
       </div>
 
@@ -1811,16 +1915,19 @@ const CompanyCampaigns = () => {
               {modalFields.formStructure.length > 0 ? (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', maxHeight: '92px', overflowY: 'auto', borderTop: '1px solid rgba(229,231,235,0.5)', paddingTop: '8px' }}>
                   {modalFields.formStructure.map((field, idx) => (
-                    <div key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'linear-gradient(135deg, #f0fce8 0%, #e8fad1 100%)', border: '1px solid #d1faa0', borderRadius: '22px', padding: '4px 10px 4px 10px', fontSize: '12px', fontWeight: 500, color: '#2d5a0e', lineHeight: 1.4, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
+                    <div key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: field.isDefaultRequired ? 'linear-gradient(135deg, #fef3f2 0%, #fee4e2 100%)' : 'linear-gradient(135deg, #f0fce8 0%, #e8fad1 100%)', border: field.isDefaultRequired ? '1px solid #face8d' : '1px solid #d1faa0', borderRadius: '22px', padding: '4px 10px 4px 10px', fontSize: '12px', fontWeight: 500, color: field.isDefaultRequired ? '#7c2d12' : '#2d5a0e', lineHeight: 1.4, boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
                       <span style={{ fontWeight: 600 }}>{field.label}</span>
-                      <span style={{ color: '#7ba82e', fontSize: '11px', fontWeight: 400 }}>({field.type})</span>
+                      <span style={{ color: field.isDefaultRequired ? '#c2410c' : '#7ba82e', fontSize: '11px', fontWeight: 400 }}>({field.type})</span>
                       {field.isRequired && <span style={{ color: '#dc2626', fontWeight: 700, fontSize: '13px', lineHeight: 1 }}>*</span>}
-                      <button type="button"
-                        onClick={() => setModalFields(p => ({ ...p, formStructure: p.formStructure.filter((_, i) => i !== idx) }))}
-                        style={{ color: '#a3a3a3', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px 0 4px', fontSize: '14px', lineHeight: 1, display: 'flex', alignItems: 'center', transition: 'color 0.15s' }}
-                        onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
-                        onMouseLeave={e => e.currentTarget.style.color = '#a3a3a3'}
-                      >{TrashIcon}</button>
+                      {field.isDefaultRequired && <span style={{ color: '#92400e', fontSize: '10px', fontWeight: 600, marginLeft: '2px' }}>DEFAULT</span>}
+                      {!field.isDefaultRequired && (
+                        <button type="button"
+                          onClick={() => setModalFields(p => ({ ...p, formStructure: p.formStructure.filter((_, i) => i !== idx) }))}
+                          style={{ color: '#a3a3a3', background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px 0 4px', fontSize: '14px', lineHeight: 1, display: 'flex', alignItems: 'center', transition: 'color 0.15s' }}
+                          onMouseEnter={e => e.currentTarget.style.color = '#ef4444'}
+                          onMouseLeave={e => e.currentTarget.style.color = '#a3a3a3'}
+                        >{TrashIcon}</button>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -1858,15 +1965,19 @@ const CompanyCampaigns = () => {
         confirmLabel="Confirm"
       />
 
-      {/* Delete confirm dialog */}
+      {/* Delete/Restore confirm dialog */}
       <ConfirmDialog
         isOpen={deleteConfirmOpen}
         onClose={() => { setDeleteConfirmOpen(false); setRowToDelete(null); }}
         onConfirm={handleConfirmDelete}
-        title="Delete Campaign"
-        message={<>Are you sure you want to delete <span className="font-semibold text-gray-800">"{rowToDelete?.title}"</span>? This action cannot be undone.</>}
-        confirmLabel={deleteLoading ? 'Deleting…' : 'Delete'}
-        variant="danger"
+        title={showDeleted ? "Restore Campaign" : "Delete Campaign"}
+        message={showDeleted ? (
+          <>Are you sure you want to restore <span className="font-semibold text-gray-800">"{rowToDelete?.title}"</span>?</>
+        ) : (
+          <>Are you sure you want to delete <span className="font-semibold text-gray-800">"{rowToDelete?.title}"</span>? This action cannot be undone.</>
+        )}
+        confirmLabel={deleteLoading ? (showDeleted ? 'Restoring…' : 'Deleting…') : (showDeleted ? 'Restore' : 'Delete')}
+        variant={showDeleted ? "success" : "danger"}
       />
 
       {/* ── Import Leads Modal ── */}

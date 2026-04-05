@@ -189,7 +189,7 @@ const PublicCampaignPage = () => {
               <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
           </div>
-          <h1 style={{ fontFamily: "'Roboto', sans-serif", fontSize: '1.875rem', fontWeight: 700, color: '#1C1917', marginBottom: '0.75rem' }}>Campaign Not Started</h1>
+          <h1 style={{ fontFamily: "'Roboto', sans-serif", fontSize: '1.875rem', fontWeight: 700, color: '#1C1917', marginBottom: '0.75rem' }}>Campaign Not Active</h1>
           <p style={{ fontFamily: "'DM Sans', sans-serif", color: '#78716C', fontSize: '1rem', lineHeight: 1.6 }}>
             This campaign is not currently accepting responses. It may not have started yet or has ended.
           </p>

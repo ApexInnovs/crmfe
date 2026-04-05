@@ -85,7 +85,7 @@ const LoginPage = () => {
           width: 100%;
           max-width: 1080px;
           min-height: 640px;
-          border-radius: 20px;
+          border-radius: 0px;
           overflow: hidden;
           box-shadow:
             0 2px 4px rgba(0,0,0,.04),
