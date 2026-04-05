@@ -231,7 +231,7 @@ const PublicCampaignPage = () => {
                 ? 'You have already submitted your information for this campaign.'
                 : "Your response has been recorded. We'll be in touch shortly."}
             </p>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 1rem', background: '#F0FDF4', border: '1px solid #DBEAFE', borderRadius: '999px' }}>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem', padding: '0.4rem 1rem', background: '#F0FDF4', border: '1px solid #d7edda', borderRadius: '999px' }}>
               <img src="/image.png" alt="verified" style={{ width: '16px', height: '16px' }} />
               <span style={{ fontFamily: "'Roboto', sans-serif", fontSize: '0.75rem', color: '#16A34A', fontWeight: 500 }}>Securely recorded</span>
             </div>

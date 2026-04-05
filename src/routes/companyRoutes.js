@@ -40,7 +40,7 @@ const companyRoutes = [
   },
   {
     id: "customers",
-    label: "Customers",
+    label: "Clients",
     icon: TbUserHeart,
     component: CompanyCustomers,
   },
