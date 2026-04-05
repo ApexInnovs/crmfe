@@ -187,7 +187,7 @@ const CompanyEmployees = () => {
       alert('Please wait, employee data is still loading.');
       return;
     }
-    if (values.length >= 2) {
+    if (values.length >= 1) {
       setLimitModalOpen(true);
       return;
     }

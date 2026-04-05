@@ -328,29 +328,52 @@ const CompanyLeads = () => {
       key: 'callRecording',
       label: <span title="Call Recording"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" className="inline mr-1"><path stroke="#6366f1" strokeWidth="2" d="M12 5v14m7-7H5" /></svg>Call Recording</span>,
       render: (_, row) => {
-        // Assume callFile is a URL or file name in row.callFile
-        if (row.callFile) {
-          // If callFile is an object with url or path, adjust as needed
-          const fileUrl = typeof row.callFile === 'string' ? row.callFile : row.callFile.url || row.callFile.path || '';
-          const fileName = typeof row.callFile === 'string' ? row.callFile.split('/').pop() : row.callFile.name || 'Recording';
-          return (
-            <button
-              className="text-indigo-600 underline hover:text-indigo-800 text-xs"
-              onClick={() => setCallRecordingModal({ open: true, fileUrl, fileName })}
-            >
-              View Recording
-            </button>
-          );
-        }
-        return <span className="text-xs text-gray-400">—</span>;
+        // Always show the button to open the modal, using new fields
+        return (
+          <button
+            className="text-indigo-600 hover:text-indigo-800 p-1 rounded-full focus:outline-none"
+            title="View Call Recording"
+            onClick={() => setCallRecordingModal({
+              open: true,
+              fileUrl: row.callRecording
+                ? (typeof row.callRecording === 'string' ? row.callRecording : row.callRecording.url || row.callRecording.path || '')
+                : '',
+              fileName: row.callRecording
+                ? (typeof row.callRecording === 'string' ? row.callRecording.split('/').pop() : row.callRecording.name || 'Recording')
+                : '',
+              description: row.callRecordingText || ''
+            })}
+          >
+            <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" stroke="#6366f1" strokeWidth="2" />
+              <polygon points="10,8 16,12 10,16" fill="#6366f1" />
+            </svg>
+          </button>
+        );
       }
     },
+ 
     {
       key: 'nextMeetingDate',
       label: <span title="Next Meeting"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" className="inline mr-1"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#10b981" strokeWidth="2" /><path stroke="#10b981" strokeWidth="2" d="M16 2v4M8 2v4M3 10h18" /></svg>Next Mtg</span>,
       render: v => v
         ? <span className="text-xs font-medium text-emerald-700">{new Date(v).toLocaleDateString()}</span>
         : <span className="text-xs text-gray-400">—</span>
+    },
+       {
+      key: 'call_performance',
+      label: <span title="Call Performance"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" className="inline mr-1"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" stroke="#f59e42" strokeWidth="1.5" fill="none" /></svg>Rating</span>,
+      render: (v) => {
+        const rating = Number(v) || 0;
+        return (
+          <span title={rating ? `${rating} out of 10` : 'No rating'} style={{display:'inline-flex',alignItems:'center',gap:2}}>
+            <span style={{fontWeight:500}}>{rating}</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="#f59e42" stroke="#f59e42" strokeWidth="1.5" style={{verticalAlign:'middle'}}>
+              <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+            </svg>
+          </span>
+        );
+      }
     },
         {
       key: 'createdAt',
@@ -405,7 +428,7 @@ const CompanyLeads = () => {
       {/* Call Recording Modal */}
       <Modal
         isOpen={callRecordingModal.open}
-        onClose={() => setCallRecordingModal({ open: false, fileUrl: '', fileName: '' })}
+        onClose={() => setCallRecordingModal({ open: false, fileUrl: '', fileName: '', description: '' })}
         title="Call Recording"
         footer={null}
       >
@@ -416,8 +439,10 @@ const CompanyLeads = () => {
               <source src={callRecordingModal.fileUrl} />
               Your browser does not support the audio element.
             </audio>
+          ) : callRecordingModal.description ? (
+            <div className="text-gray-700 text-sm">{callRecordingModal.description}</div>
           ) : (
-            <div className="text-gray-400 text-sm">No audio file available.</div>
+            <div className="text-gray-400 text-sm">No audio file or description available.</div>
           )}
         </div>
       </Modal>
