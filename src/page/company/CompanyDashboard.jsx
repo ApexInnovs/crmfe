@@ -479,56 +479,133 @@ const CompanyDashboard = () => {
   // Suggestions
   const suggestions = dashboard?.suggestions || [];
 
+  // Get campaign options for dropdown
+  const campaignOptions = dashboard?.campaigns || [];
+
   return (
     <div style={{ padding: '12px 0', maxWidth: 1100, margin: '0 auto' }}>
-      <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: 20, fontWeight: 700, color: '#1e2b1a', marginBottom: 1 }}>
-          Company Dashboard
-        </div>
-        <div style={{ fontSize: 12, color: '#7a8a7a' }}>
-          Welcome, {user?.name || 'there'} — quick stats & insights below.
-        </div>
-      </div>
       {/* Filter Bar */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 18, background: '#f8faf7', borderRadius: 8, padding: '10px 14px' }}>
-        <label style={{ fontSize: 12, color: '#374140', fontWeight: 500 }}>
-          Start Date:
-          <input
-            type="date"
-            value={filters.startDate || weekAgo}
-            max={filters.endDate || today}
-            onChange={e => setFilters(f => ({ ...f, startDate: e.target.value }))}
-            style={{ marginLeft: 6, fontSize: 12, padding: '2px 6px', borderRadius: 4, border: '1px solid #e4ebe0' }}
-          />
-        </label>
-        <label style={{ fontSize: 12, color: '#374140', fontWeight: 500 }}>
-          End Date:
-          <input
-            type="date"
-            value={filters.endDate || today}
-            min={filters.startDate || weekAgo}
-            max={today}
-            onChange={e => setFilters(f => ({ ...f, endDate: e.target.value }))}
-            style={{ marginLeft: 6, fontSize: 12, padding: '2px 6px', borderRadius: 4, border: '1px solid #e4ebe0' }}
-          />
-        </label>
-        <label style={{ fontSize: 12, color: '#374140', fontWeight: 500 }}>
-          Campaign ID:
-          <input
-            type="text"
-            value={filters.campigneId}
-            placeholder="(optional)"
-            onChange={e => setFilters(f => ({ ...f, campigneId: e.target.value }))}
-            style={{ marginLeft: 6, fontSize: 12, padding: '2px 6px', borderRadius: 4, border: '1px solid #e4ebe0', width: 120 }}
-          />
-        </label>
+      <div className="filter-bar">
+        <div className="filter-group" style={{ alignItems: 'flex-end', gap: 18 }}>
+          <label style={{ minWidth: 160 }}>
+            <span>Start Time</span>
+            <input
+              type="date"
+              value={filters.startDate || weekAgo}
+              max={filters.endDate || today}
+              onChange={e => setFilters(f => ({ ...f, startDate: e.target.value }))}
+              style={{ minWidth: 140 }}
+            />
+          </label>
+          <label style={{ minWidth: 160 }}>
+            <span>End Time</span>
+            <input
+              type="date"
+              value={filters.endDate || today}
+              min={filters.startDate || weekAgo}
+              max={today}
+              onChange={e => setFilters(f => ({ ...f, endDate: e.target.value }))}
+              style={{ minWidth: 140 }}
+            />
+          </label>
+          <label style={{ minWidth: 200 }}>
+            <span>Campaign</span>
+            <select
+              value={filters.campigneId}
+              onChange={e => setFilters(f => ({ ...f, campigneId: e.target.value }))}
+              style={{ minWidth: 160, fontSize: 12, padding: '4px 8px', borderRadius: 5, border: '1px solid #e4ebe0', background: '#fff', marginTop: 2 }}
+            >
+              <option value="">All Campaigns</option>
+              {campaignOptions.map(c => (
+                <option key={c._id || c.id} value={c._id || c.id}>{c.name || c.title || c._id || c.id}</option>
+              ))}
+            </select>
+          </label>
+        </div>
         <button
-          style={{ ...s.limeBtn, fontSize: 12, padding: '6px 16px', marginLeft: 8 }}
+          className="filter-reset-btn"
           onClick={() => setFilters({ startDate: '', endDate: '', campigneId: '' })}
         >
           Reset
         </button>
       </div>
+      <style>{`
+        .filter-bar {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          margin-bottom: 20px;
+          background: #f8faf7;
+          border-radius: 10px;
+          padding: 12px 18px;
+          box-shadow: 0 1px 4px 0 rgba(60,80,120,0.04);
+        }
+        .filter-group {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 18px;
+        }
+        .filter-group label {
+          display: flex;
+          flex-direction: column;
+          font-size: 12px;
+          color: #374140;
+          font-weight: 500;
+          gap: 4px;
+        }
+        .filter-group input[type="date"],
+        .filter-group select {
+          font-size: 12px;
+          padding: 4px 8px;
+          border-radius: 5px;
+          border: 1px solid #e4ebe0;
+          background: #fff;
+          margin-top: 2px;
+          min-width: 120px;
+          transition: border 0.15s;
+        }
+        .filter-group select {
+          width: 160px;
+        }
+        .filter-group input:focus, .filter-group select:focus {
+          border: 1.5px solid #84cc16;
+          outline: none;
+        }
+        .filter-reset-btn {
+          font-size: 12px;
+          padding: 7px 20px;
+          margin-left: 10px;
+          border-radius: 8px;
+          border: none;
+          background: linear-gradient(160deg,#b5f053 0%,#84cc16 40%,#65a30d 100%);
+          color: #1a3a00;
+          font-weight: 600;
+          cursor: pointer;
+          box-shadow: 0 1px 0 rgba(255,255,255,0.4) inset,0 4px 0 #4d7c0f,0 5px 6px rgba(74,120,8,0.35),0 10px 20px rgba(101,163,13,0.20);
+          transition: all 0.15s;
+        }
+        .filter-reset-btn:hover {
+          box-shadow: 0 4px 12px 0 rgba(60,80,120,0.10);
+          background: linear-gradient(160deg,#d9ff8a 0%,#b5f053 40%,#84cc16 100%);
+        }
+        @media (max-width: 700px) {
+          .filter-bar {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+            padding: 10px 8px;
+          }
+          .filter-group {
+            gap: 10px;
+          }
+          .filter-group select {
+            width: 100%;
+            min-width: 0;
+          }
+        }
+      `}</style>
       {error && <div style={{ color: 'red', marginBottom: 10 }}>{error}</div>}
       {/* Stat cards */}
       <div className="dashboard-cards" style={{

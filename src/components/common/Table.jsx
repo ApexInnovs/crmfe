@@ -425,7 +425,10 @@ const Table = ({
               >
                 {searchKeys.map((key) => {
                   const header = headers.find((h) => h.key === key);
-                  return <option key={key} value={key}>{header?.label || key}</option>;
+                  // Only use plain text for <option>
+                  let label = header?.label;
+                  if (typeof label !== 'string') label = key;
+                  return <option key={key} value={key}>{label}</option>;
                 })}
               </select>
             )}

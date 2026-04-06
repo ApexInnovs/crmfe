@@ -213,7 +213,7 @@ const CompanyLeads = () => {
       let callFileUrl = '';
       if (modalFields.callFile) {
         const formData = new FormData();
-        formData.append('avatar', modalFields.callFile);
+        formData.append('file', modalFields.callFile); // Use 'file' as field name
         const uploadRes = await uploadAvatar(formData);
         callFileUrl = uploadRes.url || uploadRes.path || uploadRes.fileUrl || '';
       }
