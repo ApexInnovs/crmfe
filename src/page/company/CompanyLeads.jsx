@@ -162,6 +162,9 @@ const CompanyLeads = () => {
   const [noteText, setNoteText] = useState('');
   const [addingNote, setAddingNote] = useState(false);
 
+  // Info modal state
+  const [infoModal, setInfoModal] = useState({ open: false, lead: null });
+
   // Add Recording Modal state
   const [addRecordingModal, setAddRecordingModal] = useState({ open: false, lead: null });
   const [recordingFile, setRecordingFile] = useState(null);
@@ -179,6 +182,7 @@ const CompanyLeads = () => {
   const [searchKey, setSearchKey] = useState('leadName');
   const [filterCampaign, setFilterCampaign] = useState('');
   const [filterStatus, setFilterStatus] = useState('');
+  const [filterContactStatus, setFilterContactStatus] = useState('');
 
   const load = async () => {
     try {
@@ -186,6 +190,7 @@ const CompanyLeads = () => {
       const params = { page, limit: pageSize, company: user._id };
       if (filterStatus) params.status = filterStatus;
       if (filterCampaign) params.campigne = filterCampaign;
+      if (filterContactStatus) params.contacted = filterContactStatus;
       if (searchText) params.search = searchText;
       if (searchKey) params.searchKey = searchKey;
       const data = await getLeads(params);
@@ -199,7 +204,7 @@ const CompanyLeads = () => {
     }
   };
 
-  useEffect(() => { load(); }, [page, pageSize, filterStatus, filterCampaign, searchText, searchKey]);
+  useEffect(() => { load(); }, [page, pageSize, filterStatus, filterCampaign, filterContactStatus, searchText, searchKey]);
 
   const loadCampaigns = async () => {
     try {
@@ -320,34 +325,27 @@ const CompanyLeads = () => {
   const statusSelectOptions = LEAD_STATUSES.map(s => ({ value: s.value, label: s.label }));
 
   const EyeIcon = (
-    <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="#6366f1" strokeWidth="2" d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"/><circle cx="12" cy="12" r="3" stroke="#6366f1" strokeWidth="2"/></svg>
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <path stroke="#6366f1" strokeWidth="2" d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"/>
+      <circle cx="12" cy="12" r="3" stroke="#6366f1" strokeWidth="2"/>
+    </svg>
   );
+
   const tableHeaders = [
     {
       key: 'leadName',
-      label: 'Lead Name',
+      label: 'L Name',
       render: (v, row) => row?.leadData?.name || <span className="text-xs text-gray-400">—</span>,
       searchable: true,
     },
     {
-      key: 'campigne',
-      label: <span title="Campaign"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" className="inline mr-1"><path stroke="#6366f1" strokeWidth="2" d="M4 7h16M4 12h16M4 17h16" /></svg>Camp.</span>,
-      render: v => v?.title || <span className="text-xs text-gray-400">—</span>,
-      filter: { options: campaignOptions, value: filterCampaign, onChange: v => { setFilterCampaign(v); setPage(1); } }
-    },
-    {
-      key: 'status',
-      label: 'Status',
-      filter: { options: statusFilterOptions, value: filterStatus, onChange: v => { setFilterStatus(v); setPage(1); } },
-      render: v => (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${STATUS_COLOR_MAP[v] || 'bg-gray-100 text-gray-500'}`}>
-          {STATUS_LABEL_MAP[v] || v}
-        </span>
-      ),
+      key: 'phone',
+      label: 'Phone',
+      render: (v, row) => row?.leadData?.phone || <span className="text-xs text-gray-400">—</span>,
     },
     {
       key: 'view',
-      label: <span title="View Lead">Lead data</span>,
+      label: 'L Data',
       render: (_, row) => (
         <button
           className="p-2 rounded-full hover:bg-gray-100"
@@ -359,16 +357,21 @@ const CompanyLeads = () => {
       )
     },
     {
-      key: 'assignedTo',
-      label: <span title="Assigned To"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" className="inline mr-1"><circle cx="12" cy="8" r="4" stroke="#f43f5e" strokeWidth="2" /><path stroke="#f43f5e" strokeWidth="2" d="M4 20c0-2.21 3.582-4 8-4s8 1.79 8 4" /></svg>Assigned To</span>,
-      render: v => (typeof v === 'object' && v !== null && v.name)
-        ? v.name
-        : <span className="text-xs text-gray-400">—</span>,
-      searchable: true,
+      key: 'info',
+      label: 'Info',
+      render: (_, row) => (
+        <button
+          title="Show Lead Info"
+          className="p-1 text-indigo-500 hover:text-indigo-700"
+          onClick={() => setInfoModal({ open: true, lead: row })}
+        >
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="#6366f1" strokeWidth="2"/><path stroke="#6366f1" strokeWidth="2" strokeLinecap="round" d="M12 8h.01M12 12v4"/></svg>
+        </button>
+      ),
     },
     {
       key: 'callRecording',
-      label: <span title="Call Recording"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" className="inline mr-1"><path stroke="#6366f1" strokeWidth="2" d="M12 5v14m7-7H5" /></svg>Call Recording</span>,
+      label: 'REC.',
       render: (_, row) => {
         const hasRecording = row.callRecording
           ? (typeof row.callRecording === 'string' && row.callRecording.trim() !== '')
@@ -412,17 +415,9 @@ const CompanyLeads = () => {
         }
       }
     },
- 
     {
-      key: 'nextMeetingDate',
-      label: <span title="Next Meeting"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" className="inline mr-1"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#10b981" strokeWidth="2" /><path stroke="#10b981" strokeWidth="2" d="M16 2v4M8 2v4M3 10h18" /></svg>Next Mtg</span>,
-      render: v => v
-        ? <span className="text-xs font-medium text-emerald-700">{new Date(v).toLocaleDateString()}</span>
-        : <span className="text-xs text-gray-400">—</span>
-    },
-       {
       key: 'call_performance',
-      label: <span title="Call Performance"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" className="inline mr-1"><path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" stroke="#f59e42" strokeWidth="1.5" fill="none" /></svg>Rating</span>,
+      label: 'Rating',
       render: (v) => {
         const rating = Number(v) || 0;
         return (
@@ -435,10 +430,15 @@ const CompanyLeads = () => {
         );
       }
     },
-        {
-      key: 'createdAt',
-      label: <span title="Created"><svg width="13" height="13" fill="none" viewBox="0 0 24 24" className="inline mr-1"><path stroke="#6366f1" strokeWidth="2" d="M12 8v4l3 3" /><circle cx="12" cy="12" r="10" stroke="#6366f1" strokeWidth="2" /></svg>Created</span>,
-      format: 'date'
+    {
+      key: 'status',
+      label: 'Status',
+      filter: { options: statusFilterOptions, value: filterStatus, onChange: v => { setFilterStatus(v); setPage(1); } },
+      render: v => (
+        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${STATUS_COLOR_MAP[v] || 'bg-gray-100 text-gray-500'}`}>
+          {STATUS_LABEL_MAP[v] || v}
+        </span>
+      ),
     },
   ];
 
@@ -488,6 +488,17 @@ const CompanyLeads = () => {
         onSearchKeyChange={setSearchKey}
         searchText={searchText}
         onSearchTextChange={t => { setSearchText(t); setPage(1); }}
+        toolbarFilter={
+          <select
+            value={filterContactStatus}
+            onChange={e => { setFilterContactStatus(e.target.value); setPage(1); }}
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+          >
+            <option value="">All</option>
+            <option value="contacted">Contacted</option>
+            <option value="not_contacted">Not Contacted</option>
+          </select>
+        }
       />
 
       {/* Call Recording Modal */}
@@ -678,6 +689,47 @@ const CompanyLeads = () => {
         confirmLabel="Confirm"
         variant="warning"
       />
+
+      {/* Info Modal - Shows Assigned To, Created Date, Next Meeting, Campaign */}
+      <Modal
+        isOpen={infoModal.open}
+        onClose={() => setInfoModal({ open: false, lead: null })}
+        title={infoModal.lead ? `Lead Info: ${leadLabel(infoModal.lead)}` : 'Lead Info'}
+        footer={null}
+      >
+        {infoModal.lead && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <span className="block text-xs text-gray-400 font-medium mb-1">Assigned To</span>
+                <span className="block text-sm text-gray-800 font-medium">
+                  {infoModal.lead.assignedTo && typeof infoModal.lead.assignedTo === 'object' 
+                    ? infoModal.lead.assignedTo.name 
+                    : infoModal.lead.assignedTo || '—'}
+                </span>
+              </div>
+              <div>
+                <span className="block text-xs text-gray-400 font-medium mb-1">Created At</span>
+                <span className="block text-sm text-gray-800 font-medium">
+                  {infoModal.lead.createdAt ? new Date(infoModal.lead.createdAt).toLocaleDateString() : '—'}
+                </span>
+              </div>
+              <div>
+                <span className="block text-xs text-gray-400 font-medium mb-1">Next Meeting</span>
+                <span className="block text-sm text-gray-800 font-medium">
+                  {infoModal.lead.nextMeetingDate ? new Date(infoModal.lead.nextMeetingDate).toLocaleDateString() : '—'}
+                </span>
+              </div>
+              <div>
+                <span className="block text-xs text-gray-400 font-medium mb-1">Campaign</span>
+                <span className="block text-sm text-gray-800 font-medium">
+                  {infoModal.lead.campigne?.title || infoModal.lead.campigne?.name || '—'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* Lead Data Modal */}
       <Modal

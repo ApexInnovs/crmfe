@@ -329,6 +329,7 @@ const Table = ({
   height = "65vh",
   onAdd,
   addLabel = "Add",
+  toolbarFilter,
 }) => {
   const [internalSearchText, setInternalSearchText] = useState("");
   const [internalSearchKey, setInternalSearchKey] = useState(searchKeys[0] || "");
@@ -416,6 +417,13 @@ const Table = ({
           }} />
 
           <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", position: "relative" }}>
+            {toolbarFilter && (
+              <>
+                {toolbarFilter}
+                <div style={{ width: 1, height: 26, background: "linear-gradient(to bottom, transparent, rgba(180,190,175,0.5) 30%, rgba(180,190,175,0.5) 70%, transparent)" }} />
+              </>
+            )}
+            
             {searchKeys.length > 0 && (
               <select
                 value={computedSearchKey}
