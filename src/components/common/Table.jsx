@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useCallback, useRef, useEffect } from "react";
 import { useWebHaptics } from "web-haptics/react";
+import { SkeletonLoader } from "./Skeleton";
 
 const timePassed = (date) => {
   const now = Date.now();
@@ -308,8 +309,8 @@ const actionBtnStyle = (variant) => {
 const Table = ({
   headers = [],
   values = [],
-  page = 1,
-  pageSize = 10,
+  page = 10,
+  pageSize = 12,
   total = 0,
   loading = false,
   searchKeys = [],
@@ -573,17 +574,21 @@ const Table = ({
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan={colSpan} style={{ padding: "48px 16px", textAlign: "center" }}>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 10, maxWidth: 400, margin: "0 auto" }}>
-                      {[0, 1, 2].map((i) => (
-                        <div key={i} style={{
-                          height: 16, borderRadius: 8,
-                          background: "linear-gradient(90deg, #f0f4ee 25%, #e4ebe0 50%, #f0f4ee 75%)",
-                          backgroundSize: "200% 100%",
-                          animation: `shimmer 1.4s ${i * 0.15}s infinite`,
-                        }} />
-                      ))}
-                    </div>
+                  <td colSpan={colSpan} style={{ padding: 0 }}>
+                    <SkeletonLoader
+                      rows={pageSize}
+                      columns={visibleHeaders.length + 1 + (hasActions ? 1 : 0)}
+                      columnWidths={[
+                        "40px",
+                        ...visibleHeaders.map(() => "1fr"),
+                        ...(hasActions ? ["100px"] : []),
+                      ]}
+                      isMultiLine={[
+                        false,
+                        ...visibleHeaders.map(() => false),
+                        ...(hasActions ? [false] : []),
+                      ]}
+                    />
                   </td>
                 </tr>
               ) : values.length === 0 ? (

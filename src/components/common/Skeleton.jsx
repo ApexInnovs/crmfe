@@ -9,7 +9,7 @@
  */
 
 export const SkeletonLoader = ({
-    rows = 10,
+    rows = 12,
     columns = 5,
     columnWidths = ['40px', '1fr', '2fr', '150px', '120px'],
     isMultiLine = [false, false, true, false, false], // Which columns have multi-line content

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import useFeedback from '../../hooks/useFeedback';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -223,6 +224,8 @@ const STATUS_META = [
 // ══════════════════════════════════════════════════════════════════════════════
 const CompanyDashboard = () => {
   const { user } = useAuth();
+  const { fire } = useFeedback();
+  const hapticTap = () => fire({ haptic: [{ duration: 30 }, { delay: 60, duration: 40, intensity: 1 }], sound: true });
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -352,17 +355,20 @@ const CompanyDashboard = () => {
           box-shadow: 0 0 0 3px rgba(132,204,22,0.15);
         }
         .cd-filter__reset {
-          display: inline-flex; align-items: center; gap: 6px;
-          padding: 8px 22px; border-radius: 10px; border: none;
-          font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 600;
-          color: #1a3a00; cursor: pointer; white-space: nowrap;
-          background: linear-gradient(160deg,#b5f053 0%,#84cc16 40%,#65a30d 100%);
-          box-shadow: 0 1px 0 rgba(255,255,255,0.35) inset, 0 -2px 0 rgba(0,0,0,0.12) inset,
-                      0 3px 0 var(--cd-lime-dark), 0 4px 8px rgba(74,120,8,0.3);
-          transition: all .15s ease;
+          display: flex; align-items: center; gap: 8px;
+          padding: 10px 22px; border-radius: 11px; border: none;
+          font-family: 'DM Sans', sans-serif; font-size: 13.5px; font-weight: 600;
+          color: #1a3a00; cursor: pointer; white-space: nowrap; position: relative;
+          background: linear-gradient(160deg, #b5f053 0%, #84cc16 40%, #65a30d 100%);
+          border-top: 1px solid rgba(255,255,255,0.45);
+          border-bottom: 1px solid rgba(0,0,0,0.15);
+          box-shadow: 0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset,
+                      0 4px 0 #4d7c0f, 0 5px 6px rgba(74,120,8,0.35), 0 10px 20px rgba(101,163,13,0.20);
+          transition: all 0.15s ease;
+          letter-spacing: 0.01em;
         }
-        .cd-filter__reset:hover { transform: translateY(-1px); box-shadow: 0 1px 0 rgba(255,255,255,0.35) inset, 0 4px 0 var(--cd-lime-dark), 0 6px 12px rgba(74,120,8,0.35); }
-        .cd-filter__reset:active { transform: translateY(2px); box-shadow: 0 2px 4px rgba(0,0,0,0.1) inset; }
+        .cd-filter__reset:hover { transform: translateY(-1px); box-shadow: 0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 5px 0 #4d7c0f, 0 7px 10px rgba(74,120,8,0.40), 0 14px 24px rgba(101,163,13,0.22); }
+        .cd-filter__reset:active { transform: translateY(3px); box-shadow: 0 2px 4px rgba(0,0,0,0.12) inset, 0 1px 0 rgba(255,255,255,0.25) inset, 0 1px 0 #4d7c0f, 0 2px 4px rgba(74,120,8,0.25); }
 
         /* ── Stat cards ───────────────────────────────── */
         .cd-stats {
@@ -606,7 +612,23 @@ const CompanyDashboard = () => {
           </div>
           <button
             className="cd-filter__reset"
-            onClick={() => setFilters({ startDate: '', endDate: '', campigneId: '' })}
+            onClick={() => { hapticTap(); setFilters({ startDate: '', endDate: '', campigneId: '' }); }}
+            onMouseEnter={e => {
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 5px 0 #4d7c0f, 0 7px 10px rgba(74,120,8,0.40), 0 14px 24px rgba(101,163,13,0.22)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 4px 0 #4d7c0f, 0 5px 6px rgba(74,120,8,0.35), 0 10px 20px rgba(101,163,13,0.20)';
+            }}
+            onMouseDown={e => {
+              e.currentTarget.style.transform = 'translateY(3px)';
+              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.12) inset, 0 1px 0 rgba(255,255,255,0.25) inset, 0 1px 0 #4d7c0f, 0 2px 4px rgba(74,120,8,0.25)';
+            }}
+            onMouseUp={e => {
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 5px 0 #4d7c0f, 0 7px 10px rgba(74,120,8,0.40), 0 14px 24px rgba(101,163,13,0.22)';
+            }}
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" />
