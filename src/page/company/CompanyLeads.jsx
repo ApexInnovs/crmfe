@@ -145,7 +145,7 @@ const LeadIntelligenceEngine = ({ companyId }) => {
 
 const CompanyLeads = () => {
     // Call Recording Modal state
-    const [callRecordingModal, setCallRecordingModal] = useState({ open: false, fileUrl: '', fileName: '' });
+  const [callRecordingModal, setCallRecordingModal] = useState({ open: false, fileUrl: '', fileName: '', description: '', transcript: '' });
   const { user } = useAuth();
   const [values, setValues] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -161,6 +161,11 @@ const CompanyLeads = () => {
   const [detailLeadModal, setDetailLeadModal] = useState({ open: false, lead: null });
   const [noteText, setNoteText] = useState('');
   const [addingNote, setAddingNote] = useState(false);
+
+  // Add Recording Modal state
+  const [addRecordingModal, setAddRecordingModal] = useState({ open: false, lead: null });
+  const [recordingFile, setRecordingFile] = useState(null);
+  const [uploadingRecording, setUploadingRecording] = useState(false);
 
   // Add type: 'campaign' | 'thirdparty'
   const initialFields = { type: 'campaign', campigne: '', status: 'created', name: '', phone: '', organization: '', email: '', nextMeetingDate: '', note: '' };
@@ -261,22 +266,48 @@ const CompanyLeads = () => {
 
   const handleAddNote = async (e) => {
     e.preventDefault();
-    if (!noteText.trim() || !detailLead) return;
+    if (!noteText.trim() || !detailLeadModal.lead) return;
     setAddingNote(true);
     try {
-      const existing = Array.isArray(detailLead.notes) ? detailLead.notes : [];
-      await updateLead(detailLead._id, { notes: [...existing, { text: noteText.trim() }] });
+      const existing = Array.isArray(detailLeadModal.lead.notes) ? detailLeadModal.lead.notes : [];
+      await updateLead(detailLeadModal.lead._id, { notes: [...existing, { text: noteText.trim() }] });
       setNoteText('');
       // Refresh leads and re-select
       const data = await getLeads({ page, limit: pageSize, company: user._id, status: filterStatus || undefined, search: searchText || undefined });
       const items = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
       setValues(items);
       setTotal(data.total || items.length);
-      const refreshed = items.find(l => l._id === detailLead._id);
-      if (refreshed) setDetailLead(refreshed);
+      const refreshed = items.find(l => l._id === detailLeadModal.lead._id);
+      if (refreshed) setDetailLeadModal({ open: true, lead: refreshed });
     } catch (_) {
       alert('Failed to add note');
     } finally { setAddingNote(false); }
+  };
+
+  const handleUploadRecording = async () => {
+    if (!recordingFile || !addRecordingModal.lead) return;
+    setUploadingRecording(true);
+    try {
+      const formData = new FormData();
+      formData.append('file', recordingFile);
+      const uploadRes = await uploadAvatar(formData);
+      const callFileUrl = uploadRes.url || uploadRes.path || uploadRes.fileUrl || '';
+      
+      // Update lead with call recording and auto-assign to current user
+      await updateLead(addRecordingModal.lead._id, {
+        callRecording: callFileUrl,
+        assignedTo: user._id
+      });
+      
+      // Refresh and close modal
+      setAddRecordingModal({ open: false, lead: null });
+      setRecordingFile(null);
+      load();
+    } catch (e) {
+      alert(e.response?.data?.message || 'Failed to upload recording');
+    } finally {
+      setUploadingRecording(false);
+    }
   };
 
   const leadLabel = (lead) => lead.leadData?.name || lead.leadData?.email || `Lead #${lead._id?.slice(-6)}`;
@@ -339,28 +370,46 @@ const CompanyLeads = () => {
       key: 'callRecording',
       label: <span title="Call Recording"><svg width="14" height="14" fill="none" viewBox="0 0 24 24" className="inline mr-1"><path stroke="#6366f1" strokeWidth="2" d="M12 5v14m7-7H5" /></svg>Call Recording</span>,
       render: (_, row) => {
-        // Always show the button to open the modal, using new fields
-        return (
-          <button
-            className="text-indigo-600 hover:text-indigo-800 p-1 rounded-full focus:outline-none"
-            title="View Call Recording"
-            onClick={() => setCallRecordingModal({
-              open: true,
-              fileUrl: row.callRecording
-                ? (typeof row.callRecording === 'string' ? row.callRecording : row.callRecording.url || row.callRecording.path || '')
-                : '',
-              fileName: row.callRecording
-                ? (typeof row.callRecording === 'string' ? row.callRecording.split('/').pop() : row.callRecording.name || 'Recording')
-                : '',
-              description: row.callRecordingText || ''
-            })}
-          >
-            <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="10" stroke="#6366f1" strokeWidth="2" />
-              <polygon points="10,8 16,12 10,16" fill="#6366f1" />
-            </svg>
-          </button>
-        );
+        const hasRecording = row.callRecording
+          ? (typeof row.callRecording === 'string' && row.callRecording.trim() !== '')
+            || (typeof row.callRecording === 'object' && (row.callRecording.url || row.callRecording.path || row.callRecording.fileUrl))
+          : false;
+
+        if (hasRecording) {
+          // Show play button with uploaded color (green)
+          return (
+            <button
+              className="text-emerald-600 hover:text-emerald-800 p-1 rounded-full focus:outline-none font-bold"
+              title="View Call Recording (Uploaded)"
+              onClick={() => setCallRecordingModal({
+                open: true,
+                fileUrl: typeof row.callRecording === 'string' ? row.callRecording : (row.callRecording.url || row.callRecording.path || row.callRecording.fileUrl || ''),
+                fileName: typeof row.callRecording === 'string' ? row.callRecording.split('/').pop() : (row.callRecording.name || 'Recording'),
+                description: row.callRecordingText || '',
+                transcript: row.callRecordingTranscript || row.transcript || ''
+              })}
+            >
+              <svg width="18" height="18" fill="emerald" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" stroke="#10b981" strokeWidth="2" fill="#d1fae5" />
+                <polygon points="10,8 16,12 10,16" fill="#10b981" />
+              </svg>
+            </button>
+          );
+        } else {
+          // Show add recording button in red
+          return (
+            <button
+              className="text-red-600 hover:text-red-800 p-1 rounded-full focus:outline-none font-bold"
+              title="Add Call Recording"
+              onClick={() => setAddRecordingModal({ open: true, lead: row })}
+            >
+              <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10" stroke="#dc2626" strokeWidth="2" />
+                <path stroke="#dc2626" strokeWidth="2" strokeLinecap="round" d="M12 8v8M8 12h8" />
+              </svg>
+            </button>
+          );
+        }
       }
     },
  
@@ -444,7 +493,7 @@ const CompanyLeads = () => {
       {/* Call Recording Modal */}
       <Modal
         isOpen={callRecordingModal.open}
-        onClose={() => setCallRecordingModal({ open: false, fileUrl: '', fileName: '', description: '' })}
+        onClose={() => setCallRecordingModal({ open: false, fileUrl: '', fileName: '', description: '', transcript: '' })}
         title="Call Recording"
         footer={null}
       >
@@ -455,12 +504,84 @@ const CompanyLeads = () => {
               <source src={callRecordingModal.fileUrl} />
               Your browser does not support the audio element.
             </audio>
+          ) : null}
+          
+          {/* Transcript Section */}
+          {callRecordingModal.transcript ? (
+            <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+              <h4 className="font-semibold text-gray-800 mb-2">Transcript</h4>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{callRecordingModal.transcript}</p>
+            </div>
           ) : callRecordingModal.description ? (
             <div className="text-gray-700 text-sm">{callRecordingModal.description}</div>
           ) : (
-            <div className="text-gray-400 text-sm">No audio file or description available.</div>
+            <div className="text-gray-400 text-sm">No transcript or description available.</div>
           )}
         </div>
+      </Modal>
+
+      {/* Add Recording Modal */}
+      <Modal
+        isOpen={addRecordingModal.open}
+        onClose={() => {
+          setAddRecordingModal({ open: false, lead: null });
+          setRecordingFile(null);
+        }}
+        title={addRecordingModal.lead ? `Add Recording: ${leadLabel(addRecordingModal.lead)}` : 'Add Recording'}
+        footer={
+          !uploadingRecording && (
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                onClick={() => {
+                  setAddRecordingModal({ open: false, lead: null });
+                  setRecordingFile(null);
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="px-5 py-2.5 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 shadow-sm disabled:bg-gray-400"
+                onClick={handleUploadRecording}
+                disabled={!recordingFile}
+              >
+                Upload Recording
+              </button>
+            </div>
+          )
+        }
+      >
+        {uploadingRecording ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {addRecordingModal.lead && (
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>Lead:</strong> {leadLabel(addRecordingModal.lead)} - <strong>Auto-assigned to:</strong> {user.name || user.email}
+                </p>
+              </div>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Select Recording File</label>
+              <input
+                type="file"
+                accept="audio/*"
+                onChange={(e) => setRecordingFile(e.target.files?.[0] || null)}
+                className="block w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 cursor-pointer px-3 py-2 focus:outline-none"
+              />
+              {recordingFile && (
+                <p className="mt-2 text-sm text-gray-600">
+                  <strong>Selected:</strong> {recordingFile.name}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
       </Modal>
 
 
