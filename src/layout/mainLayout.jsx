@@ -71,8 +71,8 @@ const MainLayout = ({ children }) => {
 		>
 			{/* Header */}
 			<header
-				className="bg-transparent shrink-0 flex items-center justify-between px-8 h-16"
-				style={{ boxShadow: "0 1px 6px 0 rgb(0 0 0 / 0.06)" }}
+				className="shrink-0 flex items-center justify-between px-8 h-16 fixed top-0 left-0 right-0 z-11"
+				style={{ background: 'inherit', backgroundColor: '#f6f8f4', }}
 			>
 				{/* Left: Hamburger (company) OR Branding + Tabs (others) */}
 				<div className="flex items-center gap-3">
@@ -337,7 +337,7 @@ const MainLayout = ({ children }) => {
 			)}
 
 			{/* Main content */}
-			<main className="flex-1 overflow-auto px-6 py-3 bg-white">
+			<main className="flex-1 overflow-auto px-6 py-3 bg-[#f6f8f4]" style={{ marginTop: '4rem' }}>
 				<div className="max-w-10xl mx-auto">
 					{ActiveComponent ? <ActiveComponent /> : children}
 				</div>
