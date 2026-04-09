@@ -55,9 +55,6 @@ const StatCard = ({ label, value, color = 'blue', icon, loading, delay = 0 }) =>
   const c = palette[color] || palette.blue;
   return (
     <div className="cd-stat" style={{ animationDelay: `${delay}ms` }}>
-      <div className="cd-stat__icon" style={{ background: c.bg, boxShadow: `0 0 0 4px ${c.ring}` }}>
-        {React.cloneElement(icon, { style: { width: 20, height: 20, color: c.icon } })}
-      </div>
       <div className="cd-stat__body">
         <span className="cd-stat__label">{label}</span>
         {loading
@@ -195,6 +192,41 @@ const chartOpts = (type) => ({
   },
 });
 
+// ─── Chart Type Toggle ──────────────────────────────────────────────────────
+const CHART_TYPES = [
+  { key: 'bar', label: 'Bar', icon: 'M4 20h4V10H4v10zm6 0h4V4h-4v16zm6 0h4V14h-4v6z' },
+  { key: 'line', label: 'Line', icon: 'M3 17l4-8 4 4 4-6 4 10' },
+  { key: 'area', label: 'Area', icon: 'M3 17l4-8 4 4 4-6 4 10v3H3z' },
+];
+
+const ChartToggle = ({ value, onChange }) => (
+  <div style={{ display: 'flex', gap: 4, background: '#f0f4ee', borderRadius: 10, padding: 3 }}>
+    {CHART_TYPES.map(t => (
+      <button
+        key={t.key}
+        onClick={() => onChange(t.key)}
+        title={t.label}
+        style={{
+          display: 'flex', alignItems: 'center', gap: 5,
+          padding: '4px 10px', borderRadius: 8, border: 'none',
+          cursor: 'pointer', fontSize: 11, fontWeight: 600,
+          fontFamily: "'Space Mono', monospace",
+          letterSpacing: '.02em',
+          background: value === t.key ? '#ffffff' : 'transparent',
+          color: value === t.key ? '#4d7c0f' : '#9aaa98',
+          boxShadow: value === t.key ? '0 1px 4px rgba(0,0,0,0.10)' : 'none',
+          transition: 'all 0.15s',
+        }}
+      >
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d={t.icon} />
+        </svg>
+        {t.label}
+      </button>
+    ))}
+  </div>
+);
+
 class ChartErrorBoundary extends React.Component {
   state = { hasError: false };
   static getDerivedStateFromError() { return { hasError: true }; }
@@ -230,6 +262,7 @@ const CompanyDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filters, setFilters] = useState({ startDate: '', endDate: '', campigneId: '' });
+  const [chartType, setChartType] = useState('area');
 
   const today = dayjs().format('YYYY-MM-DD');
   const weekAgo = dayjs().subtract(7, 'day').format('YYYY-MM-DD');
@@ -652,52 +685,88 @@ const CompanyDashboard = () => {
           ))}
         </div>
 
-        {/* ── Charts ── */}
-        <div className="cd-charts">
-          <Section title="Leads Over Time">
+        {/* ── Combined Chart ── */}
+        <div style={{ marginBottom: 20 }}>
+          <Section title="Leads vs Conversions Over Time" action={<ChartToggle value={chartType} onChange={setChartType} />}>
             <ChartErrorBoundary>
-              {loading ? <Shimmer h={200} r={10} /> : (() => {
-                const data = {
-                  labels: leadGraph.map(g => dayjs(g._id).format('MMM D')),
-                  datasets: [{
-                    label: 'Leads',
-                    data: leadGraph.map(g => g.count),
-                    backgroundColor: 'rgba(132,204,22,0.2)',
-                    borderColor: '#84cc16',
-                    borderWidth: 2,
-                    borderRadius: 6,
-                    hoverBackgroundColor: 'rgba(132,204,22,0.45)',
-                  }],
-                };
-                return isValidChartData(data)
-                  ? <Bar data={data} options={{ ...chartOpts('bar'), aspectRatio: 2 }} />
-                  : <div style={{ color: 'var(--cd-muted)', fontSize: 13, padding: '20px 0', textAlign: 'center' }}>No lead data for this period.</div>;
-              })()}
-            </ChartErrorBoundary>
-          </Section>
+              {loading ? <Shimmer h={260} r={10} /> : (() => {
+                // Merge all dates from both graphs, sorted
+                const allDates = Array.from(new Set([
+                  ...leadGraph.map(g => g._id),
+                  ...conversionGraph.map(g => g._id),
+                ])).sort();
+                const labels = allDates.map(d => dayjs(d).format('MMM D'));
+                const leadMap = Object.fromEntries(leadGraph.map(g => [g._id, g.count]));
+                const convMap = Object.fromEntries(conversionGraph.map(g => [g._id, g.count]));
+                const leadCounts = allDates.map(d => leadMap[d] ?? 0);
+                const convCounts = allDates.map(d => convMap[d] ?? 0);
+                const isBar = chartType === 'bar';
+                const isArea = chartType === 'area';
 
-          <Section title="Conversions Over Time">
-            <ChartErrorBoundary>
-              {loading ? <Shimmer h={200} r={10} /> : (() => {
-                const data = {
-                  labels: conversionGraph.map(g => dayjs(g._id).format('MMM D')),
-                  datasets: [{
-                    label: 'Conversions',
-                    data: conversionGraph.map(g => g.count),
-                    borderColor: '#2563eb',
-                    backgroundColor: 'rgba(37,99,235,0.08)',
-                    tension: 0.4,
-                    borderWidth: 2.5,
-                    pointRadius: 4,
-                    pointBackgroundColor: '#fff',
-                    pointBorderColor: '#2563eb',
-                    pointBorderWidth: 2,
-                    fill: true,
-                  }],
+                if (labels.length === 0) return (
+                  <div style={{ color: 'var(--cd-muted)', fontSize: 13, padding: '40px 0', textAlign: 'center' }}>No data for this period.</div>
+                );
+
+                const combinedOpts = {
+                  ...chartOpts(),
+                  aspectRatio: 5,
+                  plugins: {
+                    ...chartOpts().plugins,
+                    legend: {
+                      display: true,
+                      position: 'top',
+                      align: 'end',
+                      labels: {
+                        boxWidth: 10, boxHeight: 10, borderRadius: 4,
+                        useBorderRadius: true,
+                        font: { family: "'DM Sans',sans-serif", size: 12 },
+                        color: '#374140', padding: 16,
+                      },
+                    },
+                  },
                 };
-                return isValidChartData(data)
-                  ? <Line data={data} options={{ ...chartOpts('line'), aspectRatio: 2 }} />
-                  : <div style={{ color: 'var(--cd-muted)', fontSize: 13, padding: '20px 0', textAlign: 'center' }}>No conversion data for this period.</div>;
+
+                const data = {
+                  labels,
+                  datasets: [
+                    {
+                      label: 'Leads',
+                      data: leadCounts,
+                      backgroundColor: isBar ? 'rgba(132,204,22,0.55)' : 'rgba(132,204,22,0.15)',
+                      borderColor: '#84cc16',
+                      borderWidth: isBar ? 0 : 2.5,
+                      borderRadius: isBar ? 6 : 0,
+                      hoverBackgroundColor: 'rgba(132,204,22,0.75)',
+                      tension: 0.4,
+                      pointRadius: isBar ? 0 : 4,
+                      pointBackgroundColor: '#fff',
+                      pointBorderColor: '#84cc16',
+                      pointBorderWidth: 2,
+                      fill: isArea,
+                      order: 2,
+                    },
+                    {
+                      label: 'Conversions',
+                      data: convCounts,
+                      backgroundColor: isBar ? 'rgba(244,63,94,0.55)' : 'rgba(244,63,94,0.10)',
+                      borderColor: '#f43f5e',
+                      borderWidth: isBar ? 0 : 2.5,
+                      borderRadius: isBar ? 6 : 0,
+                      hoverBackgroundColor: 'rgba(244,63,94,0.75)',
+                      tension: 0.4,
+                      pointRadius: isBar ? 0 : 4,
+                      pointBackgroundColor: '#fff',
+                      pointBorderColor: '#f43f5e',
+                      pointBorderWidth: 2,
+                      fill: isArea,
+                      order: 1,
+                    },
+                  ],
+                };
+
+                return isBar
+                  ? <Bar data={data} options={combinedOpts} />
+                  : <Line data={data} options={combinedOpts} />;
               })()}
             </ChartErrorBoundary>
           </Section>

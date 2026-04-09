@@ -127,8 +127,8 @@ const CompanyEmployees = () => {
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [searchText, setSearchText] = useState("");
-    const [debouncedSearch, setDebouncedSearch] = useState("");
-    const debounceTimeout = useRef();
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const debounceTimeout = useRef();
   const [searchKey, setSearchKey] = useState("name");
   const [status, setStatus] = useState("");
   const [role, setRole] = useState("");
@@ -306,7 +306,7 @@ const CompanyEmployees = () => {
 
   return (
     <div className="p-2">
-      
+
       <Table
         headers={tableHeaders}
         values={values}
@@ -327,7 +327,7 @@ const CompanyEmployees = () => {
         actions={actions}
         onAdd={handleAdd}
         addLabel="Add Employee"
-        // The Add button will now appear in the table toolbar next to the search bar
+      // The Add button will now appear in the table toolbar next to the search bar
       />
 
       {/* Add/Edit Modal */}
@@ -409,25 +409,46 @@ const CompanyEmployees = () => {
                   onChange={f("phone")}
                   error={
                     modalFields.phone &&
-                    !/^[789]\d{9}$/.test(modalFields.phone)
+                      !/^[789]\d{9}$/.test(modalFields.phone)
                       ? 'Enter a valid 10-digit Indian number starting with 7, 8, or 9.'
                       : ''
                   }
                   maxLength={10}
                 />
               </div>
-              <div className="py-0.1">
-                <Input
-                  label="Role"
-                  name="role"
-                  type="select"
-                  value={modalFields.role}
-                  onChange={f("role")}
-                  options={roles.map((role) => ({ value: role._id, label: role.name }))}
-                  placeholder="-- Select Role --"
-                  required
-                />
-              </div>
+
+              {roles.length === 1 ? (
+                (() => {
+                  if (modalFields.role !== roles[0]._id) {
+                    setModalFields((prev) => ({ ...prev, role: roles[0]._id }));
+                  }
+                  return (
+                    <div className="py-0.1">
+                      <Input
+                        label="Role"
+                        name="role"
+                        type="text"
+                        value={roles[0].name}
+                        readOnly
+                        disabled
+                      />
+                    </div>
+                  );
+                })()
+              ) : (
+                <div className="py-0.1">
+                  <Input
+                    label="Role"
+                    name="role"
+                    type="select"
+                    value={modalFields.role}
+                    onChange={f("role")}
+                    options={roles.map((role) => ({ value: role._id, label: role.name }))}
+                    placeholder="-- Select Role --"
+                    required
+                  />
+                </div>
+              )}
               <div className="py-0.1">
                 <Input
                   label="Password"
