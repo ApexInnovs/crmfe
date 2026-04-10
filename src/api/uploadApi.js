@@ -9,7 +9,7 @@ import axiosInstance from '../utils/axiosInstance';
  */
 export const uploadAvatar = async (formData) => {
   try {
-    const response = await axiosInstance.post('/api/uploads', formData, {
+    const response = await axiosInstance.post('/uploads', formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
