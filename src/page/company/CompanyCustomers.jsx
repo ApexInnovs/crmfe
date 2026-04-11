@@ -64,7 +64,7 @@ const ConvertedClientsPage = () => {
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   const [searchText, setSearchText] = useState('');
-  const [searchKey, setSearchKey] = useState('lead_id.leadData.name');
+  const [searchKey, setSearchKey] = useState('name');
   const [status, setStatus] = useState('');
 
   const load = async () => {
@@ -73,7 +73,7 @@ const ConvertedClientsPage = () => {
       const params = { page, limit: pageSize, company: user._id };
       if (status !== '') params.status = status;
       if (searchText) {
-        if (searchKey === 'lead_id.leadData.name') params.leadName = searchText;
+        if (searchKey === 'name') params.name  = searchText;
         else if (searchKey === 'managedBy') params.managedBy = searchText;
         else params.search = searchText;
       }
@@ -341,7 +341,14 @@ const ConvertedClientsPage = () => {
                       <div className="text-sm text-gray-500 mb-4">Are you sure you want to remove <span className="font-bold">{proj.name || 'this project'}</span>?</div>
                       <div className="flex justify-end gap-3">
                         <button className="px-3 py-1.5 text-sm rounded bg-gray-100 hover:bg-gray-200" onClick={() => setConfirmIdx(null)}>Cancel</button>
-                        <button className="px-3 py-1.5 text-sm rounded bg-red-500 text-white hover:bg-red-600" onClick={async () => { await handleRemove(idx); setConfirmIdx(null); }}>Remove</button>
+                        <button
+                          className="px-3 py-1.5 text-sm rounded bg-red-500 text-white hover:bg-red-600"
+                          onClick={async () => {
+                            await handleRemove(idx);
+                            setConfirmIdx(null);
+                            onClose && onClose();
+                          }}
+                        >Remove</button>
                       </div>
                     </div>
                   </div>
@@ -360,20 +367,17 @@ const ConvertedClientsPage = () => {
 
   const tableHeaders = [
     {
-      key: 'lead_id.leadData.name',
+      key: 'name',
       label: 'Client Name',
-      render: (v, row) => <span className="font-mono text-xs text-gray-500">{row.lead_id?.leadData?.name || '—'}</span>,
+      render: (v, row) => <span className="font-mono text-xs text-gray-500">{row.name || '—'}</span>,
       searchable: true,
     },
     {
-      key: 'managedBy',
-      label: 'Managed By',
-      render: (v, row) => <span>{typeof v === 'object' ? v?.name : v}</span>,
+      key: 'phone',
+      label: 'Phone',
+      render: (v, row) => <span className="font-mono text-xs text-gray-500">{row.phone || '—'}</span>,
     },
-
-    { key: 'notes', label: 'Notes', render: v => <span className="text-xs text-gray-500">{v || '—'}</span> },
-    { key: 'createdAt', label: 'Created', format: 'date' },
-    {
+     {
       key: 'campaign',
       label: 'Campaign',
       filter: {
@@ -391,6 +395,12 @@ const ConvertedClientsPage = () => {
           return <span className="text-xs text-gray-700">{campaignObj?.title || campaignObj?.name || '—'}</span>;
         },
     },
+    {
+      key: 'managedBy',
+      label: 'Managed By',
+      render: (v, row) => <span>{typeof v === 'object' ? v?.name : v}</span>,
+    },
+  
         {
       key: 'leadInfo',
       label: '',
@@ -416,6 +426,34 @@ const ConvertedClientsPage = () => {
         </button>
       )
     },
+    {
+      key: 'notes',
+      label: 'Notes',
+      render: v => {
+        if (!v) return <span className="text-xs text-gray-400">—</span>;
+        const maxLen = 24;
+        const isLong = v.length > maxLen;
+        const short = isLong ? v.slice(0, maxLen) + '…' : v;
+        return (
+          <span
+            className="text-xs text-gray-500 cursor-pointer"
+            title={v}
+            style={{
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              maxWidth: 160,
+              display: 'inline-block',
+              verticalAlign: 'bottom',
+            }}
+          >
+            {short}
+          </span>
+        );
+      },
+    },
+    { key: 'createdAt', label: 'Created', format: 'date' },
+ 
     {
       key: 'status', label: 'Status', type: 'status', valueMap: { 0: 'Inactive', 1: 'Active' },
       filter: { options: STATUS_OPTIONS, value: status, onChange: setStatus },
@@ -449,7 +487,7 @@ const ConvertedClientsPage = () => {
         total={total}
         page={page}
         pageSize={pageSize}
-        searchKeys={['lead_id.leadData.name', 'managedBy']}
+        // searchKeys={['name']}
         searchKey={searchKey}
         onSearchKeyChange={setSearchKey}
         searchText={searchText}
@@ -535,7 +573,7 @@ const ConvertedClientsPage = () => {
                 ) : (
                   <>
                     {/* Add mode: offline client fields */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <Input 
                         label="Client Name" 
                         name="name" 
@@ -564,7 +602,7 @@ const ConvertedClientsPage = () => {
                         required 
                       />
                     </div>
-                    <div className="mt-4">
+                    <div className="mt-2">
                       <Input 
                         label="Notes" 
                         name="notes" 
@@ -573,37 +611,6 @@ const ConvertedClientsPage = () => {
                         value={modalFields.notes} 
                         onChange={e => setModalFields(p => ({ ...p, notes: e.target.value }))} 
                       />
-                    </div>
-                    <div>
-                      <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3 border-b border-gray-100 pb-2">Project Details (Optional)</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <Input label="Project Name" name="projName" placeholder="e.g. Website Redesign" value={modalFields.projectDetails.name} onChange={proj('name')} />
-                        <Input label="Project Status" name="projStatus" type="select" value={modalFields.projectDetails.status} onChange={proj('status')} options={projectStatusOptions} />
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1.5">Start Date</label>
-                          <input
-                            type="date"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                            value={modalFields.projectDetails.startDate}
-                            min={new Date().toISOString().slice(0,10)}
-                            onChange={proj('startDate')}
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-1.5">Deadline</label>
-                          <input
-                            type="date"
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500 outline-none"
-                            value={modalFields.projectDetails.deadline}
-                            min={modalFields.projectDetails.startDate ? modalFields.projectDetails.startDate : new Date().toISOString().slice(0,10)}
-                            onChange={proj('deadline')}
-                          />
-                        </div>
-                        <Input label="Budget ($)" name="projBudget" type="number" placeholder="e.g. 5000" value={modalFields.projectDetails.budget} onChange={proj('budget')} min="0" required={false} />
-                      </div>
-                      <div className="mt-4">
-                        <Input label="Project Description" name="projDesc" type="textarea" placeholder="Describe the project scope..." value={modalFields.projectDetails.description} onChange={proj('description')} />
-                      </div>
                     </div>
                   </>
                 )}
