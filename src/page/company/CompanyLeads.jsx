@@ -1,30 +1,91 @@
-import React, { useEffect, useState } from 'react';
-import Table from '../../components/common/Table';
-import Input from '../../components/common/Input';
-import { Modal, ConfirmDialog } from '../../components/common/Modal';
-import PageHeader from '../../components/common/PageHeader';
-import { useAuth } from '../../context/AuthContext';
-import { getLeads, createLead, updateLead, getCampaignsByCompany, fetchLeadPipeline, fetchActivityTimeline, fetchLeadInsights } from '../../api/campigneAndLeadApi';
-import { uploadAvatar } from '../../api/uploadApi';
-import { getEmployees } from '../../api/employeeAndAdminApi';
-
+import React, { useEffect, useState } from "react";
+import Table from "../../components/common/Table";
+import Input from "../../components/common/Input";
+import { Modal, ConfirmDialog } from "../../components/common/Modal";
+import PageHeader from "../../components/common/PageHeader";
+import { useAuth } from "../../context/AuthContext";
+import {
+  getLeads,
+  createLead,
+  updateLead,
+  getCampaignsByCompany,
+  fetchLeadPipeline,
+  fetchActivityTimeline,
+  fetchLeadInsights,
+} from "../../api/campigneAndLeadApi";
+import { uploadAvatar } from "../../api/uploadApi";
+import { getEmployees } from "../../api/employeeAndAdminApi";
 
 const LEAD_STATUSES = [
-  { value: 'created', label: 'Created', color: 'bg-blue-100 text-blue-700' },
-  { value: 'not_responsed', label: 'No Response', color: 'bg-yellow-100 text-yellow-700' },
-  { value: 'not_intrested', label: 'Not Interested', color: 'bg-red-100 text-red-700' },
-  { value: 'intrested_but_later', label: 'Later', color: 'bg-orange-100 text-orange-700' },
-  { value: 'intrested', label: 'Interested', color: 'bg-green-100 text-green-700' },
-  { value: 'coustomer', label: 'Customer', color: 'bg-emerald-100 text-emerald-700' },
-  { value: 'lost', label: 'Lost', color: 'bg-gray-100 text-gray-500' },
+  { value: "created", label: "Created", color: "bg-blue-100 text-blue-700" },
+  {
+    value: "not_responsed",
+    label: "No Response",
+    color: "bg-yellow-100 text-yellow-700",
+  },
+  {
+    value: "not_intrested",
+    label: "Not Interested",
+    color: "bg-red-100 text-red-700",
+  },
+  {
+    value: "intrested_but_later",
+    label: "Later",
+    color: "bg-orange-100 text-orange-700",
+  },
+  {
+    value: "intrested",
+    label: "Interested",
+    color: "bg-green-100 text-green-700",
+  },
+  {
+    value: "coustomer",
+    label: "Customer",
+    color: "bg-emerald-100 text-emerald-700",
+  },
+  { value: "lost", label: "Lost", color: "bg-gray-100 text-gray-500" },
 ];
 
-const STATUS_COLOR_MAP = Object.fromEntries(LEAD_STATUSES.map(s => [s.value, s.color]));
-const STATUS_LABEL_MAP = Object.fromEntries(LEAD_STATUSES.map(s => [s.value, s.label]));
+const STATUS_COLOR_MAP = Object.fromEntries(
+  LEAD_STATUSES.map((s) => [s.value, s.color]),
+);
+const STATUS_LABEL_MAP = Object.fromEntries(
+  LEAD_STATUSES.map((s) => [s.value, s.label]),
+);
 
-const EditIcon = <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M16.862 5.487a2.06 2.06 0 1 1 2.915 2.915L8.5 19.68l-4 1 1-4 13.362-13.193Z" /></svg>;
-const NotesIcon = <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M8.625 9.75a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 01.778-.332 48.294 48.294 0 005.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" /></svg>;
-const ArchiveIcon = <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" d="M16 8v8m-8-8v8m13-4a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" /></svg>;
+const EditIcon = (
+  <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+    <path
+      stroke="#059669"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M16.862 5.487a2.06 2.06 0 1 1 2.915 2.915L8.5 19.68l-4 1 1-4 13.362-13.193Z"
+    />
+  </svg>
+);
+const NotesIcon = (
+  <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+    <path
+      stroke="#059669"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M8.625 9.75a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375m-13.5 3.01c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.184-4.183a1.14 1.14 0 01.778-.332 48.294 48.294 0 005.83-.498c1.585-.233 2.708-1.626 2.708-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z"
+    />
+  </svg>
+);
+const ArchiveIcon = (
+  <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
+    <path
+      stroke="#059669"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M16 8v8m-8-8v8m13-4a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
+    />
+  </svg>
+);
 
 const LeadLifecyclePipeline = ({ companyId }) => {
   const [pipelineData, setPipelineData] = useState([]);
@@ -37,7 +98,7 @@ const LeadLifecyclePipeline = ({ companyId }) => {
         const data = await fetchLeadPipeline(companyId);
         setPipelineData(Array.isArray(data) ? data : []);
       } catch (error) {
-        console.error('Error fetching pipeline data:', error);
+        console.error("Error fetching pipeline data:", error);
       } finally {
         setLoading(false);
       }
@@ -76,7 +137,7 @@ const ActivityTimeline = ({ companyId }) => {
         const data = await fetchActivityTimeline(companyId);
         setActivities(Array.isArray(data) ? data : []);
       } catch (error) {
-        console.error('Error fetching activity timeline:', error);
+        console.error("Error fetching activity timeline:", error);
       } finally {
         setLoading(false);
       }
@@ -95,7 +156,9 @@ const ActivityTimeline = ({ companyId }) => {
           {activities.map((activity, index) => (
             <li key={index} className="p-2 border rounded bg-gray-50">
               <p className="text-sm text-gray-600">{activity.description}</p>
-              <p className="text-xs text-gray-400">{new Date(activity.timestamp).toLocaleString()}</p>
+              <p className="text-xs text-gray-400">
+                {new Date(activity.timestamp).toLocaleString()}
+              </p>
             </li>
           ))}
         </ul>
@@ -115,7 +178,7 @@ const LeadIntelligenceEngine = ({ companyId }) => {
         const data = await fetchLeadInsights(companyId);
         setInsights(Array.isArray(data) ? data : []);
       } catch (error) {
-        console.error('Error fetching lead insights:', error);
+        console.error("Error fetching lead insights:", error);
       } finally {
         setLoading(false);
       }
@@ -134,7 +197,9 @@ const LeadIntelligenceEngine = ({ companyId }) => {
           {insights.map((insight, index) => (
             <li key={index} className="p-2 border rounded bg-gray-50">
               <p className="text-sm text-gray-600">{insight.message}</p>
-              <p className="text-xs text-gray-400">Confidence: {insight.confidence}%</p>
+              <p className="text-xs text-gray-400">
+                Confidence: {insight.confidence}%
+              </p>
             </li>
           ))}
         </ul>
@@ -144,8 +209,14 @@ const LeadIntelligenceEngine = ({ companyId }) => {
 };
 
 const CompanyLeads = () => {
-    // Call Recording Modal state
-  const [callRecordingModal, setCallRecordingModal] = useState({ open: false, fileUrl: '', fileName: '', description: '', transcript: '' });
+  // Call Recording Modal state
+  const [callRecordingModal, setCallRecordingModal] = useState({
+    open: false,
+    fileUrl: "",
+    fileName: "",
+    description: "",
+    transcript: "",
+  });
   const { user } = useAuth();
   const [values, setValues] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -157,32 +228,64 @@ const CompanyLeads = () => {
   const [editData, setEditData] = useState(null);
   const [rowToToggle, setRowToToggle] = useState(null);
 
+  const [employees, setEmployees] = useState([]);
+  useEffect(() => {
+    getEmployees({ company: user._id, limit: 100 })
+      .then((data) => {
+        setEmployees(
+          Array.isArray(data.data)
+            ? data.data
+            : Array.isArray(data)
+              ? data
+              : [],
+        );
+      })
+      .catch(() => setEmployees([]));
+  }, [user._id]);
+
   // Lead detail modal state
-  const [detailLeadModal, setDetailLeadModal] = useState({ open: false, lead: null });
-  const [noteText, setNoteText] = useState('');
+  const [detailLeadModal, setDetailLeadModal] = useState({
+    open: false,
+    lead: null,
+  });
+  const [noteText, setNoteText] = useState("");
   const [addingNote, setAddingNote] = useState(false);
 
   // Info modal state
   const [infoModal, setInfoModal] = useState({ open: false, lead: null });
 
   // Add Recording Modal state
-  const [addRecordingModal, setAddRecordingModal] = useState({ open: false, lead: null });
+  const [addRecordingModal, setAddRecordingModal] = useState({
+    open: false,
+    lead: null,
+  });
   const [recordingFile, setRecordingFile] = useState(null);
   const [uploadingRecording, setUploadingRecording] = useState(false);
 
   // Add type: 'campaign' | 'thirdparty'
-  const initialFields = { type: 'campaign', campigne: '', status: 'created', name: '', phone: '', organization: '', email: '', nextMeetingDate: '', note: '' };
+  const initialFields = {
+    type: "campaign",
+    campigne: "",
+    status: "created",
+    name: "",
+    phone: "",
+    organization: "",
+    email: "",
+    nextMeetingDate: "",
+    note: "",
+  };
   const [modalFields, setModalFields] = useState(initialFields);
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [total, setTotal] = useState(0);
   // Search and filters
-  const [searchText, setSearchText] = useState('');
-  const [searchKey, setSearchKey] = useState('leadName');
-  const [filterCampaign, setFilterCampaign] = useState('');
-  const [filterStatus, setFilterStatus] = useState('');
-  const [filterContactStatus, setFilterContactStatus] = useState('');
+  const [searchText, setSearchText] = useState("");
+  const [searchKey, setSearchKey] = useState("leadName");
+  const [filterCampaign, setFilterCampaign] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [filterAssignedTo, setFilterAssignedTo] = useState("");
+  const [filterContactStatus, setFilterContactStatus] = useState("");
 
   const load = async () => {
     try {
@@ -190,42 +293,68 @@ const CompanyLeads = () => {
       const params = { page, limit: pageSize, company: user._id };
       if (filterStatus) params.status = filterStatus;
       if (filterCampaign) params.campigne = filterCampaign;
+      if (filterAssignedTo) params.assignedTo = filterAssignedTo;
       if (filterContactStatus) params.contacted = filterContactStatus;
       if (searchText) params.search = searchText;
       if (searchKey) params.searchKey = searchKey;
       const data = await getLeads(params);
-      const items = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
+      const items = Array.isArray(data.data)
+        ? data.data
+        : Array.isArray(data)
+          ? data
+          : [];
       setValues(items);
       setTotal(data.total || items.length);
     } catch (_) {
-      setValues([]); setTotal(0);
+      setValues([]);
+      setTotal(0);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { load(); }, [page, pageSize, filterStatus, filterCampaign, filterContactStatus, searchText, searchKey]);
+  useEffect(() => {
+    load();
+  }, [
+    page,
+    pageSize,
+    filterStatus,
+    filterCampaign,
+    filterContactStatus,
+    searchText,
+    searchKey,
+    filterAssignedTo
+  ]);
 
   const loadCampaigns = async () => {
     try {
       const data = await getCampaignsByCompany(user._id, { limit: 100 });
-      const items = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
+      const items = Array.isArray(data.data)
+        ? data.data
+        : Array.isArray(data)
+          ? data
+          : [];
       setCampaigns(items);
-    } catch (_) { setCampaigns([]); }
+    } catch (_) {
+      setCampaigns([]);
+    }
   };
 
-  useEffect(() => { loadCampaigns(); }, []);
+  useEffect(() => {
+    loadCampaigns();
+  }, []);
 
   const handleSubmit = async () => {
     setModalLoading(true);
     try {
       // Only send the required fields in the payload
-      let callFileUrl = '';
+      let callFileUrl = "";
       if (modalFields.callFile) {
         const formData = new FormData();
-        formData.append('file', modalFields.callFile); // Use 'file' as field name
+        formData.append("file", modalFields.callFile); // Use 'file' as field name
         const uploadRes = await uploadAvatar(formData);
-        callFileUrl = uploadRes.url || uploadRes.path || uploadRes.fileUrl || '';
+        callFileUrl =
+          uploadRes.url || uploadRes.path || uploadRes.fileUrl || "";
       }
 
       const payload = {
@@ -233,11 +362,13 @@ const CompanyLeads = () => {
         nextMeetingDate: modalFields.nextMeetingDate || null,
         assignedTo: modalFields.assignedTo || null,
         notes: Array.isArray(modalFields.notes)
-          ? modalFields.notes.filter(n => n && n.trim()).map(n => ({
-              text: n.trim(),
-              addedBy: user._id,
-              addedAt: new Date().toISOString(),
-            }))
+          ? modalFields.notes
+              .filter((n) => n && n.trim())
+              .map((n) => ({
+                text: n.trim(),
+                addedBy: user._id,
+                addedAt: new Date().toISOString(),
+              }))
           : [],
         ...(callFileUrl ? { callFile: callFileUrl } : {}),
       };
@@ -250,7 +381,7 @@ const CompanyLeads = () => {
       setModalOpen(false);
       load();
     } catch (e) {
-      alert(e.response?.data?.message || 'Failed to save lead');
+      alert(e.response?.data?.message || "Failed to save lead");
     } finally {
       setModalLoading(false);
     }
@@ -258,7 +389,7 @@ const CompanyLeads = () => {
 
   const handleArchive = async () => {
     if (!rowToToggle) return;
-    const next = rowToToggle.status === 'lost' ? 'created' : 'lost';
+    const next = rowToToggle.status === "lost" ? "created" : "lost";
     setLoading(true);
     try {
       await updateLead(rowToToggle._id, { status: next });
@@ -274,19 +405,35 @@ const CompanyLeads = () => {
     if (!noteText.trim() || !detailLeadModal.lead) return;
     setAddingNote(true);
     try {
-      const existing = Array.isArray(detailLeadModal.lead.notes) ? detailLeadModal.lead.notes : [];
-      await updateLead(detailLeadModal.lead._id, { notes: [...existing, { text: noteText.trim() }] });
-      setNoteText('');
+      const existing = Array.isArray(detailLeadModal.lead.notes)
+        ? detailLeadModal.lead.notes
+        : [];
+      await updateLead(detailLeadModal.lead._id, {
+        notes: [...existing, { text: noteText.trim() }],
+      });
+      setNoteText("");
       // Refresh leads and re-select
-      const data = await getLeads({ page, limit: pageSize, company: user._id, status: filterStatus || undefined, search: searchText || undefined });
-      const items = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
+      const data = await getLeads({
+        page,
+        limit: pageSize,
+        company: user._id,
+        status: filterStatus || undefined,
+        search: searchText || undefined,
+      });
+      const items = Array.isArray(data.data)
+        ? data.data
+        : Array.isArray(data)
+          ? data
+          : [];
       setValues(items);
       setTotal(data.total || items.length);
-      const refreshed = items.find(l => l._id === detailLeadModal.lead._id);
+      const refreshed = items.find((l) => l._id === detailLeadModal.lead._id);
       if (refreshed) setDetailLeadModal({ open: true, lead: refreshed });
     } catch (_) {
-      alert('Failed to add note');
-    } finally { setAddingNote(false); }
+      alert("Failed to add note");
+    } finally {
+      setAddingNote(false);
+    }
   };
 
   const handleUploadRecording = async () => {
@@ -294,58 +441,107 @@ const CompanyLeads = () => {
     setUploadingRecording(true);
     try {
       const formData = new FormData();
-      formData.append('file', recordingFile);
+      formData.append("file", recordingFile);
       const uploadRes = await uploadAvatar(formData);
-      const callFileUrl = uploadRes.url || uploadRes.path || uploadRes.fileUrl || '';
-      
+      const callFileUrl =
+        uploadRes.url || uploadRes.path || uploadRes.fileUrl || "";
+
       // Update lead with call recording and auto-assign to current user
       await updateLead(addRecordingModal.lead._id, {
         callRecording: callFileUrl,
-        assignedTo: user._id
+        assignedTo: user._id,
       });
-      
+
       // Refresh and close modal
       setAddRecordingModal({ open: false, lead: null });
       setRecordingFile(null);
       load();
     } catch (e) {
-      alert(e.response?.data?.message || 'Failed to upload recording');
+      alert(e.response?.data?.message || "Failed to upload recording");
     } finally {
       setUploadingRecording(false);
     }
   };
 
-  const leadLabel = (lead) => lead.leadData?.name || lead.leadData?.email || `Lead #${lead._id?.slice(-6)}`;
+  const leadLabel = (lead) =>
+    lead.leadData?.name ||
+    lead.leadData?.email ||
+    `Lead #${lead._id?.slice(-6)}`;
 
-  const statusFilterOptions = [{ value: '', label: 'All Statuses' }, ...LEAD_STATUSES.map(s => ({ value: s.value, label: s.label }))];
-  const campaignOptions = [
-    { value: '', label: 'All Campaigns' },
-    ...campaigns.map(c => ({ value: c._id, label: c.title }))
+  const statusFilterOptions = [
+    { value: "", label: "All Statuses" },
+    ...LEAD_STATUSES.map((s) => ({ value: s.value, label: s.label })),
   ];
-  const statusSelectOptions = LEAD_STATUSES.map(s => ({ value: s.value, label: s.label }));
+  const campaignOptions = [
+    { value: "", label: "All Campaigns" },
+    ...campaigns.map((c) => ({ value: c._id, label: c.title })),
+  ];
+  const statusSelectOptions = LEAD_STATUSES.map((s) => ({
+    value: s.value,
+    label: s.label,
+  }));
 
   const EyeIcon = (
     <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
-      <path stroke="#6366f1" strokeWidth="2" d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"/>
-      <circle cx="12" cy="12" r="3" stroke="#6366f1" strokeWidth="2"/>
+      <path
+        stroke="#6366f1"
+        strokeWidth="2"
+        d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z"
+      />
+      <circle cx="12" cy="12" r="3" stroke="#6366f1" strokeWidth="2" />
     </svg>
   );
 
   const tableHeaders = [
     {
-      key: 'leadName',
-      label: 'L Name',
-      render: (v, row) => row?.leadData?.name || <span className="text-xs text-gray-400">—</span>,
+      key: "leadName",
+      label: "L Name",
+      render: (v, row) =>
+        row?.leadData?.name || <span className="text-xs text-gray-400">—</span>,
       searchable: true,
     },
+
     {
-      key: 'phone',
-      label: 'Phone',
-      render: (v, row) => row?.leadData?.phone || <span className="text-xs text-gray-400">—</span>,
+      key: "phone",
+      label: "Phone",
+      render: (v, row) =>
+        row?.leadData?.phone || (
+          <span className="text-xs text-gray-400">—</span>
+        ),
     },
     {
-      key: 'view',
-      label: 'L Data',
+      key: "assignedTo",
+      label: "Assigned To",
+      filter: {
+        options: [
+          { value: "", label: "All Employees" },
+          ...employees.map(emp => ({
+            value: emp._id,
+            label: emp.name || emp.email || "Unnamed"
+          }))
+        ],
+        value: filterAssignedTo,
+        onChange: (v) => {
+          setFilterAssignedTo(v);
+          setPage(1);
+        },
+      },
+      render: (v, row) =>
+        row.assignedTo && typeof row.assignedTo === "object"
+          ? row.assignedTo.name
+          : row.assignedTo || <span className="text-xs text-gray-400">—</span>,
+    },
+    {
+      key: "campigne",
+      label: "Campaign",
+      render: (v, row) =>
+        row.campigne && typeof row.campigne === "object"
+          ? row.campigne.title
+          : row.campigne || <span className="text-xs text-gray-400">—</span>,
+    },
+    {
+      key: "view",
+      label: "L Data",
       render: (_, row) => (
         <button
           className="p-2 rounded-full hover:bg-gray-100"
@@ -354,28 +550,40 @@ const CompanyLeads = () => {
         >
           {EyeIcon}
         </button>
-      )
+      ),
     },
     {
-      key: 'info',
-      label: 'Info',
+      key: "info",
+      label: "Info",
       render: (_, row) => (
         <button
           title="Show Lead Info"
           className="p-1 text-indigo-500 hover:text-indigo-700"
           onClick={() => setInfoModal({ open: true, lead: row })}
         >
-          <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="#6366f1" strokeWidth="2"/><path stroke="#6366f1" strokeWidth="2" strokeLinecap="round" d="M12 8h.01M12 12v4"/></svg>
+          <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+            <circle cx="12" cy="12" r="10" stroke="#6366f1" strokeWidth="2" />
+            <path
+              stroke="#6366f1"
+              strokeWidth="2"
+              strokeLinecap="round"
+              d="M12 8h.01M12 12v4"
+            />
+          </svg>
         </button>
       ),
     },
     {
-      key: 'callRecording',
-      label: 'REC.',
+      key: "callRecording",
+      label: "REC.",
       render: (_, row) => {
         const hasRecording = row.callRecording
-          ? (typeof row.callRecording === 'string' && row.callRecording.trim() !== '')
-            || (typeof row.callRecording === 'object' && (row.callRecording.url || row.callRecording.path || row.callRecording.fileUrl))
+          ? (typeof row.callRecording === "string" &&
+              row.callRecording.trim() !== "") ||
+            (typeof row.callRecording === "object" &&
+              (row.callRecording.url ||
+                row.callRecording.path ||
+                row.callRecording.fileUrl))
           : false;
 
         if (hasRecording) {
@@ -384,16 +592,35 @@ const CompanyLeads = () => {
             <button
               className="text-emerald-600 hover:text-emerald-800 p-1 rounded-full focus:outline-none font-bold"
               title="View Call Recording (Uploaded)"
-              onClick={() => setCallRecordingModal({
-                open: true,
-                fileUrl: typeof row.callRecording === 'string' ? row.callRecording : (row.callRecording.url || row.callRecording.path || row.callRecording.fileUrl || ''),
-                fileName: typeof row.callRecording === 'string' ? row.callRecording.split('/').pop() : (row.callRecording.name || 'Recording'),
-                description: row.callRecordingText || '',
-                transcript: row.callRecordingTranscript || row.transcript || ''
-              })}
+              onClick={() =>
+                setCallRecordingModal({
+                  open: true,
+                  fileUrl:
+                    typeof row.callRecording === "string"
+                      ? row.callRecording
+                      : row.callRecording.url ||
+                        row.callRecording.path ||
+                        row.callRecording.fileUrl ||
+                        "",
+                  fileName:
+                    typeof row.callRecording === "string"
+                      ? row.callRecording.split("/").pop()
+                      : row.callRecording.name || "Recording",
+                  description: row.callRecordingText || "",
+                  transcript:
+                    row.callRecordingTranscript || row.transcript || "",
+                })
+              }
             >
               <svg width="18" height="18" fill="emerald" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10" stroke="#10b981" strokeWidth="2" fill="#d1fae5" />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="#10b981"
+                  strokeWidth="2"
+                  fill="#d1fae5"
+                />
                 <polygon points="10,8 16,12 10,16" fill="#10b981" />
               </svg>
             </button>
@@ -407,35 +634,66 @@ const CompanyLeads = () => {
               onClick={() => setAddRecordingModal({ open: true, lead: row })}
             >
               <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
-                <circle cx="12" cy="12" r="10" stroke="#dc2626" strokeWidth="2" />
-                <path stroke="#dc2626" strokeWidth="2" strokeLinecap="round" d="M12 8v8M8 12h8" />
+                <circle
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="#dc2626"
+                  strokeWidth="2"
+                />
+                <path
+                  stroke="#dc2626"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  d="M12 8v8M8 12h8"
+                />
               </svg>
             </button>
           );
         }
-      }
+      },
     },
     {
-      key: 'call_performance',
-      label: 'Rating',
+      key: "call_performance",
+      label: "Rating",
       render: (v) => {
         const rating = Number(v) || 0;
         return (
-          <span title={rating ? `${rating} out of 10` : 'No rating'} style={{display:'inline-flex',alignItems:'center',gap:2}}>
-            <span style={{fontWeight:500}}>{rating}</span>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="#f59e42" stroke="#f59e42" strokeWidth="1.5" style={{verticalAlign:'middle'}}>
+          <span
+            title={rating ? `${rating} out of 10` : "No rating"}
+            style={{ display: "inline-flex", alignItems: "center", gap: 2 }}
+          >
+            <span style={{ fontWeight: 500 }}>{rating}</span>
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="#f59e42"
+              stroke="#f59e42"
+              strokeWidth="1.5"
+              style={{ verticalAlign: "middle" }}
+            >
               <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
             </svg>
           </span>
         );
-      }
+      },
     },
     {
-      key: 'status',
-      label: 'Status',
-      filter: { options: statusFilterOptions, value: filterStatus, onChange: v => { setFilterStatus(v); setPage(1); } },
-      render: v => (
-        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${STATUS_COLOR_MAP[v] || 'bg-gray-100 text-gray-500'}`}>
+      key: "status",
+      label: "Status",
+      filter: {
+        options: statusFilterOptions,
+        value: filterStatus,
+        onChange: (v) => {
+          setFilterStatus(v);
+          setPage(1);
+        },
+      },
+      render: (v) => (
+        <span
+          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${STATUS_COLOR_MAP[v] || "bg-gray-100 text-gray-500"}`}
+        >
           {STATUS_LABEL_MAP[v] || v}
         </span>
       ),
@@ -443,33 +701,52 @@ const CompanyLeads = () => {
   ];
 
   const NewUploadIcon = (
-    <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path stroke="#6366f1" strokeWidth="2" d="M12 16V4m0 0L7 9m5-5 5 5"/><rect width="18" height="8" x="3" y="16" stroke="#0ea5e9" strokeWidth="2" rx="2"/></svg>
+    <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
+      <path stroke="#6366f1" strokeWidth="2" d="M12 16V4m0 0L7 9m5-5 5 5" />
+      <rect
+        width="18"
+        height="8"
+        x="3"
+        y="16"
+        stroke="#0ea5e9"
+        strokeWidth="2"
+        rx="2"
+      />
+    </svg>
   );
   const actions = [
     {
-      key: 'edit', label: 'Edit', icon: EditIcon,
-      onClick: row => {
+      key: "edit",
+      label: "Edit",
+      icon: EditIcon,
+      onClick: (row) => {
         setEditData(row);
         setModalFields({
-          status: row.status || 'created',
-          nextMeetingDate: row.nextMeetingDate ? row.nextMeetingDate.slice(0, 10) : '',
-          assignedTo: row.assignedTo || '',
-          notes: Array.isArray(row.notes) ? row.notes.map(n => typeof n === 'string' ? n : n.text || '') : [''],
+          status: row.status || "created",
+          nextMeetingDate: row.nextMeetingDate
+            ? row.nextMeetingDate.slice(0, 10)
+            : "",
+          assignedTo: row.assignedTo || "",
+          notes: Array.isArray(row.notes)
+            ? row.notes.map((n) => (typeof n === "string" ? n : n.text || ""))
+            : [""],
           callFile: null,
         });
         setModalOpen(true);
       },
     },
-    { key: 'archive', label: 'Mark Lost / Reopen', icon: ArchiveIcon, onClick: row => { setRowToToggle(row); setConfirmModalOpen(true); } },
+    {
+      key: "archive",
+      label: "Mark Lost / Reopen",
+      icon: ArchiveIcon,
+      onClick: (row) => {
+        setRowToToggle(row);
+        setConfirmModalOpen(true);
+      },
+    },
   ];
   // Call recording upload state
   // Employees for assignedTo
-  const [employees, setEmployees] = useState([]);
-  useEffect(() => {
-    getEmployees({ company: user._id, limit: 100 }).then(data => {
-      setEmployees(Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []));
-    }).catch(() => setEmployees([]));
-  }, [user._id]);
 
   return (
     <div className="p-2">
@@ -481,52 +758,91 @@ const CompanyLeads = () => {
         pageSize={pageSize}
         loading={loading}
         onPageChange={setPage}
-        onPageSizeChange={size => { setPageSize(size); setPage(1); }}
+        onPageSizeChange={(size) => {
+          setPageSize(size);
+          setPage(1);
+        }}
         actions={actions}
-        searchKeys={['leadName', 'assignedTo']}
-        searchKey={searchKey}
-        onSearchKeyChange={setSearchKey}
         searchText={searchText}
-        onSearchTextChange={t => { setSearchText(t); setPage(1); }}
+        onSearchTextChange={(t) => {
+          setSearchText(t);
+          setPage(1);
+        }}
         toolbarFilter={
-          <select
-            value={filterContactStatus}
-            onChange={e => { setFilterContactStatus(e.target.value); setPage(1); }}
-            className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-          >
-            <option value="">All</option>
-            <option value="contacted">Contacted</option>
-            <option value="not_contacted">Not Contacted</option>
-          </select>
+          <div className="flex gap-2">
+            <select
+              value={filterCampaign}
+              onChange={(e) => {
+                setFilterCampaign(e.target.value);
+                setPage(1);
+              }}
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            >
+              <option value="">All Campaigns</option>
+              {campaigns.map((c) => (
+                <option key={c._id} value={c._id}>
+                  {c.title}
+                </option>
+              ))}
+            </select>
+            <select
+              value={filterContactStatus}
+              onChange={(e) => {
+                setFilterContactStatus(e.target.value);
+                setPage(1);
+              }}
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            >
+              <option value="">All</option>
+              <option value="contacted">Contacted</option>
+              <option value="not_contacted">Not Contacted</option>
+            </select>
+          </div>
         }
       />
 
       {/* Call Recording Modal */}
       <Modal
         isOpen={callRecordingModal.open}
-        onClose={() => setCallRecordingModal({ open: false, fileUrl: '', fileName: '', description: '', transcript: '' })}
+        onClose={() =>
+          setCallRecordingModal({
+            open: false,
+            fileUrl: "",
+            fileName: "",
+            description: "",
+            transcript: "",
+          })
+        }
         title="Call Recording"
         footer={null}
       >
         <div className="space-y-4">
-          <div className="font-semibold text-gray-800">{callRecordingModal.fileName || 'No file'}</div>
+          <div className="font-semibold text-gray-800">
+            {callRecordingModal.fileName || "No file"}
+          </div>
           {callRecordingModal.fileUrl ? (
-            <audio controls style={{ width: '100%' }}>
+            <audio controls style={{ width: "100%" }}>
               <source src={callRecordingModal.fileUrl} />
               Your browser does not support the audio element.
             </audio>
           ) : null}
-          
+
           {/* Transcript Section */}
           {callRecordingModal.transcript ? (
             <div className="mt-4 p-4 bg-gray-50 border border-gray-200 rounded-lg">
               <h4 className="font-semibold text-gray-800 mb-2">Transcript</h4>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{callRecordingModal.transcript}</p>
+              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                {callRecordingModal.transcript}
+              </p>
             </div>
           ) : callRecordingModal.description ? (
-            <div className="text-gray-700 text-sm">{callRecordingModal.description}</div>
+            <div className="text-gray-700 text-sm">
+              {callRecordingModal.description}
+            </div>
           ) : (
-            <div className="text-gray-400 text-sm">No transcript or description available.</div>
+            <div className="text-gray-400 text-sm">
+              No transcript or description available.
+            </div>
           )}
         </div>
       </Modal>
@@ -538,7 +854,11 @@ const CompanyLeads = () => {
           setAddRecordingModal({ open: false, lead: null });
           setRecordingFile(null);
         }}
-        title={addRecordingModal.lead ? `Add Recording: ${leadLabel(addRecordingModal.lead)}` : 'Add Recording'}
+        title={
+          addRecordingModal.lead
+            ? `Add Recording: ${leadLabel(addRecordingModal.lead)}`
+            : "Add Recording"
+        }
         footer={
           !uploadingRecording && (
             <div className="flex justify-end gap-3">
@@ -573,12 +893,15 @@ const CompanyLeads = () => {
             {addRecordingModal.lead && (
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-sm text-blue-800">
-                  <strong>Lead:</strong> {leadLabel(addRecordingModal.lead)} - <strong>Auto-assigned to:</strong> {user.name || user.email}
+                  <strong>Lead:</strong> {leadLabel(addRecordingModal.lead)} -{" "}
+                  <strong>Auto-assigned to:</strong> {user.name || user.email}
                 </p>
               </div>
             )}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Select Recording File</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Select Recording File
+              </label>
               <input
                 type="file"
                 accept="audio/*"
@@ -595,57 +918,113 @@ const CompanyLeads = () => {
         )}
       </Modal>
 
-
       {/* Add/Edit Modal */}
       <Modal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editData ? 'Update Lead' : 'Add Lead'}
+        title={editData ? "Update Lead" : "Add Lead"}
         footer={
           !modalLoading && (
             <div className="flex justify-end gap-3">
-              <button type="button" className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50" onClick={() => setModalOpen(false)}>Cancel</button>
-              <button type="submit" form="lead-form" className="px-5 py-2.5 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 shadow-sm">{editData ? 'Update Lead' : 'Add Lead'}</button>
+              <button
+                type="button"
+                className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+                onClick={() => setModalOpen(false)}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                form="lead-form"
+                className="px-5 py-2.5 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 shadow-sm"
+              >
+                {editData ? "Update Lead" : "Add Lead"}
+              </button>
             </div>
           )
         }
       >
-        {modalLoading
-          ? <div className="flex justify-center py-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" /></div>
-          : (
-            <form id="lead-form" onSubmit={e => { e.preventDefault(); handleSubmit(); }} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 ">
+        {modalLoading ? (
+          <div className="flex justify-center py-12">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
+          </div>
+        ) : (
+          <form
+            id="lead-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSubmit();
+            }}
+            className="space-y-4"
+          >
+            <div className="grid grid-cols-1 md:grid-cols-2  gap-1">
+              <Input
+                label="Status"
+                name="status"
+                type="select"
+                value={modalFields.status}
+                disabled={modalFields.status === "coustomer"}
+                onChange={(e) =>
+                  setModalFields((p) => ({ ...p, status: e.target.value }))
+                }
+                options={statusSelectOptions}
+                required
+              />
+              <Input
+                label="Next Meeting Date"
+                name="nextMeetingDate"
+                type="date"
+                value={modalFields.nextMeetingDate}
+                onChange={(e) =>
+                  setModalFields((p) => ({
+                    ...p,
+                    nextMeetingDate: e.target.value,
+                  }))
+                }
+                required={false}
+              />
+              <div className="col-span-2">
                 <Input
-                  label="Status" name="status" type="select"
-                  value={modalFields.status}
-                  onChange={e => setModalFields(p => ({ ...p, status: e.target.value }))}
-                  options={statusSelectOptions} required
-                />
-                <Input
-                  label="Next Meeting Date" name="nextMeetingDate" type="date"
-                  value={modalFields.nextMeetingDate}
-                  onChange={e => setModalFields(p => ({ ...p, nextMeetingDate: e.target.value }))}
+                  label="Assigned To"
+                  name="assignedTo"
+                  type="select"
+                  value={modalFields.assignedTo}
+                  onChange={(e) =>
+                    setModalFields((p) => ({
+                      ...p,
+                      assignedTo: e.target.value,
+                    }))
+                  }
+                  options={employees.map((emp) => ({
+                    value: emp._id,
+                    label: emp.name,
+                  }))}
                   required={false}
                 />
-                <div className="col-span-2">
-                  <Input
-                    label="Assigned To" name="assignedTo" type="select"
-                    value={modalFields.assignedTo}
-                    onChange={e => setModalFields(p => ({ ...p, assignedTo: e.target.value }))}
-                    options={employees.map(emp => ({ value: emp._id, label: emp.name }))}
-                    required={false}
-                  />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Notes</label>
-                  <div className="space-y-2">
-                    {modalFields.notes && modalFields.notes.map((note, idx) => (
-                      <div key={idx} className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded p-2 group hover:shadow-sm transition-all">
+              </div>
+              <div className="col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Notes
+                </label>
+                <div className="space-y-2">
+                  {modalFields.notes &&
+                    modalFields.notes.map((note, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded p-2 group hover:shadow-sm transition-all"
+                      >
                         <Input
                           name={`note-${idx}`}
                           type="text"
                           value={note}
-                          onChange={e => setModalFields(p => ({ ...p, notes: p.notes.map((n, i) => i === idx ? e.target.value : n) }))}
+                          onChange={(e) =>
+                            setModalFields((p) => ({
+                              ...p,
+                              notes: p.notes.map((n, i) =>
+                                i === idx ? e.target.value : n,
+                              ),
+                            }))
+                          }
                           placeholder={`Note #${idx + 1}`}
                           required={false}
                           className="flex-1"
@@ -653,39 +1032,54 @@ const CompanyLeads = () => {
                         <button
                           type="button"
                           className="px-2 py-1 bg-red-100 text-red-600 rounded hover:bg-red-200 text-xs font-medium"
-                          onClick={() => setModalFields(p => ({ ...p, notes: p.notes.filter((_, i) => i !== idx) }))}
-                        >Remove</button>
+                          onClick={() =>
+                            setModalFields((p) => ({
+                              ...p,
+                              notes: p.notes.filter((_, i) => i !== idx),
+                            }))
+                          }
+                        >
+                          Remove
+                        </button>
                       </div>
                     ))}
-                  </div>
-                  <button
-                    type="button"
-                    className="mt-3 px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 text-sm font-semibold w-full transition-all"
-                    onClick={() => setModalFields(p => ({ ...p, notes: [...(p.notes || []), ''] }))}
-                  >+ Add Note</button>
                 </div>
-                <div className="col-span-2 mt-2">
-                  <Input
-                    // label={<span className="flex items-center gap-2">Call Recording {NewUploadIcon}</span>}
-                    name="callFile"
-                    type="file"
-                    accept="audio/*"
-                    onChange={e => setModalFields(p => ({ ...p, callFile: e.target.files?.[0] }))}
-                    required={false}
-                  />
-                </div>
+                <button
+                  type="button"
+                  className="mt-3 px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 text-sm font-semibold w-full transition-all"
+                  onClick={() =>
+                    setModalFields((p) => ({
+                      ...p,
+                      notes: [...(p.notes || []), ""],
+                    }))
+                  }
+                >
+                  + Add Note
+                </button>
               </div>
-            </form>
-          )}
+            </div>
+          </form>
+        )}
       </Modal>
 
       {/* Confirm modal */}
       <ConfirmDialog
         isOpen={confirmModalOpen}
-        onClose={() => { setConfirmModalOpen(false); setRowToToggle(null); }}
+        onClose={() => {
+          setConfirmModalOpen(false);
+          setRowToToggle(null);
+        }}
         onConfirm={handleArchive}
         title="Update Lead Status"
-        message={<>Mark as <span className="font-semibold">{rowToToggle?.status === 'lost' ? '"Created"' : '"Lost"'}</span>?</>}
+        message={
+          <>
+            Mark as{" "}
+            <span className="font-semibold">
+              {rowToToggle?.status === "lost" ? '"Created"' : '"Lost"'}
+            </span>
+            ?
+          </>
+        }
         confirmLabel="Confirm"
         variant="warning"
       />
@@ -694,36 +1088,57 @@ const CompanyLeads = () => {
       <Modal
         isOpen={infoModal.open}
         onClose={() => setInfoModal({ open: false, lead: null })}
-        title={infoModal.lead ? `Lead Info: ${leadLabel(infoModal.lead)}` : 'Lead Info'}
+        title={
+          infoModal.lead
+            ? `Lead Info: ${leadLabel(infoModal.lead)}`
+            : "Lead Info"
+        }
         footer={null}
       >
         {infoModal.lead && (
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <span className="block text-xs text-gray-400 font-medium mb-1">Assigned To</span>
+                <span className="block text-xs text-gray-400 font-medium mb-1">
+                  Assigned To
+                </span>
                 <span className="block text-sm text-gray-800 font-medium">
-                  {infoModal.lead.assignedTo && typeof infoModal.lead.assignedTo === 'object' 
-                    ? infoModal.lead.assignedTo.name 
-                    : infoModal.lead.assignedTo || '—'}
+                  {infoModal.lead.assignedTo &&
+                  typeof infoModal.lead.assignedTo === "object"
+                    ? infoModal.lead.assignedTo.name
+                    : infoModal.lead.assignedTo || "—"}
                 </span>
               </div>
               <div>
-                <span className="block text-xs text-gray-400 font-medium mb-1">Created At</span>
+                <span className="block text-xs text-gray-400 font-medium mb-1">
+                  Created At
+                </span>
                 <span className="block text-sm text-gray-800 font-medium">
-                  {infoModal.lead.createdAt ? new Date(infoModal.lead.createdAt).toLocaleDateString() : '—'}
+                  {infoModal.lead.createdAt
+                    ? new Date(infoModal.lead.createdAt).toLocaleDateString()
+                    : "—"}
                 </span>
               </div>
               <div>
-                <span className="block text-xs text-gray-400 font-medium mb-1">Next Meeting</span>
+                <span className="block text-xs text-gray-400 font-medium mb-1">
+                  Next Meeting
+                </span>
                 <span className="block text-sm text-gray-800 font-medium">
-                  {infoModal.lead.nextMeetingDate ? new Date(infoModal.lead.nextMeetingDate).toLocaleDateString() : '—'}
+                  {infoModal.lead.nextMeetingDate
+                    ? new Date(
+                        infoModal.lead.nextMeetingDate,
+                      ).toLocaleDateString()
+                    : "—"}
                 </span>
               </div>
               <div>
-                <span className="block text-xs text-gray-400 font-medium mb-1">Campaign</span>
+                <span className="block text-xs text-gray-400 font-medium mb-1">
+                  Campaign
+                </span>
                 <span className="block text-sm text-gray-800 font-medium">
-                  {infoModal.lead.campigne?.title || infoModal.lead.campigne?.name || '—'}
+                  {infoModal.lead.campigne?.title ||
+                    infoModal.lead.campigne?.name ||
+                    "—"}
                 </span>
               </div>
             </div>
@@ -735,7 +1150,11 @@ const CompanyLeads = () => {
       <Modal
         isOpen={detailLeadModal.open}
         onClose={() => setDetailLeadModal({ open: false, lead: null })}
-        title={detailLeadModal.lead ? `Lead Details: ${leadLabel(detailLeadModal.lead)}` : 'Lead Details'}
+        title={
+          detailLeadModal.lead
+            ? `Lead Details: ${leadLabel(detailLeadModal.lead)}`
+            : "Lead Details"
+        }
         footer={null}
       >
         {detailLeadModal.lead && (
@@ -745,32 +1164,51 @@ const CompanyLeads = () => {
                 {leadLabel(detailLeadModal.lead)[0]?.toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-gray-800 truncate">{leadLabel(detailLeadModal.lead)}</h3>
+                <h3 className="font-semibold text-gray-800 truncate">
+                  {leadLabel(detailLeadModal.lead)}
+                </h3>
                 <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                  <span className="text-xs text-gray-400">{detailLeadModal.lead.company?.name || '—'}</span>
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${STATUS_COLOR_MAP[detailLeadModal.lead.status] || 'bg-gray-100 text-gray-500'}`}>
-                    {STATUS_LABEL_MAP[detailLeadModal.lead.status] || detailLeadModal.lead.status}
+                  <span className="text-xs text-gray-400">
+                    {detailLeadModal.lead.company?.name || "—"}
+                  </span>
+                  <span
+                    className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${STATUS_COLOR_MAP[detailLeadModal.lead.status] || "bg-gray-100 text-gray-500"}`}
+                  >
+                    {STATUS_LABEL_MAP[detailLeadModal.lead.status] ||
+                      detailLeadModal.lead.status}
                   </span>
                 </div>
               </div>
             </div>
             <h4 className="font-semibold text-md mb-2">Lead Data</h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {Object.entries(detailLeadModal.lead.leadData || {}).map(([key, value]) => (
-                <div key={key}>
-                  <span className="block text-xs text-gray-400 font-medium mb-1">{key}</span>
-                  <span className="block text-sm text-gray-800 break-all">{String(value)}</span>
-                </div>
-              ))}
+              {Object.entries(detailLeadModal.lead.leadData || {}).map(
+                ([key, value]) => (
+                  <div key={key}>
+                    <span className="block text-xs text-gray-400 font-medium mb-1">
+                      {key}
+                    </span>
+                    <span className="block text-sm text-gray-800 break-all">
+                      {String(value)}
+                    </span>
+                  </div>
+                ),
+              )}
             </div>
             {/* Notes Section */}
             <div className="mt-6">
               <h4 className="font-semibold text-md mb-2">Notes</h4>
-              {Array.isArray(detailLeadModal.lead.notes) && detailLeadModal.lead.notes.length > 0 ? (
+              {Array.isArray(detailLeadModal.lead.notes) &&
+              detailLeadModal.lead.notes.length > 0 ? (
                 <ul className="space-y-2">
                   {detailLeadModal.lead.notes.map((note, idx) => (
-                    <li key={idx} className="p-2 bg-gray-50 border rounded text-sm text-gray-700">
-                      {typeof note === 'string' ? note : (note.text || JSON.stringify(note))}
+                    <li
+                      key={idx}
+                      className="p-2 bg-gray-50 border rounded text-sm text-gray-700"
+                    >
+                      {typeof note === "string"
+                        ? note
+                        : note.text || JSON.stringify(note)}
                     </li>
                   ))}
                 </ul>
