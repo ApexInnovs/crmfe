@@ -207,6 +207,7 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported, preselectedC
   const [selectedCampaign, setSelectedCampaign] = useState('');
   const [externalCampaign, setExternalCampaign] = useState(false);
   const [externalCampaignName, setExternalCampaignName] = useState('');
+  const [externalCampaignDescription, setExternalCampaignDescription] = useState('');
   const [file, setFile] = useState(null);
   const [fileUrl, setFileUrl] = useState('');
   const [parsedRows, setParsedRows] = useState([]);
@@ -287,6 +288,7 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported, preselectedC
       setSelectedCampaign('');
       setExternalCampaign(false);
       setExternalCampaignName('');
+      setExternalCampaignDescription('');
       setFile(null);
       setFileUrl('');
       setParsedRows([]);
@@ -312,6 +314,8 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported, preselectedC
       if (urlLower.endsWith('.csv')) {
         const text = await res.text();
         rows = parseCsv(text);
+      } else if (externalCampaign) {
+        throw new Error('Only .csv files are supported for external campaigns.');
       } else if (urlLower.endsWith('.xlsx') || urlLower.endsWith('.xls')) {
         const blob = await res.blob();
         const f2 = new File([blob], 'import.xlsx');
@@ -340,10 +344,14 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported, preselectedC
       if (f.name.endsWith('.csv')) {
         const text = await f.text();
         rows = parseCsv(text);
+      } else if (externalCampaign) {
+        throw new Error('Only .csv files are supported for external campaigns.');
       } else if (f.name.endsWith('.xlsx') || f.name.endsWith('.xls')) {
         rows = await parseExcel(f);
       } else if (f.name.endsWith('.pdf')) {
         rows = await parsePdf(f);
+      } else {
+        throw new Error('Unsupported file format.');
       }
       if (rows.length === 0) throw new Error('No data rows found in file.');
       setParsedRows(rows);
@@ -362,6 +370,8 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported, preselectedC
     try {
       const result = await importLeadsFromFile({
         campaignId: externalCampaign ? undefined : selectedCampaign,
+        campignName: externalCampaign ? externalCampaignName : undefined,
+        description: externalCampaign ? externalCampaignDescription : undefined,
         leads: parsedRows,
         company: user._id,
         createdBy: user._id,
@@ -471,16 +481,24 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported, preselectedC
           <div className="flex items-center gap-1 mt-3">
             {['Campaign', 'Upload', 'Preview', 'Done'].map((label, i) => (
               <React.Fragment key={i}>
-                <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (step > i + 1) setStep(i + 1);
+                  }}
+                  disabled={step <= i + 1}
+                  className="flex items-center gap-1.5 cursor-pointer disabled:cursor-not-allowed transition-opacity hover:disabled:opacity-100"
+                  style={{ opacity: step <= i + 1 ? 1 : 0.8 }}
+                >
                   <div className={`w-6 h-6 flex items-center justify-center transition-all`}>
                     {step > i + 1 ? (
-                      <img src="/image.png" alt="done" style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
+                      <img src="/image.png" alt="done" style={{ width: '24px', height: '24px', objectFit: 'contain', cursor: 'pointer' }} />
                     ) : (
                       <span className={step === i + 1 ? ' text-sm font-bold rounded-full w-6 h-6 flex items-center justify-center bg-lime-500 text-white' : 'text-gray-400 text-sm font-bold rounded-full w-6 h-6 flex items-center justify-center border-2 border-gray-200'}>{i + 1}</span>
                     )}
                   </div>
                   <span className={`text-xs font-medium hidden sm:inline ${step === i + 1 ? 'text-lime-700 font-semibold' : 'text-gray-400'}`}>{label}</span>
-                </div>
+                </button>
                 {i < 3 && <div className={`flex-1 h-0.5 mx-1 rounded-full ${step > i + 1 ? 'bg-lime-300' : 'bg-gray-100'}`} />}
               </React.Fragment>
             ))}
@@ -587,6 +605,19 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported, preselectedC
                     document.body
                   )}
 
+                  {selectedCampaign && (
+                    <button type="button" onClick={() => setStep(2)}
+                      style={{
+                        padding: '10px 20px', fontSize: '13px', fontWeight: 600, color: 'white', border: 'none',
+                        borderRadius: '10px', cursor: 'pointer',
+                        background: 'linear-gradient(160deg, #c0eb75 0%, #84cc16 40%, #65a30d 100%)',
+                        boxShadow: '0 2px 6px rgba(132,204,22,0.25)', opacity: 1,
+                        transition: 'all 0.2s ease', alignSelf: 'flex-end', whiteSpace: 'nowrap',
+                      }}>
+                      Next: Upload File
+                    </button>
+                  )}
+
                   <style>{`
                     @keyframes spin {
                       from { transform: translateY(-50%) rotate(0deg); }
@@ -597,13 +628,35 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported, preselectedC
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <Input label="External Campaign Name" value={externalCampaignName} onChange={e => setExternalCampaignName(e.target.value)} placeholder="e.g. Google Ads Campaign" />
-                  <button type="button" disabled={!externalCampaignName.trim()} onClick={() => setStep(2)}
+                  <div>
+                    <label style={{ fontSize: '13px', fontWeight: 700, color: '#111827', marginBottom: '6px', letterSpacing: '0.4px', display: 'block' }}>Description</label>
+                    <textarea
+                      placeholder="Add a description for this campaign (optional)"
+                      value={externalCampaignDescription}
+                      onChange={e => setExternalCampaignDescription(e.target.value)}
+                      style={{
+                        width: '100%', padding: '10px 12px', borderRadius: '8px', border: '2px solid #e5e7eb', outline: 'none',
+                        fontSize: '13px', color: '#111827', backgroundColor: '#fafbfc', fontFamily: 'inherit', fontWeight: 400,
+                        resize: 'vertical', minHeight: '60px', maxHeight: '100px', transition: 'all 0.2s ease',
+                        boxSizing: 'border-box', lineHeight: '1.6', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.05)',
+                      }}
+                      onFocus={e => {
+                        e.target.style.borderColor = '#84cc16';
+                        e.target.style.boxShadow = '0 0 0 3px rgba(132,204,22,0.12), inset 0 1px 2px rgba(0,0,0,0.05)';
+                      }}
+                      onBlur={e => {
+                        e.target.style.borderColor = '#e5e7eb';
+                        e.target.style.boxShadow = 'inset 0 1px 2px rgba(0,0,0,0.05)';
+                      }}
+                    />
+                  </div>
+                  <button type="button" disabled={!externalCampaignName.trim() || !externalCampaignDescription.trim()} onClick={() => setStep(2)}
                     style={{
                       padding: '10px 20px', fontSize: '13px', fontWeight: 600, color: 'white', border: 'none',
-                      borderRadius: '10px', cursor: externalCampaignName.trim() ? 'pointer' : 'not-allowed',
+                      borderRadius: '10px', cursor: (externalCampaignName.trim() && externalCampaignDescription.trim()) ? 'pointer' : 'not-allowed',
                       background: 'linear-gradient(160deg, #c0eb75 0%, #84cc16 40%, #65a30d 100%)',
-                      boxShadow: '0 2px 6px rgba(132,204,22,0.25)', opacity: externalCampaignName.trim() ? 1 : 0.5,
-                      transition: 'all 0.2s ease', alignSelf: 'flex-start',
+                      boxShadow: '0 2px 6px rgba(132,204,22,0.25)', opacity: (externalCampaignName.trim() && externalCampaignDescription.trim()) ? 1 : 0.5,
+                      transition: 'all 0.2s ease', alignSelf: 'flex-end', whiteSpace: 'nowrap',
                     }}>
                     Next: Upload File
                   </button>
@@ -634,12 +687,12 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported, preselectedC
               )}
 
               <p style={{ fontSize: '13px', color: '#6b7280' }}>
-                Upload your client data file. Supported: <strong>.xlsx, .xls, .csv, .pdf</strong>
+                Upload your client data file. Supported: <strong>{externalCampaign ? '.csv' : '.xlsx, .xls, .csv, .pdf'}</strong>
               </p>
 
-              <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                {/* File upload dropzone */}
-                <div style={{ flex: '1 1 200px' }}>
+              <div style={{ display: 'flex', gap: '16px' }}>
+                {/* Left: File upload dropzone */}
+                <div style={{ flex: '1', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <label
                     onClick={() => fileRef.current?.click()}
                     style={{
@@ -664,32 +717,32 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported, preselectedC
                       <p style={{ fontSize: '13px', fontWeight: 600, color: '#65a30d', margin: 0 }}>Click to upload file</p>
                       <p style={{ fontSize: '11px', color: '#9ca3af', margin: '2px 0 0' }}>Max 10 MB</p>
                     </div>
-                    <input ref={fileRef} type="file" accept={ACCEPTED} className="hidden" onChange={handleFileChange} />
+                    <input ref={fileRef} type="file" accept={externalCampaign ? '.csv' : ACCEPTED} className="hidden" onChange={handleFileChange} />
                   </label>
-                </div>
-
-                {/* URL import */}
-                <div style={{ flex: '1 1 200px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  <label style={{ fontSize: '11px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Or import from URL</label>
-                  <input type="text" placeholder="Paste file URL here"
-                    value={fileUrl} onChange={e => setFileUrl(e.target.value)}
-                    style={{
-                      padding: '9px 12px', fontSize: '13px', border: '1.5px solid #e5e7eb', borderRadius: '10px',
-                      outline: 'none', background: '#fafbfc', boxSizing: 'border-box', transition: 'all 0.2s ease',
-                    }}
-                    onFocus={e => { e.target.style.borderColor = '#84cc16'; e.target.style.boxShadow = '0 0 0 3px rgba(132,204,22,0.12)'; }}
-                    onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none'; }}
-                  />
-                  <button type="button" disabled={!fileUrl.trim() || parsing} onClick={handleUrlParse}
-                    style={{
-                      padding: '9px 16px', fontSize: '13px', fontWeight: 600, color: 'white', border: 'none',
-                      borderRadius: '10px', cursor: (!fileUrl.trim() || parsing) ? 'not-allowed' : 'pointer',
-                      background: 'linear-gradient(160deg, #c0eb75 0%, #84cc16 40%, #65a30d 100%)',
-                      boxShadow: '0 2px 6px rgba(132,204,22,0.2)', opacity: (!fileUrl.trim() || parsing) ? 0.5 : 1,
-                      transition: 'all 0.2s ease',
-                    }}>
-                    {parsing ? 'Parsing\u2026' : 'Import from URL'}
-                  </button>
+                  
+                  {/* URL import */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label style={{ fontSize: '11px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Or import from URL {externalCampaign && <span style={{ fontSize: '10px', color: '#9ca3af' }}>(.csv)</span>}</label>
+                      <input type="text" placeholder="Paste file URL here"
+                        value={fileUrl} onChange={e => setFileUrl(e.target.value)}
+                        style={{
+                          padding: '9px 12px', fontSize: '13px', border: '1.5px solid #e5e7eb', borderRadius: '10px',
+                          outline: 'none', background: '#fafbfc', boxSizing: 'border-box', transition: 'all 0.2s ease',
+                        }}
+                        onFocus={e => { e.target.style.borderColor = '#84cc16'; e.target.style.boxShadow = '0 0 0 3px rgba(132,204,22,0.12)'; }}
+                        onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none'; }}
+                      />
+                      <button type="button" disabled={!fileUrl.trim() || parsing} onClick={handleUrlParse}
+                        style={{
+                          padding: '9px 16px', fontSize: '13px', fontWeight: 600, color: 'white', border: 'none',
+                          borderRadius: '10px', cursor: (!fileUrl.trim() || parsing) ? 'not-allowed' : 'pointer',
+                          background: 'linear-gradient(160deg, #c0eb75 0%, #84cc16 40%, #65a30d 100%)',
+                          boxShadow: '0 2px 6px rgba(132,204,22,0.2)', opacity: (!fileUrl.trim() || parsing) ? 0.5 : 1,
+                          transition: 'all 0.2s ease',
+                        }}>
+                        {parsing ? 'Parsing\u2026' : 'Import from URL'}
+                      </button>
+                    </div>
                 </div>
               </div>
 
@@ -1170,7 +1223,18 @@ const CompanyCampaigns = () => {
     options: [],
   };
 
-  const initialFields = { title: '', description: '', formStructure: [DEFAULT_NAME_FIELD], status: 1 };
+  // Default Phone field that cannot be deleted
+  const DEFAULT_PHONE_FIELD = {
+    name: 'phone',
+    label: 'Phone Number',
+    type: 'tel',
+    isRequired: true,
+    placeholder: 'Enter your Phone Number',
+    isDefaultRequired: true, // Flag to prevent deletion
+    options: [],
+  };
+
+  const initialFields = { title: '', description: '', formStructure: [DEFAULT_NAME_FIELD, DEFAULT_PHONE_FIELD], status: 1 };
   const [modalFields, setModalFields] = useState(initialFields);
 
   const emptyField = { name: '', label: '', type: 'text', isRequired: false, placeholder: '', options: '' };
@@ -1421,19 +1485,25 @@ const CompanyCampaigns = () => {
       onClick: row => {
         hapticTap();
         setEditData(row);
-        // Ensure the default Name field exists and mark it
+        // Ensure the default Name and Phone fields exist and mark them
         let formStructure = (row.formStructure || []).map(field => {
-          // Mark Name field as default (required)
-          if (field.name === 'name') {
+          // Mark Name and Phone fields as default (required)
+          if (field.name === 'name' || field.name === 'phone') {
             return { ...field, isDefaultRequired: true };
           }
           return field;
         });
 
         const hasNameField = formStructure.some(f => f.name === 'name');
+        const hasPhoneField = formStructure.some(f => f.name === 'phone');
+        
         if (!hasNameField) {
           formStructure = [DEFAULT_NAME_FIELD, ...formStructure];
         }
+        if (!hasPhoneField) {
+          formStructure = [...formStructure, DEFAULT_PHONE_FIELD];
+        }
+        
         setModalFields({
           title: row.title || '',
           description: row.description || '',
@@ -1625,7 +1695,7 @@ const CompanyCampaigns = () => {
             onClick={() => {
               hapticTap();
               setEditData(null);
-              setModalFields({ ...initialFields, formStructure: [DEFAULT_NAME_FIELD] });
+              setModalFields(initialFields);
               setNewField(emptyField);
               setModalOpen(true);
             }}
@@ -1867,7 +1937,25 @@ const CompanyCampaigns = () => {
                         type="text"
                         placeholder={placeholder}
                         value={newField[key] || ''}
-                        onChange={e => setNewField(p => ({ ...p, [key]: e.target.value }))}
+                        onChange={e => {
+                          const value = e.target.value;
+                          if (key === 'name') {
+                            // Auto-fill label and placeholder based on field name
+                            const formattedLabel = value
+                              .split('_')
+                              .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                              .join(' ');
+                            const formattedPlaceholder = `Please Enter Your ${formattedLabel}`;
+                            setNewField(p => ({ 
+                              ...p, 
+                              name: value, 
+                              label: formattedLabel,
+                              placeholder: formattedPlaceholder 
+                            }));
+                          } else {
+                            setNewField(p => ({ ...p, [key]: value }));
+                          }
+                        }}
                         disabled={modalLoading}
                         onFocus={e => { e.target.style.borderColor = '#84cc16'; e.target.style.boxShadow = '0 0 0 2px rgba(132,204,22,0.15), inset 0 1px 2px rgba(0,0,0,0.03)'; }}
                         onBlur={e => { e.target.style.borderColor = '#d1d5db'; e.target.style.boxShadow = 'inset 0 1px 2px rgba(0,0,0,0.03)'; }}
