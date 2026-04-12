@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Table from '../../components/common/Table';
 import Input from '../../components/common/Input';
+import { Eye, EyeOff } from 'lucide-react';
 import { Modal, ConfirmDialog } from '../../components/common/Modal';
 import PageHeader from '../../components/common/PageHeader';
 import { useAuth } from '../../context/AuthContext';
@@ -108,6 +109,8 @@ const SmartLeadAssignment = () => {
 };
 
 const CompanyEmployees = () => {
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const { user } = useAuth();
   const [values, setValues] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -122,6 +125,18 @@ const CompanyEmployees = () => {
 
   const initialFields = { name: '', email: '', phone: '', role: '', password: '', confirmPassword: '' };
   const [modalFields, setModalFields] = useState(initialFields);
+  const [passwordError, setPasswordError] = useState('');
+
+
+  const validatePassword = (password) => {
+    if (!password) return '';
+    if (password.length < 8) return 'Password must be at least 8 characters.';
+    if (!/[A-Z]/.test(password)) return 'Password must contain at least one uppercase letter.';
+    if (!/[a-z]/.test(password)) return 'Password must contain at least one lowercase letter.';
+    if (!/[0-9]/.test(password)) return 'Password must contain at least one number.';
+    if (!/[^A-Za-z0-9]/.test(password)) return 'Password must contain at least one special character.';
+    return '';
+  };
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -265,6 +280,9 @@ const CompanyEmployees = () => {
   const f = (k) => (e) => {
     const value = k === 'avatar' ? e.target.files[0] : e.target.value;
     setModalFields(p => ({ ...p, [k]: value }));
+    if (k === 'password') {
+      setPasswordError(validatePassword(value));
+    }
   };
 
   const tableHeaders = [
@@ -349,7 +367,7 @@ const CompanyEmployees = () => {
                 const phone = modalFields.phone;
                 const isPhoneValid = phone === '' || /^[789]\d{9}$/.test(phone);
                 const isPasswordMatch = modalFields.password === modalFields.confirmPassword;
-                const isButtonDisabled = !isPhoneValid || !isPasswordMatch;
+                const isButtonDisabled = !isPhoneValid || !isPasswordMatch || !!passwordError;
                 return (
                   <button
                     type="submit"
@@ -449,27 +467,49 @@ const CompanyEmployees = () => {
                   />
                 </div>
               )}
-              <div className="py-0.1">
+              <div className="py-0.1 relative">
                 <Input
                   label="Password"
                   name="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={modalFields.password}
                   onChange={f("password")}
                   required={!editData}
+                  error={passwordError}
                 />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  className="absolute right-3 top-10 text-gray-500 hover:text-gray-700"
+                  onClick={() => setShowPassword((v) => !v)}
+                  style={{ background: 'none', border: 'none', padding: 0 }}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+                {passwordError && (
+                  <div className="text-xs text-red-500 mt-1">{passwordError}</div>
+                )}
               </div>
-              <div className="py-0.1">
+              <div className="py-0.1 relative">
                 <Input
                   label="Confirm Password"
                   name="confirmPassword"
-                  type="password"
+                  type={showConfirmPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={modalFields.confirmPassword}
                   onChange={f("confirmPassword")}
                   required={!editData}
                 />
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  className="absolute right-3 top-10 text-gray-500 hover:text-gray-700"
+                  onClick={() => setShowConfirmPassword((v) => !v)}
+                  style={{ background: 'none', border: 'none', padding: 0 }}
+                >
+                  {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
           </form>
