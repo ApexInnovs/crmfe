@@ -1,45 +1,48 @@
+import { lazy } from "react";
 import {
-  TbLayoutDashboard,
-  TbBuilding,
-  TbKey,
-  TbShieldCheck,
-  TbPackage,
-} from "react-icons/tb";
-import Dashboard from "../page/admin/Dashboard";
-import Companies from "../page/admin/Companies";
-import Permissions from "../page/admin/Permissions";
-import Roles from "../page/admin/Roles";
-import Packages from "../page/admin/Packages";
+  LayoutDashboard,
+  Building2,
+  Key,
+  ShieldCheck,
+  Package,
+} from "lucide-react";
+
+// Code splitting: lazy load page components
+const Dashboard = lazy(() => import("../page/admin/Dashboard"));
+const Companies = lazy(() => import("../page/admin/Companies"));
+const Permissions = lazy(() => import("../page/admin/Permissions"));
+const Roles = lazy(() => import("../page/admin/Roles"));
+const Packages = lazy(() => import("../page/admin/Packages"));
 
 const adminRoutes = [
   {
     id: "dashboard",
     label: "Dashboard",
-    icon: TbLayoutDashboard,
+    icon: LayoutDashboard,
     component: Dashboard,
   },
   {
     id: "companies",
     label: "Companies",
-    icon: TbBuilding,
+    icon: Building2,
     component: Companies,
   },
   {
     id: "permissions",
     label: "Permissions",
-    icon: TbKey,
+    icon: Key,
     component: Permissions,
   },
   {
     id: "roles",
     label: "Roles",
-    icon: TbShieldCheck,
+    icon: ShieldCheck,
     component: Roles,
   },
   {
     id: "packages",
     label: "Packages",
-    icon: TbPackage,
+    icon: Package,
     component: Packages,
   },
 ];

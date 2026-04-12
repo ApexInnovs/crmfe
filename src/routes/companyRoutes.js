@@ -1,47 +1,50 @@
+import { lazy } from "react";
 import {
-  TbLayoutDashboard,
-  TbUsers,
-  TbSpeakerphone,
-  TbUserSearch,
-  TbUserHeart,
-} from "react-icons/tb";
-import { TbCreditCard } from "./subscriptionIcon";
-import CompanyDashboard from "../page/company/CompanyDashboard";
-import CompanyEmployees from "../page/company/CompanyEmployees";
-import CompanyCampaigns from "../page/company/CompanyCampaigns";
-import CompanyLeads from "../page/company/CompanyLeads";
-import CompanyCustomers from "../page/company/CompanyCustomers";
-import CompanySubscription from "../page/company/CompanySubcription";
+  LayoutDashboard,
+  Users,
+  Megaphone,
+  Search,
+  Heart,
+  CreditCard,
+} from "lucide-react";
+
+// Code splitting: lazy load page components
+const CompanyDashboard = lazy(() => import("../page/company/CompanyDashboard"));
+const CompanyEmployees = lazy(() => import("../page/company/CompanyEmployees"));
+const CompanyCampaigns = lazy(() => import("../page/company/CompanyCampaigns"));
+const CompanyLeads = lazy(() => import("../page/company/CompanyLeads"));
+const CompanyCustomers = lazy(() => import("../page/company/CompanyCustomers"));
+const CompanySubscription = lazy(() => import("../page/company/CompanySubcription"));
 
 const companyRoutes = [
   {
     id: "dashboard",
     label: "Dashboard",
-    icon: TbLayoutDashboard,
+    icon: LayoutDashboard,
     component: CompanyDashboard,
   },
   {
     id: "employees",
     label: "Employees",
-    icon: TbUsers,
+    icon: Users,
     component: CompanyEmployees,
   },
   {
     id: "campaigns",
     label: "Campaigns",
-    icon: TbSpeakerphone,
+    icon: Megaphone,
     component: CompanyCampaigns,
   },
   {
     id: "leads",
     label: "Leads",
-    icon: TbUserSearch,
+    icon: Search,
     component: CompanyLeads,
   },
   {
     id: "customers",
     label: "Clients",
-    icon: TbUserHeart,
+    icon: Heart,
     component: CompanyCustomers,
   },
   // {

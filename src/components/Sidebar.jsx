@@ -1,4 +1,4 @@
-import { FaSignOutAlt } from "react-icons/fa";
+import { LogOut } from "lucide-react";
 
 const Sidebar = ({ brandHighlight = "", onLogout }) => {
   return (
@@ -33,7 +33,7 @@ const Sidebar = ({ brandHighlight = "", onLogout }) => {
             className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-[13px] font-medium
               text-gray-500 hover:bg-red-500/15 hover:text-red-400 transition-all duration-150 focus:outline-none"
           >
-            <FaSignOutAlt className="shrink-0 text-[15px]" />
+            <LogOut className="shrink-0" size={15} />
             <span>Logout</span>
           </button>
         </div>

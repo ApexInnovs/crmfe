@@ -26,4 +26,36 @@ export default defineConfig({
     }),
     tailwindcss(),
   ],
+  build: {
+    // Enable code splitting for better caching
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Vendor chunks to reduce main bundle size
+          react: ['react', 'react-dom', 'react-router-dom'],
+          charts: ['chart.js', 'react-chartjs-2'],
+          dnd: ['react-dnd', 'react-dnd-html5-backend'],
+          icons: ['lucide-react'],
+          ui: ['react-hot-toast', 'react-toastify'],
+        },
+      },
+    },
+    // Optimize chunk size
+    chunkSizeWarningLimit: 1000,
+    // Target modern browsers for smaller output
+    target: 'esnext',
+  },
+  // Optimize dependencies
+  optimizeDeps: {
+    include: [
+      'react',
+      'react-dom',
+      'react-router-dom',
+      'axios',
+      'react-hot-toast',
+      'dayjs',
+      'lucide-react',
+      'tailwindcss',
+    ],
+  },
 })

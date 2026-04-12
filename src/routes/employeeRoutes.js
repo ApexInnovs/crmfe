@@ -1,40 +1,43 @@
+import { lazy } from "react";
 import {
-  TbLayoutDashboard,
-  TbSpeakerphone,
-  TbUserSearch,
-  TbUserHeart,
-} from "react-icons/tb";
-import EmployeeDashboard from "../page/employee/EmployeeDashboard";
-import EmployeeCampaigns from "../page/employee/EmployeeCampaigns";
-import EmployeeLeads from "../page/employee/EmployeeLeads";
-import EmployeeCustomers from "../page/employee/EmployeeCustomers";
+  LayoutDashboard,
+  Megaphone,
+  Search,
+  Heart,
+} from "lucide-react";
+
+// Code splitting: lazy load page components
+const EmployeeDashboard = lazy(() => import("../page/employee/EmployeeDashboard"));
+const EmployeeCampaigns = lazy(() => import("../page/employee/EmployeeCampaigns"));
+const EmployeeLeads = lazy(() => import("../page/employee/EmployeeLeads"));
+const EmployeeCustomers = lazy(() => import("../page/employee/EmployeeCustomers"));
 
 const allEmployeeRoutes = [
   {
     id: "dashboard",
     label: "Dashboard",
-    icon: TbLayoutDashboard,
+    icon: LayoutDashboard,
     component: EmployeeDashboard,
     alwaysShow: true,
   },
   {
     id: "campaigns",
     label: "Campaigns",
-    icon: TbSpeakerphone,
+    icon: Megaphone,
     component: EmployeeCampaigns,
     permission: "view_campaigns",
   },
   {
     id: "leads",
     label: "Leads",
-    icon: TbUserSearch,
+    icon: Search,
     component: EmployeeLeads,
     permission: "view_leads",
   },
   {
     id: "customers",
     label: "Customers",
-    icon: TbUserHeart,
+    icon: Heart,
     component: EmployeeCustomers,
     permission: "view_customers",
   },

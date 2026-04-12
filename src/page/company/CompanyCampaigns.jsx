@@ -1238,6 +1238,30 @@ const CompanyCampaigns = () => {
   const [modalFields, setModalFields] = useState(initialFields);
 
   const emptyField = { name: '', label: '', type: 'text', isRequired: false, placeholder: '', options: '' };
+
+  // Field type validation helpers
+  const validateFieldName = (name) => /^[a-zA-Z0-9_]+$/.test(name);
+  const validateFieldLabel = (label) => label.trim().length > 0 && label.trim().length <= 100;
+  const validateFieldPlaceholder = (placeholder) => placeholder.trim().length <= 200;
+  const validateOptions = (optionsString) => {
+    const opts = optionsString.split(',').map(o => o.trim()).filter(Boolean);
+    return opts.length > 0 && opts.every(o => o.length > 0);
+  };
+
+  const getFieldTypeInput = () => {
+    // Returns appropriate input type for HTML5 validation
+    switch (newField.type) {
+      case 'email': return 'email';
+      case 'number': return 'number';
+      case 'date': return 'date';
+      case 'text':
+      case 'textarea':
+      case 'dropdown':
+      case 'radio':
+      case 'checkbox':
+      default: return 'text';
+    }
+  };
   const [newField, setNewField] = useState(emptyField);
 
   const [page, setPage] = useState(1);
@@ -1293,7 +1317,38 @@ const CompanyCampaigns = () => {
   }, [user?._id, page, pageSize, searchText, status, showDeleted, refreshTick]);
 
   const handleAddField = () => {
-    if (!newField.name.trim() || !newField.label.trim()) return;
+    // Validation checks
+    if (!newField.name.trim()) {
+      toast.error('Field Key is required');
+      return;
+    }
+    if (!validateFieldName(newField.name)) {
+      toast.error('Field Key must only contain letters, numbers, and underscores');
+      return;
+    }
+    if (!newField.label.trim()) {
+      toast.error('Label is required');
+      return;
+    }
+    if (!validateFieldLabel(newField.label)) {
+      toast.error('Label must be between 1-100 characters');
+      return;
+    }
+    if (!validateFieldPlaceholder(newField.placeholder)) {
+      toast.error('Placeholder must be less than 200 characters');
+      return;
+    }
+    if (['dropdown', 'radio', 'checkbox'].includes(newField.type)) {
+      if (!newField.options.trim()) {
+        toast.error(`Options are required for ${newField.type} fields`);
+        return;
+      }
+      if (!validateOptions(newField.options)) {
+        toast.error('Each option must be non-empty (comma-separated)');
+        return;
+      }
+    }
+
     const field = {
       name: newField.name.trim(),
       label: newField.label.trim(),
@@ -1306,6 +1361,7 @@ const CompanyCampaigns = () => {
     };
     setModalFields(p => ({ ...p, formStructure: [...p.formStructure, field] }));
     setNewField(emptyField);
+    toast.success(`Field "${field.label}" added successfully`);
   };
 
   const handleSubmit = async () => {
@@ -1940,6 +1996,10 @@ const CompanyCampaigns = () => {
                         onChange={e => {
                           const value = e.target.value;
                           if (key === 'name') {
+                            // Validate field name format (alphanumeric + underscore only)
+                            if (value && !/^[a-zA-Z0-9_]*$/.test(value)) {
+                              return; // Silently reject invalid characters
+                            }
                             // Auto-fill label and placeholder based on field name
                             const formattedLabel = value
                               .split('_')
