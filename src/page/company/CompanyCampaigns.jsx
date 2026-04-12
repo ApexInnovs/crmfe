@@ -335,6 +335,7 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported, preselectedC
 
   const handleFileChange = async (e) => {
     const f = e.target.files?.[0];
+    console.log("hello")
     if (!f) return;
     setFile(f);
     setParseError('');
@@ -694,7 +695,7 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported, preselectedC
                 {/* Left: File upload dropzone */}
                 <div style={{ flex: '1', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <label
-                    onClick={() => fileRef.current?.click()}
+                    // onClick={() => fileRef.current?.click()}
                     style={{
                       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '10px',
                       width: '100%', height: '140px', border: '2px dashed #bbf7d0', borderRadius: '14px', cursor: 'pointer',

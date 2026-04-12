@@ -42,6 +42,7 @@ const ConvertedClientsPage = () => {
   // Campaign filter options for table header
   const campaignFilterOptions = [
     { value: '', label: 'All' },
+    { value: 'offline', label: 'Offline Clients' },
     ...campaigns.map(c => ({ value: c._id, label: c.title }))
   ];
 
@@ -159,6 +160,12 @@ const ConvertedClientsPage = () => {
   }, []);
 
   const handleSubmit = async () => {
+    // Phone number validation: must be 10 digits and numeric
+    const phone = modalFields.phone || '';
+    if (!/^\d{10}$/.test(phone)) {
+      alert('Phone number must be exactly 10 digits.');
+      return;
+    }
     setModalLoading(true);
     try {
       const payload = { 
@@ -392,7 +399,7 @@ const ConvertedClientsPage = () => {
           }
           // Fallback to previous logic
           const campaignObj = row.campaign || row.campigne || campaigns.find(c => c._id === (row.campaign || row.campigne));
-          return <span className="text-xs text-gray-700">{campaignObj?.title || campaignObj?.name || '—'}</span>;
+          return <span className="text-xs text-gray-700">{campaignObj?.title || campaignObj?.name || 'Offline Client'}</span>;
         },
     },
     {
@@ -587,9 +594,15 @@ const ConvertedClientsPage = () => {
                         label="Phone Number" 
                         name="phone" 
                         type="tel"
-                        placeholder="Enter phone number"
+                        placeholder="Enter 10-digit phone number"
                         value={modalFields.phone} 
-                        onChange={e => setModalFields(p => ({ ...p, phone: e.target.value }))} 
+                        maxLength={10}
+                        pattern="\d{10}"
+                        onChange={e => {
+                          // Only allow numbers and max 10 digits
+                          const val = e.target.value.replace(/[^\d]/g, '').slice(0, 10);
+                          setModalFields(p => ({ ...p, phone: val }));
+                        }} 
                         required 
                       />
                       <Input 
