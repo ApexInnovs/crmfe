@@ -902,10 +902,10 @@ const ConvertedClientsPage = () => {
                         <Input
                           label="Managed By"
                           name="managedBy"
-                          type="select"
+                          type="text"
+                          placeholder="Enter manager name or email"
                           value={modalFields.managedBy}
                           onChange={e => setModalFields(p => ({ ...p, managedBy: e.target.value }))}
-                          options={employeeOptions}
                           required
                         />
                       </div>

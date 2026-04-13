@@ -366,13 +366,18 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported, preselectedC
   const handleImport = async () => {
     setImporting(true);
     setParseError('');
-    const toastId = toast.loading(`Importing ${parsedRows.length} leads...`);
+    // Only keep leadData and status fields
+    const filteredRows = parsedRows.map(row => ({
+      leadData: row.leadData,
+      status: row.status
+    }));
+    const toastId = toast.loading(`Importing ${filteredRows.length} leads...`);
     try {
       const result = await importLeadsFromFile({
         campaignId: externalCampaign ? undefined : selectedCampaign,
         campignName: externalCampaign ? externalCampaignName : undefined,
         description: externalCampaign ? externalCampaignDescription : undefined,
-        leads: parsedRows,
+        leads: filteredRows,
         company: user._id,
         createdBy: user._id,
       });
@@ -1227,7 +1232,7 @@ const CompanyCampaigns = () => {
   const DEFAULT_PHONE_FIELD = {
     name: 'phone',
     label: 'Phone Number',
-    type: 'tel',
+    type: 'number',
     isRequired: true,
     placeholder: 'Enter your Phone Number',
     isDefaultRequired: true, // Flag to prevent deletion
