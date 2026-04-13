@@ -63,9 +63,8 @@ const LinkIcon = (
 );
 
 const ImportIcon = (
-  <svg width="16" height="16" fill="none" viewBox="0 0 24 24">
-    <path stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-      d="M4 16v1a3 3 0 0 0 3 3h10a3 3 0 0 0 3-3v-1m-4-8-4-4m0 0L8 8m4-4v12" />
+  <svg width="16" height="16" fill="#059669" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M20 14V8l-6-6H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4h-7v3l-5-4 5-4v3h7zM13 4l5 5h-5V4z"></path>
   </svg>
 );
 
@@ -720,30 +719,30 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported, preselectedC
                     </div>
                     <input ref={fileRef} type="file" accept={externalCampaign ? '.csv' : ACCEPTED} className="hidden" onChange={handleFileChange} />
                   </label>
-                  
+
                   {/* URL import */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <label style={{ fontSize: '11px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Or import from URL {externalCampaign && <span style={{ fontSize: '10px', color: '#9ca3af' }}>(.csv)</span>}</label>
-                      <input type="text" placeholder="Paste file URL here"
-                        value={fileUrl} onChange={e => setFileUrl(e.target.value)}
-                        style={{
-                          padding: '9px 12px', fontSize: '13px', border: '1.5px solid #e5e7eb', borderRadius: '10px',
-                          outline: 'none', background: '#fafbfc', boxSizing: 'border-box', transition: 'all 0.2s ease',
-                        }}
-                        onFocus={e => { e.target.style.borderColor = '#84cc16'; e.target.style.boxShadow = '0 0 0 3px rgba(132,204,22,0.12)'; }}
-                        onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none'; }}
-                      />
-                      <button type="button" disabled={!fileUrl.trim() || parsing} onClick={handleUrlParse}
-                        style={{
-                          padding: '9px 16px', fontSize: '13px', fontWeight: 600, color: 'white', border: 'none',
-                          borderRadius: '10px', cursor: (!fileUrl.trim() || parsing) ? 'not-allowed' : 'pointer',
-                          background: 'linear-gradient(160deg, #c0eb75 0%, #84cc16 40%, #65a30d 100%)',
-                          boxShadow: '0 2px 6px rgba(132,204,22,0.2)', opacity: (!fileUrl.trim() || parsing) ? 0.5 : 1,
-                          transition: 'all 0.2s ease',
-                        }}>
-                        {parsing ? 'Parsing\u2026' : 'Import from URL'}
-                      </button>
-                    </div>
+                    <label style={{ fontSize: '11px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Or import from URL {externalCampaign && <span style={{ fontSize: '10px', color: '#9ca3af' }}>(.csv)</span>}</label>
+                    <input type="text" placeholder="Paste file URL here"
+                      value={fileUrl} onChange={e => setFileUrl(e.target.value)}
+                      style={{
+                        padding: '9px 12px', fontSize: '13px', border: '1.5px solid #e5e7eb', borderRadius: '10px',
+                        outline: 'none', background: '#fafbfc', boxSizing: 'border-box', transition: 'all 0.2s ease',
+                      }}
+                      onFocus={e => { e.target.style.borderColor = '#84cc16'; e.target.style.boxShadow = '0 0 0 3px rgba(132,204,22,0.12)'; }}
+                      onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = 'none'; }}
+                    />
+                    <button type="button" disabled={!fileUrl.trim() || parsing} onClick={handleUrlParse}
+                      style={{
+                        padding: '9px 16px', fontSize: '13px', fontWeight: 600, color: 'white', border: 'none',
+                        borderRadius: '10px', cursor: (!fileUrl.trim() || parsing) ? 'not-allowed' : 'pointer',
+                        background: 'linear-gradient(160deg, #c0eb75 0%, #84cc16 40%, #65a30d 100%)',
+                        boxShadow: '0 2px 6px rgba(132,204,22,0.2)', opacity: (!fileUrl.trim() || parsing) ? 0.5 : 1,
+                        transition: 'all 0.2s ease',
+                      }}>
+                      {parsing ? 'Parsing\u2026' : 'Import from URL'}
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -1553,14 +1552,14 @@ const CompanyCampaigns = () => {
 
         const hasNameField = formStructure.some(f => f.name === 'name');
         const hasPhoneField = formStructure.some(f => f.name === 'phone');
-        
+
         if (!hasNameField) {
           formStructure = [DEFAULT_NAME_FIELD, ...formStructure];
         }
         if (!hasPhoneField) {
           formStructure = [...formStructure, DEFAULT_PHONE_FIELD];
         }
-        
+
         setModalFields({
           title: row.title || '',
           description: row.description || '',
@@ -1746,7 +1745,7 @@ const CompanyCampaigns = () => {
               e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 5px 0 #b84fbf, 0 7px 10px rgba(184,79,191,0.40), 0 14px 24px rgba(221,123,223,0.22)';
             }}
           >
-            Import Leads
+            Import Campaign
           </button>
           <button
             onClick={() => {
@@ -2007,11 +2006,11 @@ const CompanyCampaigns = () => {
                               .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
                               .join(' ');
                             const formattedPlaceholder = `Please Enter Your ${formattedLabel}`;
-                            setNewField(p => ({ 
-                              ...p, 
-                              name: value, 
+                            setNewField(p => ({
+                              ...p,
+                              name: value,
                               label: formattedLabel,
-                              placeholder: formattedPlaceholder 
+                              placeholder: formattedPlaceholder
                             }));
                           } else {
                             setNewField(p => ({ ...p, [key]: value }));

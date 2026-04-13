@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { useLocation, useNavigate, Outlet } from "react-router-dom";
 import useFeedback from "../hooks/useFeedback";
 import { LogOut, Menu, X } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
@@ -21,7 +22,19 @@ const MainLayout = ({ children }) => {
 
 	const isCompany = userType === "company";
 
-	const [activeTabIndex, setActiveTabIndex] = useState(0);
+	const location = useLocation();
+	const navigate = useNavigate();
+
+	// For company: derive active tab from URL path
+	const getCompanyActiveIndex = () => {
+		if (!routes) return 0;
+		const segment = location.pathname.split('/').pop();
+		const idx = routes.findIndex(r => r.path === segment);
+		return idx >= 0 ? idx : 0;
+	};
+
+	const [localActiveTabIndex, setLocalActiveTabIndex] = useState(0);
+	const activeTabIndex = isCompany ? getCompanyActiveIndex() : localActiveTabIndex;
 	const [showUserMenu, setShowUserMenu] = useState(false);
 	const [indicator, setIndicator] = useState({ left: 0, width: 0 });
 	const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -39,11 +52,11 @@ const MainLayout = ({ children }) => {
 	// Track sliding indicator position (tabs — non-company only)
 	useEffect(() => {
 		if (isCompany) return;
-		const el = tabRefs.current[activeTabIndex];
+		const el = tabRefs.current[localActiveTabIndex];
 		if (el) {
 			setIndicator({ left: el.offsetLeft, width: el.offsetWidth });
 		}
-	}, [activeTabIndex, routes, isCompany]);
+	}, [localActiveTabIndex, routes, isCompany]);
 
 	// Close sidebar when clicking outside
 	useEffect(() => {
@@ -124,7 +137,7 @@ const MainLayout = ({ children }) => {
 									<button
 										key={index}
 										ref={(el) => (tabRefs.current[index] = el)}
-										onClick={() => { hapticTab(); setActiveTabIndex(index); }}
+										onClick={() => { hapticTab(); setLocalActiveTabIndex(index); }}
 										className={`relative z-10 flex items-center gap-1.5 px-3.5 py-1.5 rounded-[7px] text-[13px] font-medium whitespace-nowrap cursor-pointer transition-colors duration-150 outline-none ${isActive ? "text-slate-950" : "text-slate-500 hover:text-slate-700"}`}
 									>
 										{Icon && (
@@ -248,7 +261,7 @@ const MainLayout = ({ children }) => {
 											key={index}
 											onClick={() => {
 												hapticTab();
-												setActiveTabIndex(index);
+												navigate(`/company/${route.path}`);
 												setSidebarOpen(false);
 											}}
 											style={isActive ? {
@@ -339,7 +352,7 @@ const MainLayout = ({ children }) => {
 			{/* Main content */}
 			<main className="flex-1 overflow-auto px-6 py-3 bg-[#f6f8f4]" style={{ marginTop: '4rem' }}>
 				<div className="max-w-10xl mx-auto">
-					{ActiveComponent ? <ActiveComponent /> : children}
+					{isCompany ? <Outlet /> : (ActiveComponent ? <ActiveComponent /> : children)}
 				</div>
 			</main>
 		</div>

@@ -8,6 +8,7 @@ import LoginPage from "./page/common/LoginPage";
 import PublicCampaignPage from "./page/company/PublicCampaignPage";
 import Loader from "./components/common/Loader";
 import { useAuth } from "./context/AuthContext";
+import companyRoutes from "./routes/companyRoutes";
 
 function App() {
   const { isAuthenticated, userType, loading } = useAuth();
@@ -86,12 +87,25 @@ function App() {
               </ProtectedRoute>
             } />
 
-            {/* Company route - single page with tabs */}
+            {/* Company routes - each page at its own URL path */}
             <Route path="/company" element={
               <ProtectedRoute allowedUserTypes={['company']}>
                 <MainLayout />
               </ProtectedRoute>
-            } />
+            }>
+              <Route index element={<Navigate to="dashboard" replace />} />
+              {companyRoutes.map(route => (
+                <Route
+                  key={route.id}
+                  path={route.path}
+                  element={
+                    <Suspense fallback={<Loader />}>
+                      <route.component />
+                    </Suspense>
+                  }
+                />
+              ))}
+            </Route>
 
             {/* Employee route - single page with tabs */}
             <Route path="/employee" element={

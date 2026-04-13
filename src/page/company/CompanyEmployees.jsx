@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Table from '../../components/common/Table';
+import SkeletonLoader from '../../components/common/Skeleton';
 import Input from '../../components/common/Input';
 import { Eye, EyeOff } from 'lucide-react';
 import { Modal, ConfirmDialog } from '../../components/common/Modal';
@@ -292,12 +293,50 @@ const CompanyEmployees = () => {
     {
       key: 'role', label: 'Role',
       render: v => v?.name
-        ? <span className="text-xs bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full font-medium">{v.name}</span>
+        ? <span
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-linear-to-br from-rose-50 to-rose-100 text-rose-700 border border-rose-200 transition-all duration-300 hover:shadow-md hover:scale-105 cursor-default"
+          style={{
+            boxShadow: '0 0 16px rgba(244, 63, 94, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8)'
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.boxShadow = '0 0 20px rgba(244, 63, 94, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.8)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.boxShadow = '0 0 16px rgba(244, 63, 94, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8)';
+          }}
+        >
+          <span className="w-2 h-2 rounded-full bg-rose-500" style={{ boxShadow: '0 0 6px rgba(244, 63, 94, 0.5)' }} />
+          {v.name}
+        </span>
         : <span className="text-xs text-gray-400">—</span>
     },
     {
       key: 'status', label: 'Status', type: 'status', valueMap: { 0: 'Inactive', 1: 'Active' },
       filter: { options: statusOptions, value: status, onChange: setStatus },
+      render: v => {
+        const statusStyles = {
+          1: { label: 'Active', bgGradient: 'from-emerald-50 to-emerald-100', text: 'text-emerald-700', border: 'border-emerald-300', dot: 'bg-emerald-500', glow: 'rgba(16, 185, 129, 0.15)' },
+          0: { label: 'Inactive', bgGradient: 'from-slate-50 to-slate-100', text: 'text-slate-600', border: 'border-slate-300', dot: 'bg-slate-400', glow: 'rgba(100, 116, 139, 0.15)' },
+        };
+        const style = statusStyles[v] || statusStyles[1];
+        return (
+          <span
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-linear-to-br ${style.bgGradient} ${style.text} border ${style.border} transition-all duration-300 hover:shadow-md hover:scale-105 cursor-default`}
+            style={{
+              boxShadow: `0 0 16px ${style.glow}, inset 0 1px 0 rgba(255, 255, 255, 0.8)`
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.boxShadow = `0 0 20px ${style.glow}, inset 0 1px 0 rgba(255, 255, 255, 0.8)`;
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.boxShadow = `0 0 16px ${style.glow}, inset 0 1px 0 rgba(255, 255, 255, 0.8)`;
+            }}
+          >
+            <span className={`w-2 h-2 rounded-full ${style.dot}`} style={{ boxShadow: `0 0 6px ${style.glow}` }} />
+            {style.label}
+          </span>
+        );
+      },
     },
     { key: 'createdAt', label: 'Created', format: 'date' },
   ];
@@ -324,29 +363,137 @@ const CompanyEmployees = () => {
 
   return (
     <div className="p-2">
+      {/* Custom Header with Search and Add Button */}
+      <div style={{
+        background: 'linear-gradient(160deg, #ffffff 0%, #f5f7f4 100%)',
+        borderRadius: '16px',
+        padding: '14px 18px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '12px',
+        flexWrap: 'wrap',
+        marginBottom: '16px',
+        border: '1px solid rgba(200,210,195,0.7)',
+        boxShadow: '0 1px 0 0 rgba(255,255,255,0.9) inset, 0 -1px 0 0 rgba(0,0,0,0.06) inset, 0 4px 6px -2px rgba(0,0,0,0.05), 0 12px 28px -6px rgba(0,0,0,0.10), 0 1px 2px rgba(0,0,0,0.08)',
+      }}>
+        {/* Search Input */}
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <svg
+            style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9aaa98', pointerEvents: 'none' }}
+            width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
+          >
+            <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Search..."
+            value={searchText}
+            onChange={e => { setSearchText(e.target.value); setPage(1); }}
+            style={{
+              padding: '9px 14px 9px 36px',
+              background: 'linear-gradient(175deg, #f4f6f3 0%, #ffffff 100%)',
+              borderRadius: '10px',
+              border: '1px solid rgba(180,190,175,0.5)',
+              fontFamily: 'inherit',
+              fontSize: '13.5px',
+              color: '#374140',
+              outline: 'none',
+              width: '260px',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.06) inset, 0 1px 0 rgba(255,255,255,0.8)',
+              transition: 'all 0.2s ease',
+            }}
+            onFocus={e => {
+              e.target.style.borderColor = 'rgba(132,204,22,0.5)';
+              e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.04) inset, 0 0 0 3px rgba(132,204,22,0.12), 0 1px 0 rgba(255,255,255,0.8)';
+            }}
+            onBlur={e => {
+              e.target.style.borderColor = 'rgba(180,190,175,0.5)';
+              e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.06) inset, 0 1px 0 rgba(255,255,255,0.8)';
+            }}
+          />
+        </div>
 
-      <Table
-        headers={tableHeaders}
-        values={values}
-        total={total}
-        page={page}
-        pageSize={pageSize}
-        searchKeys={tableHeaders.filter((h) => h.searchable).map((h) => h.key)}
-        searchKey={searchKey}
-        onSearchKeyChange={setSearchKey}
-        searchText={searchText}
-        onSearchTextChange={setSearchText}
-        loading={loading}
-        onPageChange={setPage}
-        onPageSizeChange={(size) => {
-          setPageSize(size);
-          setPage(1);
-        }}
-        actions={actions}
-        onAdd={handleAdd}
-        addLabel="Add Employee"
-      // The Add button will now appear in the table toolbar next to the search bar
-      />
+        {/* Add Employee Button */}
+        <button
+          onClick={handleAdd}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 22px',
+            borderRadius: '11px',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            fontSize: '13.5px',
+            fontWeight: '600',
+            color: '#1a3a00',
+            letterSpacing: '0.01em',
+            whiteSpace: 'nowrap',
+            position: 'relative',
+            border: 'none',
+            background: 'linear-gradient(160deg, #b5f053 0%, #84cc16 40%, #65a30d 100%)',
+            borderTop: '1px solid rgba(255,255,255,0.45)',
+            borderBottom: '1px solid rgba(0,0,0,0.15)',
+            boxShadow: '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 4px 0 #4d7c0f, 0 5px 6px rgba(74,120,8,0.35), 0 10px 20px rgba(101,163,13,0.20)',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.transform = 'translateY(-1px)';
+            e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 5px 0 #4d7c0f, 0 7px 10px rgba(74,120,8,0.40), 0 14px 24px rgba(101,163,13,0.22)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 4px 0 #4d7c0f, 0 5px 6px rgba(74,120,8,0.35), 0 10px 20px rgba(101,163,13,0.20)';
+          }}
+          onMouseDown={e => {
+            e.currentTarget.style.transform = 'translateY(3px)';
+            e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.12) inset, 0 1px 0 rgba(255,255,255,0.25) inset, 0 1px 0 #4d7c0f, 0 2px 4px rgba(74,120,8,0.25)';
+          }}
+          onMouseUp={e => {
+            e.currentTarget.style.transform = 'translateY(-1px)';
+            e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 5px 0 #4d7c0f, 0 7px 10px rgba(74,120,8,0.40), 0 14px 24px rgba(101,163,13,0.22)';
+          }}
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          >
+            <path d="M8 3v10M3 8h10" />
+          </svg>
+          Add Employee
+        </button>
+      </div>
+
+      {/* Table - Conditional Skeleton/Table Render */}
+      {loading ? (
+        <SkeletonLoader
+          rows={pageSize}
+          columns={7}
+          columnWidths={['40px', '1fr', '2fr', '110px', '120px', '140px', '160px']}
+          isMultiLine={[false, false, true, false, false, false, false]}
+        />
+      ) : (
+        <Table
+          headers={tableHeaders}
+          values={values}
+          total={total}
+          page={page}
+          pageSize={pageSize}
+          loading={false}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+          actions={actions}
+        />
+      )}
 
       {/* Add/Edit Modal */}
       <Modal

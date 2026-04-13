@@ -423,7 +423,7 @@ const Table = ({
                 <div style={{ width: 1, height: 26, background: "linear-gradient(to bottom, transparent, rgba(180,190,175,0.5) 30%, rgba(180,190,175,0.5) 70%, transparent)" }} />
               </>
             )}
-            
+
             {searchKeys.length > 0 && (
               <select
                 value={computedSearchKey}
@@ -555,7 +555,7 @@ const Table = ({
               </tr>
             </thead> */}
 
-            <thead>
+            <thead style={{ position: "sticky", top: 0, zIndex: 10 }}>
               <tr>
                 <th style={thStyle}>#</th>
                 {visibleHeaders.map((h, i) => (

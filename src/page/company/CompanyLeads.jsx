@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Table from "../../components/common/Table";
+import SkeletonLoader from "../../components/common/Skeleton";
 import Input from "../../components/common/Input";
 import { Modal, ConfirmDialog } from "../../components/common/Modal";
 import PageHeader from "../../components/common/PageHeader";
@@ -344,6 +345,12 @@ const CompanyLeads = () => {
     loadCampaigns();
   }, []);
 
+  const handleAdd = () => {
+    setEditData(null);
+    setModalFields(initialFields);
+    setModalOpen(true);
+  };
+
   const handleSubmit = async () => {
     setModalLoading(true);
     try {
@@ -363,12 +370,12 @@ const CompanyLeads = () => {
         assignedTo: modalFields.assignedTo || null,
         notes: Array.isArray(modalFields.notes)
           ? modalFields.notes
-              .filter((n) => n && n.trim())
-              .map((n) => ({
-                text: n.trim(),
-                addedBy: user._id,
-                addedAt: new Date().toISOString(),
-              }))
+            .filter((n) => n && n.trim())
+            .map((n) => ({
+              text: n.trim(),
+              addedBy: user._id,
+              addedAt: new Date().toISOString(),
+            }))
           : [],
         ...(callFileUrl ? { callFile: callFileUrl } : {}),
       };
@@ -495,19 +502,22 @@ const CompanyLeads = () => {
   const tableHeaders = [
     {
       key: "leadName",
-      label: "L Name",
-      render: (v, row) =>
-        row?.leadData?.name || <span className="text-xs text-gray-400">—</span>,
+      label: "Lead Name",
+      render: (v, row) => (
+        <span style={{ fontWeight: 600, fontSize: 13, color: '#1f2937' }}>
+          {row?.leadData?.name || <span style={{ color: '#d1d5db' }}>—</span>}
+        </span>
+      ),
       searchable: true,
     },
-
     {
       key: "phone",
       label: "Phone",
-      render: (v, row) =>
-        row?.leadData?.phone || (
-          <span className="text-xs text-gray-400">—</span>
-        ),
+      render: (v, row) => (
+        <span style={{ fontFamily: 'monospace', fontSize: 13, color: '#374140', fontWeight: 500 }}>
+          {row?.leadData?.phone || <span style={{ color: '#d1d5db' }}>—</span>}
+        </span>
+      ),
     },
     {
       key: "assignedTo",
@@ -526,29 +536,74 @@ const CompanyLeads = () => {
           setPage(1);
         },
       },
-      render: (v, row) =>
-        row.assignedTo && typeof row.assignedTo === "object"
+      render: (v, row) => {
+        const empName = row.assignedTo && typeof row.assignedTo === "object"
           ? row.assignedTo.name
-          : row.assignedTo || <span className="text-xs text-gray-400">—</span>,
+          : row.assignedTo;
+        return (
+          <span style={{ fontSize: 13, fontWeight: 500, color: '#374140' }}>
+            {empName || '—'}
+          </span>
+        );
+      },
     },
     {
       key: "campigne",
       label: "Campaign",
-      render: (v, row) =>
-        row.campigne && typeof row.campigne === "object"
+      render: (v, row) => {
+        const campaignName = row.campigne && typeof row.campigne === "object"
           ? row.campigne.title
-          : row.campigne || <span className="text-xs text-gray-400">—</span>,
+          : row.campigne;
+        return campaignName ? (
+          <span
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-linear-to-br from-lime-50 to-lime-100 text-lime-700 border border-lime-200 transition-all duration-300 hover:shadow-md hover:scale-105 cursor-default"
+            style={{
+              boxShadow: '0 0 16px rgba(132, 204, 22, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8)'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.boxShadow = '0 0 20px rgba(132, 204, 22, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.8)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.boxShadow = '0 0 16px rgba(132, 204, 22, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8)';
+            }}
+          >
+            <span className="w-2 h-2 rounded-full bg-lime-500" style={{ boxShadow: '0 0 6px rgba(132, 204, 22, 0.5)' }} />
+            {campaignName}
+          </span>
+        ) : <span style={{ color: '#d1d5db' }}>—</span>;
+      },
     },
     {
       key: "view",
       label: "L Data",
       render: (_, row) => (
         <button
-          className="p-2 rounded-full hover:bg-gray-100"
+          style={{
+            width: 28, height: 28, borderRadius: 6,
+            background: 'linear-gradient(135deg, rgba(132,204,22,0.15) 0%, rgba(101,163,13,0.1) 100%)',
+            border: '1px solid rgba(132,204,22,0.25)',
+            color: '#4d7c0f', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'all 0.15s ease',
+            padding: 0,
+          }}
           title="View Lead Data"
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(132,204,22,0.25) 0%, rgba(101,163,13,0.18) 100%)';
+            e.currentTarget.style.boxShadow = '0 2px 6px rgba(101,163,13,0.15)';
+            e.currentTarget.style.transform = 'scale(1.08)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(132,204,22,0.15) 0%, rgba(101,163,13,0.1) 100%)';
+            e.currentTarget.style.boxShadow = 'none';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
           onClick={() => setDetailLeadModal({ open: true, lead: row })}
         >
-          {EyeIcon}
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12Z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
         </button>
       ),
     },
@@ -557,96 +612,113 @@ const CompanyLeads = () => {
       label: "Info",
       render: (_, row) => (
         <button
+          style={{
+            width: 28, height: 28, borderRadius: 6,
+            background: 'linear-gradient(135deg, rgba(251, 146, 60, 0.15) 0%, rgba(217, 119, 6, 0.1) 100%)',
+            border: '1px solid rgba(251, 146, 60, 0.25)',
+            color: '#b45309', cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            transition: 'all 0.15s ease',
+            padding: 0,
+          }}
           title="Show Lead Info"
-          className="p-1 text-indigo-500 hover:text-indigo-700"
+          onMouseEnter={e => {
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(251, 146, 60, 0.25) 0%, rgba(251, 146, 60, 0.18) 100%)';
+            e.currentTarget.style.boxShadow = '0 2px 6px rgba(251, 146, 60, 0.15)';
+            e.currentTarget.style.transform = 'scale(1.08)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.background = 'linear-gradient(135deg, rgba(251, 146, 60, 0.15) 0%, rgba(217, 119, 6, 0.1) 100%)';
+            e.currentTarget.style.boxShadow = 'none';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
           onClick={() => setInfoModal({ open: true, lead: row })}
         >
-          <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="10" stroke="#6366f1" strokeWidth="2" />
-            <path
-              stroke="#6366f1"
-              strokeWidth="2"
-              strokeLinecap="round"
-              d="M12 8h.01M12 12v4"
-            />
+          <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 8h.01M12 12v4" strokeLinecap="round" />
           </svg>
         </button>
       ),
     },
     {
       key: "callRecording",
-      label: "REC.",
+      label: "Rec.",
       render: (_, row) => {
         const hasRecording = row.callRecording
-          ? (typeof row.callRecording === "string" &&
-              row.callRecording.trim() !== "") ||
-            (typeof row.callRecording === "object" &&
-              (row.callRecording.url ||
-                row.callRecording.path ||
-                row.callRecording.fileUrl))
+          ? (typeof row.callRecording === "string" && row.callRecording.trim() !== "") ||
+          (typeof row.callRecording === "object" && (row.callRecording.url || row.callRecording.path || row.callRecording.fileUrl))
           : false;
 
         if (hasRecording) {
-          // Show play button with uploaded color (green)
           return (
             <button
-              className="text-emerald-600 hover:text-emerald-800 p-1 rounded-full focus:outline-none font-bold"
-              title="View Call Recording (Uploaded)"
+              style={{
+                width: 28, height: 28, borderRadius: 6,
+                background: 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.1) 100%)',
+                border: '1px solid rgba(16, 185, 129, 0.25)',
+                color: '#047857', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.15s ease',
+                padding: 0,
+              }}
+              title="View Call Recording"
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(16, 185, 129, 0.18) 100%)';
+                e.currentTarget.style.boxShadow = '0 2px 6px rgba(16, 185, 129, 0.15)';
+                e.currentTarget.style.transform = 'scale(1.08)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.1) 100%)';
+                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
               onClick={() =>
                 setCallRecordingModal({
                   open: true,
-                  fileUrl:
-                    typeof row.callRecording === "string"
-                      ? row.callRecording
-                      : row.callRecording.url ||
-                        row.callRecording.path ||
-                        row.callRecording.fileUrl ||
-                        "",
-                  fileName:
-                    typeof row.callRecording === "string"
-                      ? row.callRecording.split("/").pop()
-                      : row.callRecording.name || "Recording",
+                  fileUrl: typeof row.callRecording === "string" ? row.callRecording : row.callRecording.url || row.callRecording.path || row.callRecording.fileUrl || "",
+                  fileName: typeof row.callRecording === "string" ? row.callRecording.split("/").pop() : row.callRecording.name || "Recording",
                   description: row.callRecordingText || "",
-                  transcript:
-                    row.callRecordingTranscript || row.transcript || "",
+                  transcript: row.callRecordingTranscript || row.transcript || "",
                 })
               }
             >
-              <svg width="18" height="18" fill="emerald" viewBox="0 0 24 24">
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="#10b981"
-                  strokeWidth="2"
-                  fill="#d1fae5"
-                />
-                <polygon points="10,8 16,12 10,16" fill="#10b981" />
+              <svg width="14" height="14" fill="currentColor" viewBox="0 0 512 512">
+                <path d="M371.246,351.155c2.61,5.659,0.142,12.367-5.522,14.974l-51.948,23.976 c-5.658,2.614-12.366,0.145-14.978-5.514l-15.575-33.746c-2.611-5.659-0.142-12.367,5.522-14.973l51.948-23.976 c5.658-2.605,12.366-0.136,14.976,5.523l1.522,3.295l65.039-30.062c1.094-0.496,2.187-1.002,3.282-1.595 c1.696-10.752,2.59-21.807,2.59-33.056c0-118.275-95.873-214.052-214.052-214.052C95.778,41.948,0,137.725,0,256 c0,118.178,95.778,214.052,214.052,214.052c93.488,0,173.032-60.027,202.102-143.66L369.71,347.83L371.246,351.155z M214.018,343.785c-48.501,0-87.814-39.308-87.814-87.814c0-48.506,39.313-87.824,87.814-87.824s87.814,39.318,87.814,87.824 C301.832,304.477,262.519,343.785,214.018,343.785z" />
+                <path d="M214.018,217.363c-21.316,0-38.589,17.286-38.589,38.598c0,21.332,17.273,38.589,38.589,38.589 s38.589-17.257,38.589-38.589C252.607,234.65,235.334,217.363,214.018,217.363z" />
+                <path d="M512,77.096h-73.313v89.603h21.574c0,33.348,0,64.616,0,64.616c0,24.287-13.442,46.494-34.748,57.742 c-1.988,12.844-5.076,25.386-9.359,37.335l18.62-8.565c33.752-15.527,55.355-49.381,55.355-86.512c0,0,0-31.268,0-64.616H512 V77.096z" />
               </svg>
             </button>
           );
         } else {
-          // Show add recording button in red
           return (
             <button
-              className="text-red-600 hover:text-red-800 p-1 rounded-full focus:outline-none font-bold"
+              style={{
+                width: 28, height: 28, borderRadius: 6,
+                background: 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.1) 100%)',
+                border: '1px solid rgba(239, 68, 68, 0.25)',
+                color: '#991b1b', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'all 0.15s ease',
+                padding: 0,
+              }}
               title="Add Call Recording"
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.25) 0%, rgba(239, 68, 68, 0.18) 100%)';
+                e.currentTarget.style.boxShadow = '0 2px 6px rgba(239, 68, 68, 0.15)';
+                e.currentTarget.style.transform = 'scale(1.08)';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.1) 100%)';
+                e.currentTarget.style.boxShadow = 'none';
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
               onClick={() => setAddRecordingModal({ open: true, lead: row })}
             >
-              <svg width="18" height="18" fill="none" viewBox="0 0 24 24">
-                <circle
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="#dc2626"
-                  strokeWidth="2"
-                />
-                <path
-                  stroke="#dc2626"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  d="M12 8v8M8 12h8"
-                />
+              <svg width="14" height="14" fill="currentColor" viewBox="0 0 512 512">
+                <path d="M371.246,351.155c2.61,5.659,0.142,12.367-5.522,14.974l-51.948,23.976 c-5.658,2.614-12.366,0.145-14.978-5.514l-15.575-33.746c-2.611-5.659-0.142-12.367,5.522-14.973l51.948-23.976 c5.658-2.605,12.366-0.136,14.976,5.523l1.522,3.295l65.039-30.062c1.094-0.496,2.187-1.002,3.282-1.595 c1.696-10.752,2.59-21.807,2.59-33.056c0-118.275-95.873-214.052-214.052-214.052C95.778,41.948,0,137.725,0,256 c0,118.178,95.778,214.052,214.052,214.052c93.488,0,173.032-60.027,202.102-143.66L369.71,347.83L371.246,351.155z M214.018,343.785c-48.501,0-87.814-39.308-87.814-87.814c0-48.506,39.313-87.824,87.814-87.824s87.814,39.318,87.814,87.824 C301.832,304.477,262.519,343.785,214.018,343.785z" />
+                <path d="M214.018,217.363c-21.316,0-38.589,17.286-38.589,38.598c0,21.332,17.273,38.589,38.589,38.589 s38.589-17.257,38.589-38.589C252.607,234.65,235.334,217.363,214.018,217.363z" />
+                <path d="M512,77.096h-73.313v89.603h21.574c0,33.348,0,64.616,0,64.616c0,24.287-13.442,46.494-34.748,57.742 c-1.988,12.844-5.076,25.386-9.359,37.335l18.62-8.565c33.752-15.527,55.355-49.381,55.355-86.512c0,0,0-31.268,0-64.616H512 V77.096z" />
               </svg>
             </button>
           );
@@ -659,23 +731,19 @@ const CompanyLeads = () => {
       render: (v) => {
         const rating = Number(v) || 0;
         return (
-          <span
-            title={rating ? `${rating} out of 10` : "No rating"}
-            style={{ display: "inline-flex", alignItems: "center", gap: 2 }}
-          >
-            <span style={{ fontWeight: 500 }}>{rating}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}>
             <svg
-              width="13"
-              height="13"
+              width="18"
+              height="18"
               viewBox="0 0 24 24"
-              fill="#f59e42"
-              stroke="#f59e42"
-              strokeWidth="1.5"
-              style={{ verticalAlign: "middle" }}
+              fill={rating > 0 ? "#f59e0b" : "none"}
+              stroke={rating > 0 ? "#f59e0b" : "#d1d5db"}
+              strokeWidth="1"
             >
               <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
             </svg>
-          </span>
+            <span style={{ color: rating > 0 ? '#92400e' : '#d1d5db' }}>{rating}</span>
+          </div>
         );
       },
     },
@@ -690,13 +758,29 @@ const CompanyLeads = () => {
           setPage(1);
         },
       },
-      render: (v) => (
-        <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${STATUS_COLOR_MAP[v] || "bg-gray-100 text-gray-500"}`}
-        >
-          {STATUS_LABEL_MAP[v] || v}
-        </span>
-      ),
+      render: (v) => {
+        const statusStyles = {
+          created: { label: 'Created', bgGradient: 'from-rose-50 to-rose-100', text: 'text-rose-700', border: 'border-rose-300', dot: 'bg-rose-500', glow: 'rgba(244, 63, 94, 0.15)' },
+          not_responsed: { label: 'No Response', bgGradient: 'from-amber-50 to-amber-100', text: 'text-amber-700', border: 'border-amber-300', dot: 'bg-amber-500', glow: 'rgba(245, 158, 11, 0.15)' },
+          not_intrested: { label: 'Not Interested', bgGradient: 'from-rose-50 to-rose-100', text: 'text-rose-700', border: 'border-rose-300', dot: 'bg-rose-500', glow: 'rgba(244, 63, 94, 0.15)' },
+          intrested_but_later: { label: 'Later', bgGradient: 'from-orange-50 to-orange-100', text: 'text-orange-700', border: 'border-orange-300', dot: 'bg-orange-500', glow: 'rgba(249, 115, 22, 0.15)' },
+          intrested: { label: 'Interested', bgGradient: 'from-teal-50 to-teal-100', text: 'text-teal-700', border: 'border-teal-300', dot: 'bg-teal-500', glow: 'rgba(20, 184, 166, 0.15)' },
+          coustomer: { label: 'Customer', bgGradient: 'from-emerald-50 to-emerald-100', text: 'text-emerald-700', border: 'border-emerald-300', dot: 'bg-emerald-500', glow: 'rgba(16, 185, 129, 0.15)' },
+          lost: { label: 'Lost', bgGradient: 'from-slate-50 to-slate-100', text: 'text-slate-600', border: 'border-slate-300', dot: 'bg-slate-400', glow: 'rgba(100, 116, 139, 0.15)' },
+        };
+        const style = statusStyles[v] || statusStyles.created;
+        return (
+          <span
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-linear-to-br ${style.bgGradient} ${style.text} border ${style.border} transition-all duration-300 hover:shadow-lg hover:scale-105 cursor-default`}
+            style={{
+              boxShadow: `0 2px 8px ${style.glow}, inset 0 1px 0 rgba(255, 255, 255, 0.8)`
+            }}
+          >
+            <span className={`w-2 h-2 rounded-full ${style.dot}`} style={{ boxShadow: `0 0 6px ${style.glow}` }} />
+            {style.label}
+          </span>
+        );
+      },
     },
   ];
 
@@ -750,56 +834,213 @@ const CompanyLeads = () => {
 
   return (
     <div className="p-2">
-      <Table
-        headers={tableHeaders}
-        values={values}
-        total={total}
-        page={page}
-        pageSize={pageSize}
-        loading={loading}
-        onPageChange={setPage}
-        onPageSizeChange={(size) => {
-          setPageSize(size);
-          setPage(1);
-        }}
-        actions={actions}
-        searchText={searchText}
-        onSearchTextChange={(t) => {
-          setSearchText(t);
-          setPage(1);
-        }}
-        toolbarFilter={
-          <div className="flex gap-2">
-            <select
-              value={filterCampaign}
-              onChange={(e) => {
-                setFilterCampaign(e.target.value);
-                setPage(1);
-              }}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+      {/* Custom Header with Search and Add Button */}
+      <div style={{
+        background: 'linear-gradient(160deg, #ffffff 0%, #f5f7f4 100%)',
+        borderRadius: '16px',
+        padding: '14px 18px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '12px',
+        flexWrap: 'wrap',
+        marginBottom: '16px',
+        border: '1px solid rgba(200,210,195,0.7)',
+        boxShadow: '0 1px 0 0 rgba(255,255,255,0.9) inset, 0 -1px 0 0 rgba(0,0,0,0.06) inset, 0 4px 6px -2px rgba(0,0,0,0.05), 0 12px 28px -6px rgba(0,0,0,0.10), 0 1px 2px rgba(0,0,0,0.08)',
+      }}>
+        {/* Search Input + Filters */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', flex: 1 }}>
+          {/* Search Input */}
+          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <svg
+              style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#9aaa98', pointerEvents: 'none' }}
+              width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"
             >
-              <option value="">All Campaigns</option>
-              {campaigns.map((c) => (
-                <option key={c._id} value={c._id}>
-                  {c.title}
-                </option>
-              ))}
-            </select>
-            <select
-              value={filterContactStatus}
-              onChange={(e) => {
-                setFilterContactStatus(e.target.value);
-                setPage(1);
+              <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search..."
+              value={searchText}
+              onChange={e => { setSearchText(e.target.value); setPage(1); }}
+              style={{
+                padding: '9px 14px 9px 36px',
+                background: 'linear-gradient(175deg, #f4f6f3 0%, #ffffff 100%)',
+                borderRadius: '10px',
+                border: '1px solid rgba(180,190,175,0.5)',
+                fontFamily: 'inherit',
+                fontSize: '13.5px',
+                color: '#374140',
+                outline: 'none',
+                width: '220px',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.06) inset, 0 1px 0 rgba(255,255,255,0.8)',
+                transition: 'all 0.2s ease',
               }}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-            >
-              <option value="">All</option>
-              <option value="contacted">Contacted</option>
-              <option value="not_contacted">Not Contacted</option>
-            </select>
+              onFocus={e => {
+                e.target.style.borderColor = 'rgba(132,204,22,0.5)';
+                e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.04) inset, 0 0 0 3px rgba(132,204,22,0.12), 0 1px 0 rgba(255,255,255,0.8)';
+              }}
+              onBlur={e => {
+                e.target.style.borderColor = 'rgba(180,190,175,0.5)';
+                e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.06) inset, 0 1px 0 rgba(255,255,255,0.8)';
+              }}
+            />
           </div>
-        }
-      />
+
+          {/* Campaign Filter */}
+          <select
+            value={filterCampaign}
+            onChange={(e) => {
+              setFilterCampaign(e.target.value);
+              setPage(1);
+            }}
+            style={{
+              padding: '9px 14px',
+              borderRadius: '10px',
+              border: '1px solid rgba(180,190,175,0.5)',
+              background: 'linear-gradient(175deg, #f4f6f3 0%, #ffffff 100%)',
+              fontSize: '13.5px',
+              fontFamily: 'inherit',
+              color: '#374140',
+              cursor: 'pointer',
+              outline: 'none',
+              height: '38px',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.06) inset, 0 1px 0 rgba(255,255,255,0.8)',
+            }}
+            onFocus={e => {
+              e.target.style.borderColor = 'rgba(132,204,22,0.5)';
+              e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.04) inset, 0 0 0 3px rgba(132,204,22,0.12)';
+            }}
+            onBlur={e => {
+              e.target.style.borderColor = 'rgba(180,190,175,0.5)';
+              e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.06) inset, 0 1px 0 rgba(255,255,255,0.8)';
+            }}
+          >
+            <option value="">All Campaigns</option>
+            {campaigns.map((c) => (
+              <option key={c._id} value={c._id}>
+                {c.title}
+              </option>
+            ))}
+          </select>
+
+          {/* Contact Status Filter */}
+          <select
+            value={filterContactStatus}
+            onChange={(e) => {
+              setFilterContactStatus(e.target.value);
+              setPage(1);
+            }}
+            style={{
+              padding: '9px 14px',
+              borderRadius: '10px',
+              border: '1px solid rgba(180,190,175,0.5)',
+              background: 'linear-gradient(175deg, #f4f6f3 0%, #ffffff 100%)',
+              fontSize: '13.5px',
+              fontFamily: 'inherit',
+              color: '#374140',
+              cursor: 'pointer',
+              outline: 'none',
+              height: '38px',
+              transition: 'all 0.2s ease',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.06) inset, 0 1px 0 rgba(255,255,255,0.8)',
+            }}
+            onFocus={e => {
+              e.target.style.borderColor = 'rgba(132,204,22,0.5)';
+              e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.04) inset, 0 0 0 3px rgba(132,204,22,0.12)';
+            }}
+            onBlur={e => {
+              e.target.style.borderColor = 'rgba(180,190,175,0.5)';
+              e.target.style.boxShadow = '0 2px 4px rgba(0,0,0,0.06) inset, 0 1px 0 rgba(255,255,255,0.8)';
+            }}
+          >
+            <option value="">All Contact Status</option>
+            <option value="contacted">Contacted</option>
+            <option value="not_contacted">Not Contacted</option>
+          </select>
+        </div>
+
+        {/* Add Lead Button */}
+        <button
+          onClick={handleAdd}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '10px 22px',
+            borderRadius: '11px',
+            cursor: 'pointer',
+            fontFamily: 'inherit',
+            fontSize: '13.5px',
+            fontWeight: '600',
+            color: '#1a3a00',
+            letterSpacing: '0.01em',
+            whiteSpace: 'nowrap',
+            position: 'relative',
+            border: 'none',
+            background: 'linear-gradient(160deg, #b5f053 0%, #84cc16 40%, #65a30d 100%)',
+            borderTop: '1px solid rgba(255,255,255,0.45)',
+            borderBottom: '1px solid rgba(0,0,0,0.15)',
+            boxShadow: '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 4px 0 #4d7c0f, 0 5px 6px rgba(74,120,8,0.35), 0 10px 20px rgba(101,163,13,0.20)',
+            transition: 'all 0.15s ease',
+          }}
+          onMouseEnter={e => {
+            e.currentTarget.style.transform = 'translateY(-1px)';
+            e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 5px 0 #4d7c0f, 0 7px 10px rgba(74,120,8,0.40), 0 14px 24px rgba(101,163,13,0.22)';
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 4px 0 #4d7c0f, 0 5px 6px rgba(74,120,8,0.35), 0 10px 20px rgba(101,163,13,0.20)';
+          }}
+          onMouseDown={e => {
+            e.currentTarget.style.transform = 'translateY(3px)';
+            e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.12) inset, 0 1px 0 rgba(255,255,255,0.25) inset, 0 1px 0 #4d7c0f, 0 2px 4px rgba(74,120,8,0.25)';
+          }}
+          onMouseUp={e => {
+            e.currentTarget.style.transform = 'translateY(-1px)';
+            e.currentTarget.style.boxShadow = '0 1px 0 rgba(255,255,255,0.4) inset, 0 -2px 0 rgba(0,0,0,0.15) inset, 0 5px 0 #4d7c0f, 0 7px 10px rgba(74,120,8,0.40), 0 14px 24px rgba(101,163,13,0.22)';
+          }}
+        >
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+          >
+            <path d="M8 3v10M3 8h10" />
+          </svg>
+          Add Lead
+        </button>
+      </div>
+
+      {/* Table - Conditional Skeleton/Table Render */}
+      {loading ? (
+        <SkeletonLoader
+          rows={pageSize}
+          columns={7}
+          columnWidths={['40px', '1fr', '2fr', '110px', '120px', '140px', '160px']}
+          isMultiLine={[false, false, true, false, false, false, false]}
+        />
+      ) : (
+        <Table
+          headers={tableHeaders}
+          values={values}
+          total={total}
+          page={page}
+          pageSize={pageSize}
+          loading={false}
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+          actions={actions}
+        />
+      )}
 
       {/* Call Recording Modal */}
       <Modal
@@ -1104,7 +1345,7 @@ const CompanyLeads = () => {
                 </span>
                 <span className="block text-sm text-gray-800 font-medium">
                   {infoModal.lead.assignedTo &&
-                  typeof infoModal.lead.assignedTo === "object"
+                    typeof infoModal.lead.assignedTo === "object"
                     ? infoModal.lead.assignedTo.name
                     : infoModal.lead.assignedTo || "—"}
                 </span>
@@ -1126,8 +1367,8 @@ const CompanyLeads = () => {
                 <span className="block text-sm text-gray-800 font-medium">
                   {infoModal.lead.nextMeetingDate
                     ? new Date(
-                        infoModal.lead.nextMeetingDate,
-                      ).toLocaleDateString()
+                      infoModal.lead.nextMeetingDate,
+                    ).toLocaleDateString()
                     : "—"}
                 </span>
               </div>
@@ -1199,7 +1440,7 @@ const CompanyLeads = () => {
             <div className="mt-6">
               <h4 className="font-semibold text-md mb-2">Notes</h4>
               {Array.isArray(detailLeadModal.lead.notes) &&
-              detailLeadModal.lead.notes.length > 0 ? (
+                detailLeadModal.lead.notes.length > 0 ? (
                 <ul className="space-y-2">
                   {detailLeadModal.lead.notes.map((note, idx) => (
                     <li
