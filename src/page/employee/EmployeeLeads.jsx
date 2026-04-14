@@ -12,7 +12,7 @@ const LEAD_STATUSES = [
   { value: 'not_intrested', label: 'Not Interested', color: 'bg-red-100 text-red-700' },
   { value: 'intrested_but_later', label: 'Interested (Later)', color: 'bg-orange-100 text-orange-700' },
   { value: 'intrested', label: 'Interested', color: 'bg-green-100 text-green-700' },
-  { value: 'coustomer', label: 'Converted', color: 'bg-emerald-100 text-emerald-700' },
+  { value: 'customer', label: 'Converted', color: 'bg-emerald-100 text-emerald-700' },
   { value: 'lost', label: 'Lost', color: 'bg-gray-100 text-gray-500' },
 ];
 

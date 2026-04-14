@@ -311,66 +311,66 @@ const ConvertedClientsPage = () => {
                 {/* View/Edit Toggle */}
                 {editIdx === idx ? (
                   <>
-                    <div className="flex flex-col md:flex-row gap-2 mb-2">
+                    <div className="flex flex-col md:flex-row gap-3 mb-4">
                       <div className="flex-1">
-                        <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">Project Name</label>
-                        <input className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-lime-400 outline-none" value={proj.name} onChange={e => handleChange(idx, 'name', e.target.value)} placeholder="Project Name" />
+                        <label className="block text-[12px] font-semibold text-gray-700 mb-1.5 tracking-tight">Project Name</label>
+                        <input className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none transition-all" style={{ background: '#fafbfc', borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }} onFocus={e => { e.target.style.borderColor = '#84cc16'; e.target.style.boxShadow = '0 0 0 3px rgba(132,204,22,0.1), 0 1px 3px rgba(0,0,0,0.04)'; }} onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)'; }} value={proj.name} onChange={e => handleChange(idx, 'name', e.target.value)} placeholder="Enter project name" />
                       </div>
                       <div className="flex-1">
-                        <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">Status</label>
-                        <select className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-lime-400 outline-none" value={proj.status} onChange={e => handleChange(idx, 'status', e.target.value)}>
+                        <label className="block text-[12px] font-semibold text-gray-700 mb-1.5 tracking-tight">Status</label>
+                        <select className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none transition-all" style={{ background: '#fafbfc', borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }} onFocus={e => { e.target.style.borderColor = '#84cc16'; e.target.style.boxShadow = '0 0 0 3px rgba(132,204,22,0.1), 0 1px 3px rgba(0,0,0,0.04)'; }} onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)'; }} value={proj.status} onChange={e => handleChange(idx, 'status', e.target.value)}>
                           {PROJECT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
                         </select>
                       </div>
                     </div>
-                    <div className="mb-2">
-                      <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">Description</label>
-                      <input className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-lime-400 outline-none" value={proj.description} onChange={e => handleChange(idx, 'description', e.target.value)} placeholder="Description" />
+                    <div className="mb-4">
+                      <label className="block text-[12px] font-semibold text-gray-700 mb-1.5 tracking-tight">Description</label>
+                      <input className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none transition-all" style={{ background: '#fafbfc', borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }} onFocus={e => { e.target.style.borderColor = '#84cc16'; e.target.style.boxShadow = '0 0 0 3px rgba(132,204,22,0.1), 0 1px 3px rgba(0,0,0,0.04)'; }} onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)'; }} value={proj.description} onChange={e => handleChange(idx, 'description', e.target.value)} placeholder="Enter project description" />
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-2">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
                       <div>
-                        <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">Start Date</label>
-                        <input type="date" className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-lime-400 outline-none" value={proj.startDate ? proj.startDate.slice(0, 10) : ''} min={new Date().toISOString().slice(0, 10)} onChange={e => handleChange(idx, 'startDate', e.target.value)} />
+                        <label className="block text-[12px] font-semibold text-gray-700 mb-1.5 tracking-tight">Start Date</label>
+                        <input type="date" className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none transition-all" style={{ background: '#fafbfc', borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }} onFocus={e => { e.target.style.borderColor = '#84cc16'; e.target.style.boxShadow = '0 0 0 3px rgba(132,204,22,0.1), 0 1px 3px rgba(0,0,0,0.04)'; }} onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)'; }} value={proj.startDate ? proj.startDate.slice(0, 10) : ''} min={new Date().toISOString().slice(0, 10)} onChange={e => handleChange(idx, 'startDate', e.target.value)} />
                       </div>
                       <div>
-                        <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">Deadline</label>
-                        <input type="date" className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-lime-400 outline-none" value={proj.deadline ? proj.deadline.slice(0, 10) : ''} min={proj.startDate ? proj.startDate.slice(0, 10) : new Date().toISOString().slice(0, 10)} onChange={e => handleChange(idx, 'deadline', e.target.value)} />
+                        <label className="block text-[12px] font-semibold text-gray-700 mb-1.5 tracking-tight">Deadline</label>
+                        <input type="date" className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none transition-all" style={{ background: '#fafbfc', borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }} onFocus={e => { e.target.style.borderColor = '#84cc16'; e.target.style.boxShadow = '0 0 0 3px rgba(132,204,22,0.1), 0 1px 3px rgba(0,0,0,0.04)'; }} onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)'; }} value={proj.deadline ? proj.deadline.slice(0, 10) : ''} min={proj.startDate ? proj.startDate.slice(0, 10) : new Date().toISOString().slice(0, 10)} onChange={e => handleChange(idx, 'deadline', e.target.value)} />
                       </div>
                       <div>
-                        <label className="block text-[11px] font-semibold text-gray-600 mb-0.5">Budget ($)</label>
-                        <input type="number" className="w-full px-2 py-1.5 border border-gray-300 rounded-lg text-xs focus:ring-2 focus:ring-lime-400 outline-none" value={proj.budget} onChange={e => handleChange(idx, 'budget', e.target.value)} min="0" />
+                        <label className="block text-[12px] font-semibold text-gray-700 mb-1.5 tracking-tight">Budget ($)</label>
+                        <input type="number" className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none transition-all" style={{ background: '#fafbfc', borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }} onFocus={e => { e.target.style.borderColor = '#84cc16'; e.target.style.boxShadow = '0 0 0 3px rgba(132,204,22,0.1), 0 1px 3px rgba(0,0,0,0.04)'; }} onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)'; }} value={proj.budget} onChange={e => handleChange(idx, 'budget', e.target.value)} min="0" />
                       </div>
                     </div>
                     <div className="flex justify-end">
-                      <button className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all" onClick={() => setEditIdx(null)}>Done</button>
+                      <button style={{ padding: '8px 18px', fontSize: '12px', fontWeight: 600, color: '#022c03', border: 'none', borderRadius: '8px', cursor: 'pointer', background: 'linear-gradient(90deg, #84cc16 0%, #a3e635 100%)', boxShadow: '0 2px 6px rgba(132,204,22,0.2)', transition: 'all 0.2s' }} onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(132,204,22,0.4)'; e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 6px rgba(132,204,22,0.2)'; e.currentTarget.style.transform = 'translateY(0)'; }} onClick={() => setEditIdx(null)}>Done</button>
                     </div>
                   </>
                 ) : (
                   <>
-                    <div className="flex items-start justify-between gap-3 mb-2">
+                    <div className="flex items-start justify-between gap-3 mb-3">
                       <div className="flex-1 min-w-0">
-                        <div className="text-[13px] font-bold text-gray-800 truncate">{proj.name || <span className="text-gray-400 font-normal">Unnamed Project</span>}</div>
-                        {proj.description && <div className="text-xs text-gray-500 mt-0.5 leading-relaxed">{proj.description}</div>}
+                        <div className="text-[14px] font-bold text-gray-900">{proj.name || <span className="text-gray-400 font-normal italic">Unnamed Project</span>}</div>
+                        {proj.description && <div className="text-xs text-gray-600 mt-1 leading-relaxed">{proj.description}</div>}
                       </div>
-                      <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full shrink-0 ${PROJECT_STATUS_COLORS[proj.status] || 'bg-gray-100 text-gray-700'}`}>{proj.status || '—'}</span>
+                      <span className={`text-[11px] font-semibold px-3 py-1.5 rounded-full shrink-0 whitespace-nowrap ${PROJECT_STATUS_COLORS[proj.status] || 'bg-gray-100 text-gray-700'}`}>{proj.status || '—'}</span>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 mb-2">
+                    <div className="grid grid-cols-3 gap-3 mb-3 p-3" style={{ background: 'linear-gradient(135deg, rgba(132,204,22,0.04) 0%, rgba(132,204,22,0.02) 100%)', borderRadius: '8px', border: '1px solid rgba(132,204,22,0.1)' }}>
                       <div>
-                        <div className="text-[10px] text-gray-400 font-semibold mb-0.5 uppercase tracking-wide">Start</div>
-                        <div className="text-xs text-gray-700 font-mono">{proj.startDate ? proj.startDate.slice(0, 10) : <span className="text-gray-300">—</span>}</div>
+                        <div className="text-[10px] text-gray-500 font-semibold mb-1.5 uppercase tracking-wider">Start Date</div>
+                        <div className="text-sm font-mono text-gray-800 font-medium">{proj.startDate ? proj.startDate.slice(0, 10) : <span className="text-gray-300">—</span>}</div>
                       </div>
                       <div>
-                        <div className="text-[10px] text-gray-400 font-semibold mb-0.5 uppercase tracking-wide">Deadline</div>
-                        <div className="text-xs text-gray-700 font-mono">{proj.deadline ? proj.deadline.slice(0, 10) : <span className="text-gray-300">—</span>}</div>
+                        <div className="text-[10px] text-gray-500 font-semibold mb-1.5 uppercase tracking-wider">Deadline</div>
+                        <div className="text-sm font-mono text-gray-800 font-medium">{proj.deadline ? proj.deadline.slice(0, 10) : <span className="text-gray-300">—</span>}</div>
                       </div>
                       <div>
-                        <div className="text-[10px] text-gray-400 font-semibold mb-0.5 uppercase tracking-wide">Budget</div>
-                        <div className="text-xs text-gray-700 font-mono">{proj.budget ? `$${proj.budget}` : <span className="text-gray-300">—</span>}</div>
+                        <div className="text-[10px] text-gray-500 font-semibold mb-1.5 uppercase tracking-wider">Budget</div>
+                        <div className="text-sm font-mono text-gray-800 font-medium">{proj.budget ? `₹${proj.budget}` : <span className="text-gray-300">—</span>}</div>
                       </div>
                     </div>
-                    <div className="flex justify-end gap-2 pt-2 border-t border-gray-100">
-                      <button className="px-3 py-1 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition-all" onClick={() => setEditIdx(idx)}>Edit</button>
-                      <button className="px-3 py-1 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100 transition-all" onClick={() => setConfirmIdx(idx)}>Remove</button>
+                    <div className="flex justify-end gap-2 pt-2">
+                      <button style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 600, color: '#022c03', border: 'none', borderRadius: '8px', cursor: 'pointer', background: 'linear-gradient(90deg, #84cc16 0%, #a3e635 100%)', boxShadow: '0 2px 6px rgba(132,204,22,0.2)', transition: 'all 0.2s' }} onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(132,204,22,0.4)'; e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 6px rgba(132,204,22,0.2)'; e.currentTarget.style.transform = 'translateY(0)'; }} onClick={() => setEditIdx(idx)}>Edit</button>
+                      <button style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 600, color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', background: '#ef4444', boxShadow: '0 2px 6px rgba(239,68,68,0.2)', transition: 'all 0.2s' }} onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(239,68,68,0.4)'; e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 6px rgba(239,68,68,0.2)'; e.currentTarget.style.transform = 'translateY(0)'; }} onClick={() => setConfirmIdx(idx)}>Remove</button>
                     </div>
                   </>
                 )}
@@ -411,13 +411,13 @@ const ConvertedClientsPage = () => {
             <button
               onClick={handleSave}
               style={{
-                padding: '8px 20px', fontSize: '13px', fontWeight: 600, color: 'white', border: 'none',
+                padding: '8px 20px', fontSize: '13px', fontWeight: 600, color: '#022c03', border: 'none',
                 borderRadius: '10px', cursor: 'pointer',
-                background: 'linear-gradient(135deg, #34d399, #059669)',
-                boxShadow: '0 2px 6px rgba(5,150,105,0.25)', transition: 'all 0.2s ease',
+                background: 'linear-gradient(90deg, #84cc16 0%, #a3e635 100%)',
+                boxShadow: '0 2px 6px rgba(132,204,22,0.25)', transition: 'all 0.2s ease', textTransform: 'uppercase', letterSpacing: '0.05em'
               }}
-              onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(5,150,105,0.35)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-              onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 6px rgba(5,150,105,0.25)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(132,204,22,0.4)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 6px rgba(132,204,22,0.25)'; e.currentTarget.style.transform = 'translateY(0)'; }}
             >Save Changes</button>
           </div>
         </div>

@@ -9,7 +9,7 @@ const LEAD_STATUS_COLORS = {
   not_intrested: 'bg-red-100 text-red-700',
   intrested_but_later: 'bg-orange-100 text-orange-700',
   intrested: 'bg-green-100 text-green-700',
-  coustomer: 'bg-emerald-100 text-emerald-700',
+  customer: 'bg-emerald-100 text-emerald-700',
   lost: 'bg-gray-100 text-gray-500',
 };
 
@@ -19,7 +19,7 @@ const LEAD_STATUS_LABELS = {
   not_intrested: 'Not Interested',
   intrested_but_later: 'Later',
   intrested: 'Interested',
-  coustomer: 'Customer',
+  customer: 'Customer',
   lost: 'Lost',
 };
 
