@@ -458,8 +458,8 @@ const PublicCampaignPage = () => {
         )}
 
         {/* Footer */}
-        <p style={{ textAlign: 'center', marginTop: '1.5rem', fontFamily: "'Satisfy', cursive", fontSize: '0.7rem', color: '#C1BAB3' }}>
-          Cally
+        <p style={{ textAlign: 'center', marginTop: '1.5rem', fontFamily: "'Sallafi', 'Crimson Text', serif", fontWeight: 700, fontSize: '0.6rem', color: '#C1BAB3', letterSpacing: '0.5px' }}>
+          apex-CRM
         </p>
       </div>
     </div>

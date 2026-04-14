@@ -101,14 +101,12 @@ const MainLayout = ({ children }) => {
 
 					{/* Branding */}
 					<span
-						className="text-[38px] font-normal select-none leading-none text-slate-900"
-						style={{ fontFamily: "'Satisfy', cursive" }}
-					>
-						cally
-					</span>
-
-					{/* Tabs — admin & employee only */}
-					{!isCompany && (
+					className="text-[22px] font-bold select-none leading-none text-slate-900"
+						style={{ fontFamily: "'Sallafi', 'Crimson Text', serif", fontWeight: 700, letterSpacing: '0.5px' }}
+				>
+					apex-CRM
+				</span>
+				{!isCompany && (
 						<nav className="relative flex items-center rounded-[10px] p-1.25 gap-0">
 							{/* Sliding indicator */}
 							<div
@@ -233,10 +231,10 @@ const MainLayout = ({ children }) => {
 								}}
 							>
 								<span
-									className="text-[32px] font-normal select-none leading-none text-slate-900"
-									style={{ fontFamily: "'Satisfy', cursive" }}
+									className="text-[20px] font-bold select-none leading-none text-slate-900"
+									style={{ fontFamily: "'Sallafi', 'Crimson Text', serif", fontWeight: 700, letterSpacing: '0.5px' }}
 								>
-									cally
+									apex-CRM
 								</span>
 								<button
 									onClick={() => {

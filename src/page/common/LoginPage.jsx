@@ -505,7 +505,7 @@ const LoginPage = () => {
 
               {/* Brand */}
               <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                <span style={{ fontSize: 36, fontWeight: 400, color: '#111', fontFamily: "'Satisfy', cursive" }}>cally</span>
+                <span style={{ fontSize: 22, fontWeight: 700, color: '#111', fontFamily: "'Sallafi', 'Crimson Text', serif", letterSpacing: '0.5px' }}>apex-CRM</span>
               </div>
 
               {/* Form */}

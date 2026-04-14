@@ -1974,10 +1974,10 @@ const CompanyCampaigns = () => {
               {/* Input row with labels */}
               <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
                 {[
-                  { key: 'name', label: 'Field Key', placeholder: 'e.g. phone_number', flex: '1 1 100px', minWidth: '90px' },
-                  { key: 'label', label: 'Label', placeholder: 'e.g. Phone Number', flex: '1 1 100px', minWidth: '90px' },
-                  { key: 'type', label: 'Type', placeholder: 'text', isSelect: true, flex: '0 0 95px' },
-                  { key: 'placeholder', label: 'Placeholder', placeholder: 'optional', flex: '1 1 90px', minWidth: '80px' },
+                  { key: 'Name', label: 'Field Key', placeholder: 'e.g. phone_number', flex: '1 1 100px', minWidth: '90px' },
+                  { key: 'Label', label: 'Label', placeholder: 'e.g. Phone Number', flex: '1 1 100px', minWidth: '90px' },
+                  { key: 'Type', label: 'Type', placeholder: 'text', isSelect: true, flex: '0 0 95px' },
+                  { key: 'Placeholder', label: 'Placeholder', placeholder: 'optional', flex: '1 1 90px', minWidth: '80px' },
                 ].map(({ key, label, placeholder, flex, minWidth, isSelect }) => (
                   <div key={key} style={{ flex, minWidth: minWidth || '70px' }}>
                     <label style={{ fontSize: '10px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '5px', opacity: 0.9 }}>{label}</label>
@@ -1995,8 +1995,9 @@ const CompanyCampaigns = () => {
                     ) : (
                       <input
                         style={{ width: '100%', padding: '7px 9px', fontSize: '12px', fontWeight: 500, border: '1.5px solid #d1d5db', borderRadius: '7px', outline: 'none', color: '#111827', backgroundColor: '#fff', fontFamily: 'inherit', transition: 'all 0.15s ease', boxSizing: 'border-box', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.03)' }}
-                        type="text"
+                        type="Text"
                         placeholder={placeholder}
+                        autoComplete={key === 'name' ? 'off' : 'off'}
                         value={newField[key] || ''}
                         onChange={e => {
                           const value = e.target.value;
@@ -2030,12 +2031,12 @@ const CompanyCampaigns = () => {
                 ))}
 
                 {/* Options field (conditional) */}
-                {['dropdown', 'radio', 'checkbox'].includes(newField.type) && (
+                {['Dropdown', 'Radio', 'Checkbox'].includes(newField.type) && (
                   <div style={{ flex: '1 1 110px', minWidth: '100px' }}>
                     <label style={{ fontSize: '10px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '5px', opacity: 0.9 }}>Options</label>
                     <input
                       style={{ width: '100%', padding: '7px 9px', fontSize: '12px', fontWeight: 500, border: '1.5px solid #d1d5db', borderRadius: '7px', outline: 'none', color: '#111827', backgroundColor: '#fff', fontFamily: 'inherit', transition: 'all 0.15s ease', boxSizing: 'border-box', boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.03)' }}
-                      type="text"
+                      type="Text"
                       placeholder="a, b, c"
                       value={newField.options || ''}
                       onChange={e => setNewField(p => ({ ...p, options: e.target.value }))}
@@ -2049,7 +2050,7 @@ const CompanyCampaigns = () => {
                 {/* Required checkbox + Add button */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: 500, color: '#4b5563', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', paddingBottom: '2px' }}>
-                    <input type="checkbox" checked={newField.isRequired}
+                    <input type="Checkbox" checked={newField.isRequired}
                       onChange={e => setNewField(p => ({ ...p, isRequired: e.target.checked }))}
                       style={{ accentColor: '#84cc16', cursor: 'pointer', width: '16px', height: '16px' }} />
                     <span>Required</span>
