@@ -635,20 +635,27 @@ const Table = ({
                     {hasActions && (
                       <td style={{ ...tdStyle, textAlign: "right" }}>
                         <div style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
-                          {actions.map((action, aidx) => (
-                            <button
-                              key={action.key || aidx}
-                              style={actionBtnStyle(action.variant)}
-                              onClick={(e) => { e.stopPropagation(); hapticTap(); action.onClick(row); }}
-                              title={action.label}
-                              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; }}
-                              onMouseLeave={e => { e.currentTarget.style.transform = ""; }}
-                              onMouseDown={e => { e.currentTarget.style.transform = "translateY(2px)"; e.currentTarget.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1) inset"; }}
-                              onMouseUp={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = actionBtnStyle(action.variant).boxShadow; }}
-                            >
-                              {action.icon || action.label}
-                            </button>
-                          ))}
+                          {actions.map((action, aidx) => {
+                            // Hide edit and link actions if formStructure is empty
+                            if ((action.key === 'edit' || action.key === 'link') && 
+                                Array.isArray(row.formStructure) && row.formStructure.length === 0) {
+                              return null;
+                            }
+                            return (
+                              <button
+                                key={action.key || aidx}
+                                style={actionBtnStyle(action.variant)}
+                                onClick={(e) => { e.stopPropagation(); hapticTap(); action.onClick(row); }}
+                                title={action.label}
+                                onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; }}
+                                onMouseLeave={e => { e.currentTarget.style.transform = ""; }}
+                                onMouseDown={e => { e.currentTarget.style.transform = "translateY(2px)"; e.currentTarget.style.boxShadow = "0 1px 2px rgba(0,0,0,0.1) inset"; }}
+                                onMouseUp={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = actionBtnStyle(action.variant).boxShadow; }}
+                              >
+                                {action.icon || action.label}
+                              </button>
+                            );
+                          })}
                         </div>
                       </td>
                     )}

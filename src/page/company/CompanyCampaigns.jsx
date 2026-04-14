@@ -199,6 +199,29 @@ async function parsePdf(file) {
 
 const ACCEPTED = '.csv,.xlsx,.xls,.pdf';
 
+/**
+ * Normalize parsed rows.
+ * - fieldMap: [{ label: 'First Name', key: 'firstname' }, ...] — label is display text, key is the field key sent to backend.
+ * - rows: array of objects keyed by normalized key; empty-value fields are omitted.
+ */
+function normalizeRows(rows) {
+  if (rows.length === 0) return { rows: [], fieldMap: [] };
+  const rawKeys = Object.keys(rows[0]);
+  const fieldMap = rawKeys.map((rawKey) => ({
+    label: rawKey.trim(),
+    key: rawKey.trim().toLowerCase().replace(/\s+/g, ''),
+  }));
+  const normalizedRows = rows.map((row) => {
+    const out = {};
+    rawKeys.forEach((rawKey, i) => {
+      const val = String(row[rawKey] ?? '').trim();
+      if (val !== '') out[fieldMap[i].key] = val;
+    });
+    return out;
+  });
+  return { rows: normalizedRows, fieldMap };
+}
+
 
 function ImportLeadsModal({ isOpen, onClose, campaigns, onImported, preselectedCampaignId }) {
   const { user } = useAuth();
@@ -210,6 +233,7 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported, preselectedC
   const [file, setFile] = useState(null);
   const [fileUrl, setFileUrl] = useState('');
   const [parsedRows, setParsedRows] = useState([]);
+  const [fieldMap, setFieldMap] = useState([]);
   const [parseError, setParseError] = useState('');
   const [parsing, setParsing] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -291,6 +315,7 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported, preselectedC
       setFile(null);
       setFileUrl('');
       setParsedRows([]);
+      setFieldMap([]);
       setParseError('');
       setParsing(false);
       setImporting(false);
@@ -323,7 +348,9 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported, preselectedC
         throw new Error('Only .csv, .xlsx, .xls URLs supported.');
       }
       if (rows.length === 0) throw new Error('No data rows found.');
-      setParsedRows(rows);
+      const { rows: normalized, fieldMap: fm } = normalizeRows(rows);
+      setParsedRows(normalized);
+      setFieldMap(fm);
       setStep(3);
     } catch (err) {
       setParseError(err.message || 'Failed to parse URL.');
@@ -354,7 +381,9 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported, preselectedC
         throw new Error('Unsupported file format.');
       }
       if (rows.length === 0) throw new Error('No data rows found in file.');
-      setParsedRows(rows);
+      const { rows: normalized, fieldMap: fm } = normalizeRows(rows);
+      setParsedRows(normalized);
+      setFieldMap(fm);
       setStep(3);
     } catch (err) {
       setParseError(err.message || 'Failed to parse file.');
@@ -366,18 +395,18 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported, preselectedC
   const handleImport = async () => {
     setImporting(true);
     setParseError('');
-    // Only keep leadData and status fields
-    const filteredRows = parsedRows.map(row => ({
-      leadData: row.leadData,
-      status: row.status
-    }));
-    const toastId = toast.loading(`Importing ${filteredRows.length} leads...`);
+    if (parsedRows.length === 0) {
+      setParseError('No rows to import.');
+      setImporting(false);
+      return;
+    }
+    const toastId = toast.loading(`Importing ${parsedRows.length} leads...`);
     try {
       const result = await importLeadsFromFile({
         campaignId: externalCampaign ? undefined : selectedCampaign,
         campignName: externalCampaign ? externalCampaignName : undefined,
         description: externalCampaign ? externalCampaignDescription : undefined,
-        leads: filteredRows,
+        leads: parsedRows,  // flat objects with normalized keys; empty fields already omitted
         company: user._id,
         createdBy: user._id,
       });
@@ -398,7 +427,7 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported, preselectedC
     }
   };
 
-  const previewHeaders = parsedRows.length > 0 ? Object.keys(parsedRows[0]) : [];
+  const previewHeaders = fieldMap;
   const previewRows = parsedRows.slice(0, 5);
   const selectedCampaignObj = campaigns.find(c => c._id === selectedCampaign);
 
@@ -775,12 +804,26 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported, preselectedC
           {step === 3 && (
             <div className="import-section" style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <p style={{ fontSize: '13px', color: '#374151', margin: 0 }}>
-                  Found <strong>{parsedRows.length}</strong> rows in <span style={{
-                    fontFamily: 'monospace', fontSize: '12px', background: '#f3f4f6', padding: '2px 6px', borderRadius: '4px'
-                  }}>{file?.name || 'URL import'}</span>
-                </p>
-                <button type="button" onClick={() => { setFile(null); setParsedRows([]); setStep(2); }}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <p style={{ fontSize: '13px', color: '#374151', margin: 0 }}>
+                    Found <strong>{parsedRows.length}</strong> rows in <span style={{
+                      fontFamily: 'monospace', fontSize: '12px', background: '#f3f4f6', padding: '2px 6px', borderRadius: '4px'
+                    }}>{file?.name || 'URL import'}</span>
+                  </p>
+                  <p style={{ fontSize: '11px', color: '#6b7280', margin: 0 }}>
+                    {previewHeaders.length} field{previewHeaders.length !== 1 ? 's' : ''} detected
+                    {previewHeaders.length > 0 && (
+                      <span> — {previewHeaders.map(f => (
+                        <span key={f.key} title={`field key: ${f.key}`} style={{
+                          display: 'inline-flex', alignItems: 'center', gap: '2px',
+                          marginLeft: '4px', fontSize: '10px', background: '#f0fdf4',
+                          border: '1px solid #bbf7d0', borderRadius: '4px', padding: '1px 5px', color: '#4b7c0f',
+                        }}>{f.label}</span>
+                      ))}</span>
+                    )}
+                  </p>
+                </div>
+                <button type="button" onClick={() => { setFile(null); setParsedRows([]); setFieldMap([]); setStep(2); }}
                   style={{ fontSize: '12px', color: '#84cc16', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600, textDecoration: 'underline' }}>
                   Change file
                 </button>
@@ -790,23 +833,26 @@ function ImportLeadsModal({ isOpen, onClose, campaigns, onImported, preselectedC
                 <table style={{ width: '100%', fontSize: '12px', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr style={{ background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)' }}>
-                      {previewHeaders.map((h) => (
-                        <th key={h} style={{
+                      {previewHeaders.map((f) => (
+                        <th key={f.key} style={{
                           padding: '8px 12px', textAlign: 'left', fontWeight: 700, color: '#4b7c0f',
                           borderBottom: '1.5px solid #bbf7d0', whiteSpace: 'nowrap', fontSize: '11px',
                           textTransform: 'uppercase', letterSpacing: '0.05em',
-                        }}>{h}</th>
+                        }}>
+                          <span>{f.label}</span>
+                          <span style={{ display: 'block', fontWeight: 400, textTransform: 'none', letterSpacing: 0, fontSize: '10px', color: '#86a337', marginTop: '1px' }}>{f.key}</span>
+                        </th>
                       ))}
                     </tr>
                   </thead>
                   <tbody>
                     {previewRows.map((row, ri) => (
                       <tr key={ri} style={{ background: ri % 2 === 0 ? '#ffffff' : '#fafbfc' }}>
-                        {previewHeaders.map((h) => (
-                          <td key={h} style={{
+                        {previewHeaders.map((f) => (
+                          <td key={f.key} style={{
                             padding: '7px 12px', color: '#374151', maxWidth: '160px', overflow: 'hidden',
                             textOverflow: 'ellipsis', whiteSpace: 'nowrap', borderBottom: '1px solid #f3f4f6',
-                          }}>{String(row[h] ?? '')}</td>
+                          }}>{String(row[f.key] ?? '')}</td>
                         ))}
                       </tr>
                     ))}

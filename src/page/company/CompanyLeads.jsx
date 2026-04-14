@@ -456,7 +456,7 @@ const CompanyLeads = () => {
       // Update lead with call recording and auto-assign to current user
       await updateLead(addRecordingModal.lead._id, {
         callRecording: callFileUrl,
-        assignedTo: user._id,
+        // assignedTo: user._id,
       });
 
       // Refresh and close modal
@@ -470,10 +470,12 @@ const CompanyLeads = () => {
     }
   };
 
-  const leadLabel = (lead) =>
-    lead.leadData?.name ||
-    lead.leadData?.email ||
-    `Lead #${lead._id?.slice(-6)}`;
+  const leadLabel = (lead) => {
+    if (!lead) return "Lead";
+    return lead.leadData?.name ||
+      lead.leadData?.email ||
+      `Lead #${lead._id?.slice(-6)}`;
+  };
 
   const statusFilterOptions = [
     { value: "", label: "All Statuses" },
@@ -1055,7 +1057,38 @@ const CompanyLeads = () => {
           })
         }
         title="Call Recording"
-        footer={null}
+        footer={
+          <button
+            type="button"
+            style={{
+              padding: '6px 16px',
+              fontSize: '12px',
+              fontWeight: 700,
+              color: '#022c03',
+              background: 'linear-gradient(90deg, #84cc16 0%, #a3e635 100%)',
+              border: 'none',
+              borderRadius: '8px',
+              boxShadow: '0 4px 12px rgba(132,204,22,0.4), 0 2px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.4)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em'
+            }}
+            onMouseEnter={(e) => e.target.style.boxShadow = '0 6px 16px rgba(132,204,22,0.5), 0 2px 6px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.4)'}
+            onMouseLeave={(e) => e.target.style.boxShadow = '0 4px 12px rgba(132,204,22,0.4), 0 2px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.4)'}
+            onClick={() =>
+              setCallRecordingModal({
+                open: false,
+                fileUrl: "",
+                fileName: "",
+                description: "",
+                transcript: "",
+              })
+            }
+          >
+            Close
+          </button>
+        }
       >
         <div className="space-y-4">
           <div className="font-semibold text-gray-800">
@@ -1130,31 +1163,85 @@ const CompanyLeads = () => {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
           </div>
         ) : (
-          <div className="space-y-4">
-            {addRecordingModal.lead && (
-              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  <strong>Lead:</strong> {leadLabel(addRecordingModal.lead)} -{" "}
-                  <strong>Auto-assigned to:</strong> {user.name || user.email}
-                </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '2px' }}>
+
+            {/* ── Hero Card ── */}
+            <div style={{
+              background: 'linear-gradient(135deg, #052e16 0%, #14532d 45%, #1a6b3a 100%)',
+              borderRadius: '14px',
+              padding: '12px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: '0 6px 20px rgba(5,46,22,0.28), inset 0 1px 0 rgba(255,255,255,0.07)'
+            }}>
+              {/* decorative blobs */}
+              <div style={{ position: 'absolute', right: '-18px', top: '-18px', width: '90px', height: '90px', borderRadius: '50%', background: 'rgba(132,204,22,0.13)', pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', right: '40px', bottom: '-28px', width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(74,222,128,0.09)', pointerEvents: 'none' }} />
+
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h3 style={{
+                  fontSize: '14px', fontWeight: '700', color: '#f0fdf4',
+                  margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                }}>
+                  {leadLabel(addRecordingModal.lead)}
+                </h3>
+                <span style={{ fontSize: '11px', color: '#86efac', fontWeight: 500, marginTop: '4px', display: 'block' }}>
+                  Auto-assigned to: {user.name || user.email}
+                </span>
               </div>
-            )}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+            </div>
+
+            {/* ── File Selection ── */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{
+                fontSize: '10px', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase',
+                background: 'linear-gradient(90deg, #84cc16, #16a34a)',
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text'
+              }}>
                 Select Recording File
               </label>
-              <input
-                type="file"
-                accept="audio/*"
-                onChange={(e) => setRecordingFile(e.target.files?.[0] || null)}
-                className="block w-full text-sm text-gray-900 bg-gray-50 rounded-lg border border-gray-300 cursor-pointer px-3 py-2 focus:outline-none"
-              />
-              {recordingFile && (
-                <p className="mt-2 text-sm text-gray-600">
-                  <strong>Selected:</strong> {recordingFile.name}
-                </p>
-              )}
+
+              <div style={{
+                borderRadius: '10px',
+                border: '1.5px solid #e2f4e6',
+                background: 'linear-gradient(160deg, #fafffe 0%, #f4fdf6 100%)',
+                padding: '12px',
+                display: 'flex', flexDirection: 'column', gap: '8px'
+              }}>
+                <input
+                  type="file"
+                  accept="audio/*"
+                  onChange={(e) => setRecordingFile(e.target.files?.[0] || null)}
+                  style={{
+                    padding: '10px',
+                    background: 'white',
+                    border: '1px solid #ecfdf5',
+                    borderRadius: '8px',
+                    fontSize: '13px',
+                    color: '#1f2937',
+                    cursor: 'pointer',
+                    fontWeight: 500
+                  }}
+                />
+                {recordingFile && (
+                  <div style={{
+                    padding: '8px 10px',
+                    background: 'linear-gradient(135deg, #f0fdf4 0%, #f7fee7 100%)',
+                    border: '1px solid #d9f99d',
+                    borderLeft: '3px solid #84cc16',
+                    borderRadius: '8px',
+                    fontSize: '12px',
+                    color: '#1f2937',
+                    fontWeight: 600
+                  }}>
+                    <span style={{ color: '#65a30d', fontWeight: 700 }}>✓ Selected:</span> {recordingFile.name}
+                  </div>
+                )}
+              </div>
             </div>
+
           </div>
         )}
       </Modal>
@@ -1334,55 +1421,169 @@ const CompanyLeads = () => {
             ? `Lead Info: ${leadLabel(infoModal.lead)}`
             : "Lead Info"
         }
-        footer={null}
+        footer={
+          <button
+            type="button"
+            style={{
+              padding: '6px 16px',
+              fontSize: '12px',
+              fontWeight: 700,
+              color: '#022c03',
+              background: 'linear-gradient(90deg, #84cc16 0%, #a3e635 100%)',
+              border: 'none',
+              borderRadius: '8px',
+              boxShadow: '0 4px 12px rgba(132,204,22,0.4), 0 2px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.4)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em'
+            }}
+            onMouseEnter={(e) => e.target.style.boxShadow = '0 6px 16px rgba(132,204,22,0.5), 0 2px 6px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.4)'}
+            onMouseLeave={(e) => e.target.style.boxShadow = '0 4px 12px rgba(132,204,22,0.4), 0 2px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.4)'}
+            onClick={() => setInfoModal({ open: false, lead: null })}
+          >
+            Close
+          </button>
+        }
       >
         {infoModal.lead && (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <span className="block text-xs text-gray-400 font-medium mb-1">
-                  Assigned To
-                </span>
-                <span className="block text-sm text-gray-800 font-medium">
-                  {infoModal.lead.assignedTo &&
-                    typeof infoModal.lead.assignedTo === "object"
-                    ? infoModal.lead.assignedTo.name
-                    : infoModal.lead.assignedTo || "—"}
-                </span>
-              </div>
-              <div>
-                <span className="block text-xs text-gray-400 font-medium mb-1">
-                  Created At
-                </span>
-                <span className="block text-sm text-gray-800 font-medium">
-                  {infoModal.lead.createdAt
-                    ? new Date(infoModal.lead.createdAt).toLocaleDateString()
-                    : "—"}
-                </span>
-              </div>
-              <div>
-                <span className="block text-xs text-gray-400 font-medium mb-1">
-                  Next Meeting
-                </span>
-                <span className="block text-sm text-gray-800 font-medium">
-                  {infoModal.lead.nextMeetingDate
-                    ? new Date(
-                      infoModal.lead.nextMeetingDate,
-                    ).toLocaleDateString()
-                    : "—"}
-                </span>
-              </div>
-              <div>
-                <span className="block text-xs text-gray-400 font-medium mb-1">
-                  Campaign
-                </span>
-                <span className="block text-sm text-gray-800 font-medium">
-                  {infoModal.lead.campigne?.title ||
-                    infoModal.lead.campigne?.name ||
-                    "—"}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '2px' }}>
+
+            {/* ── Hero Card ── */}
+            <div style={{
+              background: 'linear-gradient(135deg, #052e16 0%, #14532d 45%, #1a6b3a 100%)',
+              borderRadius: '14px',
+              padding: '12px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: '0 6px 20px rgba(5,46,22,0.28), inset 0 1px 0 rgba(255,255,255,0.07)'
+            }}>
+              {/* decorative blobs */}
+              <div style={{ position: 'absolute', right: '-18px', top: '-18px', width: '90px', height: '90px', borderRadius: '50%', background: 'rgba(132,204,22,0.13)', pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', right: '40px', bottom: '-28px', width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(74,222,128,0.09)', pointerEvents: 'none' }} />
+
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h3 style={{
+                  fontSize: '14px', fontWeight: '700', color: '#f0fdf4',
+                  margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                }}>
+                  {leadLabel(infoModal.lead)}
+                </h3>
+                <span style={{ fontSize: '11px', color: '#86efac', fontWeight: 500, marginTop: '4px', display: 'block' }}>
+                  {infoModal.lead.company?.name || "—"}
                 </span>
               </div>
             </div>
+
+            {/* ── Lead Info Grid ── */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{
+                fontSize: '10px', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase',
+                background: 'linear-gradient(90deg, #84cc16, #16a34a)',
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text'
+              }}>Lead Information</div>
+
+              <div style={{
+                borderRadius: '10px',
+                border: '1.5px solid #e2f4e6',
+                background: 'linear-gradient(160deg, #fafffe 0%, #f4fdf6 100%)',
+                padding: '10px',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
+                gap: '7px',
+              }}>
+                <div style={{
+                  padding: '8px 10px',
+                  background: 'white',
+                  borderRadius: '8px',
+                  border: '1px solid #ecfdf5',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.05), 0 0 0 0.5px rgba(132,204,22,0.1)',
+                }}>
+                  <span style={{
+                    display: 'block', fontSize: '9px', fontWeight: 700,
+                    color: '#65a30d', textTransform: 'uppercase', letterSpacing: '0.07em',
+                    marginBottom: '3px'
+                  }}>Assigned To</span>
+                  <span style={{
+                    display: 'block', fontSize: '12px', fontWeight: 600,
+                    color: '#1f2937', wordBreak: 'break-word', lineHeight: '1.4'
+                  }}>
+                    {infoModal.lead.assignedTo && typeof infoModal.lead.assignedTo === "object"
+                      ? infoModal.lead.assignedTo.name
+                      : infoModal.lead.assignedTo || "—"}
+                  </span>
+                </div>
+
+                <div style={{
+                  padding: '8px 10px',
+                  background: 'white',
+                  borderRadius: '8px',
+                  border: '1px solid #ecfdf5',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.05), 0 0 0 0.5px rgba(132,204,22,0.1)',
+                }}>
+                  <span style={{
+                    display: 'block', fontSize: '9px', fontWeight: 700,
+                    color: '#65a30d', textTransform: 'uppercase', letterSpacing: '0.07em',
+                    marginBottom: '3px'
+                  }}>Created At</span>
+                  <span style={{
+                    display: 'block', fontSize: '12px', fontWeight: 600,
+                    color: '#1f2937', wordBreak: 'break-word', lineHeight: '1.4'
+                  }}>
+                    {infoModal.lead.createdAt
+                      ? new Date(infoModal.lead.createdAt).toLocaleDateString()
+                      : "—"}
+                  </span>
+                </div>
+
+                <div style={{
+                  padding: '8px 10px',
+                  background: 'white',
+                  borderRadius: '8px',
+                  border: '1px solid #ecfdf5',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.05), 0 0 0 0.5px rgba(132,204,22,0.1)',
+                }}>
+                  <span style={{
+                    display: 'block', fontSize: '9px', fontWeight: 700,
+                    color: '#65a30d', textTransform: 'uppercase', letterSpacing: '0.07em',
+                    marginBottom: '3px'
+                  }}>Next Meeting</span>
+                  <span style={{
+                    display: 'block', fontSize: '12px', fontWeight: 600,
+                    color: '#1f2937', wordBreak: 'break-word', lineHeight: '1.4'
+                  }}>
+                    {infoModal.lead.nextMeetingDate
+                      ? new Date(infoModal.lead.nextMeetingDate).toLocaleDateString()
+                      : "—"}
+                  </span>
+                </div>
+
+                <div style={{
+                  padding: '8px 10px',
+                  background: 'white',
+                  borderRadius: '8px',
+                  border: '1px solid #ecfdf5',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.05), 0 0 0 0.5px rgba(132,204,22,0.1)',
+                }}>
+                  <span style={{
+                    display: 'block', fontSize: '9px', fontWeight: 700,
+                    color: '#65a30d', textTransform: 'uppercase', letterSpacing: '0.07em',
+                    marginBottom: '3px'
+                  }}>Campaign</span>
+                  <span style={{
+                    display: 'block', fontSize: '12px', fontWeight: 600,
+                    color: '#1f2937', wordBreak: 'break-word', lineHeight: '1.4'
+                  }}>
+                    {infoModal.lead.campigne?.title ||
+                      infoModal.lead.campigne?.name ||
+                      "—"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
           </div>
         )}
       </Modal>
@@ -1393,70 +1594,196 @@ const CompanyLeads = () => {
         onClose={() => setDetailLeadModal({ open: false, lead: null })}
         title={
           detailLeadModal.lead
-            ? `Lead Details: ${leadLabel(detailLeadModal.lead)}`
+            ? `Lead Details` //: ${leadLabel(detailLeadModal.lead)}
             : "Lead Details"
         }
-        footer={null}
+        footer={
+          <button
+            type="button"
+            style={{
+              padding: '6px 16px',
+              fontSize: '12px',
+              fontWeight: 700,
+              color: '#022c03',
+              background: 'linear-gradient(90deg, #84cc16 0%, #a3e635 100%)',
+              border: 'none',
+              borderRadius: '8px',
+              boxShadow: '0 4px 12px rgba(132,204,22,0.4), 0 2px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.4)',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em'
+            }}
+            onMouseEnter={(e) => e.target.style.boxShadow = '0 6px 16px rgba(132,204,22,0.5), 0 2px 6px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.4)'}
+            onMouseLeave={(e) => e.target.style.boxShadow = '0 4px 12px rgba(132,204,22,0.4), 0 2px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.4)'}
+            onClick={() => setDetailLeadModal({ open: false, lead: null })}
+          >
+            Close
+          </button>
+        }
       >
         {detailLeadModal.lead && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center text-sm font-bold text-emerald-700 shrink-0">
-                {leadLabel(detailLeadModal.lead)[0]?.toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="font-semibold text-gray-800 truncate">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', padding: '2px' }}>
+
+            {/* ── Hero Card ── */}
+            <div style={{
+              background: 'linear-gradient(135deg, #052e16 0%, #14532d 45%, #1a6b3a 100%)',
+              borderRadius: '14px',
+              padding: '12px 14px',
+              display: 'flex',
+              alignItems: 'center',
+              position: 'relative',
+              overflow: 'hidden',
+              boxShadow: '0 6px 20px rgba(5,46,22,0.28), inset 0 1px 0 rgba(255,255,255,0.07)'
+            }}>
+              {/* decorative blobs */}
+              <div style={{ position: 'absolute', right: '-18px', top: '-18px', width: '90px', height: '90px', borderRadius: '50%', background: 'rgba(132,204,22,0.13)', pointerEvents: 'none' }} />
+              <div style={{ position: 'absolute', right: '40px', bottom: '-28px', width: '60px', height: '60px', borderRadius: '50%', background: 'rgba(74,222,128,0.09)', pointerEvents: 'none' }} />
+
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <h3 style={{
+                  fontSize: '14px', fontWeight: '700', color: '#f0fdf4',
+                  margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                }}>
                   {leadLabel(detailLeadModal.lead)}
                 </h3>
-                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                  <span className="text-xs text-gray-400">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '5px', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: '11px', color: '#86efac', fontWeight: 500 }}>
                     {detailLeadModal.lead.company?.name || "—"}
                   </span>
-                  <span
-                    className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${STATUS_COLOR_MAP[detailLeadModal.lead.status] || "bg-gray-100 text-gray-500"}`}
-                  >
-                    {STATUS_LABEL_MAP[detailLeadModal.lead.status] ||
-                      detailLeadModal.lead.status}
+                  <span style={{ width: '3px', height: '3px', borderRadius: '50%', background: '#4ade80', flexShrink: 0 }} />
+                  <span style={{
+                    fontSize: '10px', padding: '2px 8px', borderRadius: '12px', fontWeight: 700,
+                    background: 'rgba(74,222,128,0.18)', color: '#4ade80',
+                    border: '1px solid rgba(74,222,128,0.32)',
+                    textTransform: 'uppercase', letterSpacing: '0.05em'
+                  }}>
+                    {STATUS_LABEL_MAP[detailLeadModal.lead.status] || detailLeadModal.lead.status}
                   </span>
                 </div>
               </div>
             </div>
-            <h4 className="font-semibold text-md mb-2">Lead Data</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {Object.entries(detailLeadModal.lead.leadData || {}).map(
-                ([key, value]) => (
-                  <div key={key}>
-                    <span className="block text-xs text-gray-400 font-medium mb-1">
-                      {key}
-                    </span>
-                    <span className="block text-sm text-gray-800 break-all">
-                      {String(value)}
-                    </span>
-                  </div>
-                ),
-              )}
+
+            {/* ── Lead Information ── */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                <span style={{
+                  fontSize: '10px', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase',
+                  background: 'linear-gradient(90deg, #84cc16, #16a34a)',
+                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text'
+                }}>Lead Information</span>
+                {Object.keys(detailLeadModal.lead.leadData || {}).length > 0 && (
+                  <span style={{
+                    fontSize: '10px', fontWeight: 700, color: '#6b7280',
+                    background: '#f3f4f6', border: '1px solid #e5e7eb',
+                    borderRadius: '10px', padding: '0 6px', lineHeight: '18px'
+                  }}>
+                    {Object.keys(detailLeadModal.lead.leadData || {}).length} fields
+                  </span>
+                )}
+              </div>
+
+              {/* Scrollable grid — hides scrollbar */}
+              <div style={{
+                maxHeight: '232px', overflowY: 'auto',
+                scrollbarWidth: 'none', msOverflowStyle: 'none',
+                borderRadius: '10px',
+                border: '1.5px solid #e2f4e6',
+                background: 'linear-gradient(160deg, #fafffe 0%, #f4fdf6 100%)',
+                padding: '10px',
+              }}>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))',
+                  gap: '7px',
+                }}>
+                  {Object.entries(detailLeadModal.lead.leadData || {}).length > 0 ? (
+                    Object.entries(detailLeadModal.lead.leadData || {}).map(([key, value]) => (
+                      <div key={key} style={{
+                        padding: '8px 10px',
+                        background: 'white',
+                        borderRadius: '8px',
+                        border: '1px solid #ecfdf5',
+                        boxShadow: '0 1px 4px rgba(0,0,0,0.05), 0 0 0 0.5px rgba(132,204,22,0.1)',
+                        minWidth: 0, overflow: 'hidden',
+                      }}>
+                        <span style={{
+                          display: 'block', fontSize: '9px', fontWeight: 700,
+                          color: '#65a30d', textTransform: 'uppercase', letterSpacing: '0.07em',
+                          marginBottom: '3px',
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'
+                        }}>
+                          {key}
+                        </span>
+                        <span style={{
+                          display: 'block', fontSize: '12px', fontWeight: 600,
+                          color: '#1f2937', wordBreak: 'break-word', lineHeight: '1.4'
+                        }}>
+                          {String(value)}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{
+                      gridColumn: '1 / -1', padding: '16px', textAlign: 'center',
+                      color: '#9ca3af', fontSize: '12px'
+                    }}>
+                      No lead data available.
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-            {/* Notes Section */}
-            <div className="mt-6">
-              <h4 className="font-semibold text-md mb-2">Notes</h4>
-              {Array.isArray(detailLeadModal.lead.notes) &&
-                detailLeadModal.lead.notes.length > 0 ? (
-                <ul className="space-y-2">
+
+            {/* ── Notes ── */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
+                <span style={{
+                  fontSize: '10px', fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase',
+                  background: 'linear-gradient(90deg, #84cc16, #16a34a)',
+                  WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', backgroundClip: 'text'
+                }}>Notes</span>
+                {Array.isArray(detailLeadModal.lead.notes) && detailLeadModal.lead.notes.length > 0 && (
+                  <span style={{
+                    fontSize: '10px', fontWeight: 700, color: '#6b7280',
+                    background: '#f3f4f6', border: '1px solid #e5e7eb',
+                    borderRadius: '10px', padding: '0 6px', lineHeight: '18px'
+                  }}>
+                    {detailLeadModal.lead.notes.length}
+                  </span>
+                )}
+              </div>
+
+              {Array.isArray(detailLeadModal.lead.notes) && detailLeadModal.lead.notes.length > 0 ? (
+                <div style={{
+                  maxHeight: '152px', overflowY: 'auto',
+                  scrollbarWidth: 'none', msOverflowStyle: 'none',
+                  display: 'flex', flexDirection: 'column', gap: '5px'
+                }}>
                   {detailLeadModal.lead.notes.map((note, idx) => (
-                    <li
-                      key={idx}
-                      className="p-2 bg-gray-50 border rounded text-sm text-gray-700"
-                    >
-                      {typeof note === "string"
-                        ? note
-                        : note.text || JSON.stringify(note)}
-                    </li>
+                    <div key={idx} style={{
+                      padding: '8px 12px',
+                      background: 'linear-gradient(135deg, #f0fdf4 0%, #f7fee7 100%)',
+                      border: '1px solid #d9f99d',
+                      borderLeft: '3px solid #84cc16',
+                      borderRadius: '8px',
+                      fontSize: '12px', color: '#374151', lineHeight: '1.55'
+                    }}>
+                      {typeof note === "string" ? note : note.text || JSON.stringify(note)}
+                    </div>
                   ))}
-                </ul>
+                </div>
               ) : (
-                <div className="text-gray-400 text-sm">No notes available.</div>
+                <div style={{
+                  padding: '14px', textAlign: 'center', color: '#9ca3af', fontSize: '12px',
+                  background: 'linear-gradient(135deg, #f8fafc 0%, #f3f4f6 100%)',
+                  borderRadius: '8px', border: '1px solid #e5e7eb'
+                }}>
+                  No notes available.
+                </div>
               )}
             </div>
+
           </div>
         )}
       </Modal>
