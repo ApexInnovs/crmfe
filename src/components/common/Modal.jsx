@@ -130,7 +130,9 @@ export const Modal = ({
 					backgroundSize: '12px 2px',
 					backgroundPosition: '0 100%',
 					backgroundRepeat: 'repeat-x',
-					paddingBottom: 'calc(0.75rem + 4px)'
+					paddingBottom: 'calc(0.75rem + 4px)',
+					scrollbarWidth: 'none',
+					msOverflowStyle: 'none',
 				}}>
 					{children}
 				</div>

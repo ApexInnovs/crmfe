@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import Table from "../../components/common/Table";
 import SkeletonLoader from "../../components/common/Skeleton";
 import Input from "../../components/common/Input";
@@ -382,13 +383,15 @@ const CompanyLeads = () => {
 
       if (editData) {
         await updateLead(editData._id, payload);
+        toast.success("Lead updated successfully!");
       } else {
         await createLead(payload);
+        toast.success("Lead created successfully!");
       }
       setModalOpen(false);
       load();
     } catch (e) {
-      alert(e.response?.data?.message || "Failed to save lead");
+      toast.error(e.response?.data?.message || "Failed to save lead");
     } finally {
       setModalLoading(false);
     }
@@ -400,6 +403,10 @@ const CompanyLeads = () => {
     setLoading(true);
     try {
       await updateLead(rowToToggle._id, { status: next });
+      const message = next === "lost" ? "Lead archived" : "Lead restored";
+      toast.success(message);
+    } catch (e) {
+      toast.error("Failed to update lead status");
     } finally {
       setConfirmModalOpen(false);
       setRowToToggle(null);
@@ -436,8 +443,9 @@ const CompanyLeads = () => {
       setTotal(data.total || items.length);
       const refreshed = items.find((l) => l._id === detailLeadModal.lead._id);
       if (refreshed) setDetailLeadModal({ open: true, lead: refreshed });
+      toast.success("Note added successfully!");
     } catch (_) {
-      alert("Failed to add note");
+      toast.error("Failed to add note");
     } finally {
       setAddingNote(false);
     }
@@ -463,8 +471,9 @@ const CompanyLeads = () => {
       setAddRecordingModal({ open: false, lead: null });
       setRecordingFile(null);
       load();
+      toast.success("Recording uploaded successfully!");
     } catch (e) {
-      alert(e.response?.data?.message || "Failed to upload recording");
+      toast.error(e.response?.data?.message || "Failed to upload recording");
     } finally {
       setUploadingRecording(false);
     }
@@ -812,7 +821,7 @@ const CompanyLeads = () => {
           nextMeetingDate: row.nextMeetingDate
             ? row.nextMeetingDate.slice(0, 10)
             : "",
-          assignedTo: row.assignedTo || "",
+          assignedTo: (typeof row.assignedTo === 'object' && row.assignedTo !== null ? row.assignedTo._id : row.assignedTo) || "",
           notes: Array.isArray(row.notes)
             ? row.notes.map((n) => (typeof n === "string" ? n : n.text || ""))
             : [""],
@@ -964,7 +973,7 @@ const CompanyLeads = () => {
         </div>
 
         {/* Add Lead Button */}
-        <button
+        {/* <button
           onClick={handleAdd}
           style={{
             display: 'flex',
@@ -1016,7 +1025,7 @@ const CompanyLeads = () => {
             <path d="M8 3v10M3 8h10" />
           </svg>
           Add Lead
-        </button>
+        </button> */}
       </div>
 
       {/* Table - Conditional Skeleton/Table Render */}
@@ -1252,142 +1261,204 @@ const CompanyLeads = () => {
         onClose={() => setModalOpen(false)}
         title={editData ? "Update Lead" : "Add Lead"}
         footer={
-          !modalLoading && (
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                className="px-5 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
-                onClick={() => setModalOpen(false)}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                form="lead-form"
-                className="px-5 py-2.5 text-sm font-medium text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 shadow-sm"
-              >
-                {editData ? "Update Lead" : "Add Lead"}
-              </button>
-            </div>
-          )
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', alignItems: 'center' }}>
+            <button
+              type="button"
+              disabled={modalLoading}
+              style={{
+                padding: '6px 14px', fontSize: '12px', fontWeight: 600,
+                color: '#374151', background: 'white',
+                border: '1.5px solid #e5e7eb', borderRadius: '8px',
+                cursor: modalLoading ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s',
+                opacity: modalLoading ? 0.6 : 1
+              }}
+              onClick={() => setModalOpen(false)}
+            >
+              CANCEL
+            </button>
+            <button
+              type="submit"
+              form="lead-form"
+              disabled={modalLoading}
+              style={{
+                padding: '6px 16px', fontSize: '12px', fontWeight: 700,
+                color: '#022c03',
+                background: modalLoading ? 'linear-gradient(90deg, #9ca3af 0%, #d1d5db 100%)' : 'linear-gradient(90deg, #84cc16 0%, #a3e635 100%)',
+                border: 'none', borderRadius: '8px',
+                boxShadow: modalLoading ? '0 2px 8px rgba(0,0,0,0.1)' : '0 4px 12px rgba(132,204,22,0.4), 0 2px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.4)',
+                cursor: modalLoading ? 'not-allowed' : 'pointer',
+                transition: 'all 0.2s',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                opacity: modalLoading ? 0.8 : 1
+              }}
+              onMouseEnter={(e) => !modalLoading && (e.target.style.boxShadow = '0 6px 16px rgba(132,204,22,0.5), 0 2px 6px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.4)')}
+              onMouseLeave={(e) => !modalLoading && (e.target.style.boxShadow = '0 4px 12px rgba(132,204,22,0.4), 0 2px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.4)')}
+            >
+              {modalLoading && (
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  style={{
+                    animation: 'spin 1s linear infinite',
+                    display: 'inline-block'
+                  }}
+                >
+                  <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
+                  <circle cx="12" cy="12" r="10" strokeOpacity="0.25" />
+                  <path d="M12 2a10 10 0 0 1 10 10" strokeLinecap="round" />
+                </svg>
+              )}
+              {editData ? "Update Lead" : "Add Lead"}
+            </button>
+          </div>
         }
       >
-        {modalLoading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600" />
-          </div>
-        ) : (
-          <form
-            id="lead-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSubmit();
-            }}
-            className="space-y-4"
-          >
-            <div className="grid grid-cols-1 md:grid-cols-2  gap-1">
+        <form
+          id="lead-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleSubmit();
+          }}
+          style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}
+        >
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <Input
+              label="Status"
+              name="status"
+              type="select"
+              value={modalFields.status}
+              disabled={modalFields.status === "coustomer"}
+              onChange={(e) =>
+                setModalFields((p) => ({ ...p, status: e.target.value }))
+              }
+              options={statusSelectOptions}
+              required
+            />
+            <Input
+              label="Next Meeting Date"
+              name="nextMeetingDate"
+              type="date"
+              value={modalFields.nextMeetingDate}
+              onChange={(e) =>
+                setModalFields((p) => ({
+                  ...p,
+                  nextMeetingDate: e.target.value,
+                }))
+              }
+              required={false}
+            />
+            <div style={{ gridColumn: '1 / -1' }}>
               <Input
-                label="Status"
-                name="status"
+                label="Assigned To"
+                name="assignedTo"
                 type="select"
-                value={modalFields.status}
-                disabled={modalFields.status === "coustomer"}
-                onChange={(e) =>
-                  setModalFields((p) => ({ ...p, status: e.target.value }))
-                }
-                options={statusSelectOptions}
-                required
-              />
-              <Input
-                label="Next Meeting Date"
-                name="nextMeetingDate"
-                type="date"
-                value={modalFields.nextMeetingDate}
+                value={modalFields.assignedTo}
                 onChange={(e) =>
                   setModalFields((p) => ({
                     ...p,
-                    nextMeetingDate: e.target.value,
+                    assignedTo: e.target.value,
                   }))
                 }
+                options={employees.map((emp) => ({
+                  value: emp._id,
+                  label: emp.name,
+                }))}
                 required={false}
               />
-              <div className="col-span-2">
-                <Input
-                  label="Assigned To"
-                  name="assignedTo"
-                  type="select"
-                  value={modalFields.assignedTo}
-                  onChange={(e) =>
-                    setModalFields((p) => ({
-                      ...p,
-                      assignedTo: e.target.value,
-                    }))
-                  }
-                  options={employees.map((emp) => ({
-                    value: emp._id,
-                    label: emp.name,
-                  }))}
-                  required={false}
-                />
-              </div>
-              <div className="col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                  Notes
-                </label>
-                <div className="space-y-2">
-                  {modalFields.notes &&
-                    modalFields.notes.map((note, idx) => (
-                      <div
-                        key={idx}
-                        className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded p-2 group hover:shadow-sm transition-all"
-                      >
-                        <Input
-                          name={`note-${idx}`}
-                          type="text"
-                          value={note}
-                          onChange={(e) =>
-                            setModalFields((p) => ({
-                              ...p,
-                              notes: p.notes.map((n, i) =>
-                                i === idx ? e.target.value : n,
-                              ),
-                            }))
-                          }
-                          placeholder={`Note #${idx + 1}`}
-                          required={false}
-                          className="flex-1"
-                        />
-                        <button
-                          type="button"
-                          className="px-2 py-1 bg-red-100 text-red-600 rounded hover:bg-red-200 text-xs font-medium"
-                          onClick={() =>
-                            setModalFields((p) => ({
-                              ...p,
-                              notes: p.notes.filter((_, i) => i !== idx),
-                            }))
-                          }
-                        >
-                          Remove
-                        </button>
-                      </div>
-                    ))}
-                </div>
-                <button
-                  type="button"
-                  className="mt-3 px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 text-sm font-semibold w-full transition-all"
-                  onClick={() =>
-                    setModalFields((p) => ({
-                      ...p,
-                      notes: [...(p.notes || []), ""],
-                    }))
-                  }
-                >
-                  + Add Note
-                </button>
-              </div>
             </div>
-          </form>
-        )}
+            <div style={{ gridColumn: '1 / -1' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#374151', marginBottom: '6px' }}>
+                Notes
+              </label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {modalFields.notes &&
+                  modalFields.notes.map((note, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '8px',
+                        background: 'linear-gradient(160deg, #fafffe 0%, #f4fdf6 100%)',
+                        border: '1.5px solid #e2f4e6',
+                        borderLeft: '3px solid #84cc16',
+                        borderRadius: '8px',
+                        padding: '6px 8px',
+                      }}
+                    >
+                      <span style={{
+                        fontSize: '10px', fontWeight: 700, color: '#84cc16',
+                        minWidth: '16px', textAlign: 'center'
+                      }}>{idx + 1}</span>
+                      <input
+                        name={`note-${idx}`}
+                        type="text"
+                        value={note}
+                        onChange={(e) =>
+                          setModalFields((p) => ({
+                            ...p,
+                            notes: p.notes.map((n, i) =>
+                              i === idx ? e.target.value : n,
+                            ),
+                          }))
+                        }
+                        placeholder={`Add note...`}
+                        style={{
+                          flex: 1, border: 'none', background: 'transparent',
+                          fontSize: '12px', fontWeight: 500, color: '#1f2937',
+                          outline: 'none', padding: '2px 0'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        style={{
+                          width: '20px', height: '20px', borderRadius: '50%',
+                          background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)',
+                          color: '#ef4444', cursor: 'pointer', fontSize: '12px', fontWeight: 700,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          flexShrink: 0, lineHeight: 1
+                        }}
+                        onClick={() =>
+                          setModalFields((p) => ({
+                            ...p,
+                            notes: p.notes.filter((_, i) => i !== idx),
+                          }))
+                        }
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+              </div>
+              <button
+                type="button"
+                style={{
+                  marginTop: '8px', padding: '7px', width: '100%',
+                  fontSize: '12px', fontWeight: 700, color: '#022c03',
+                  background: 'linear-gradient(90deg, #84cc16 0%, #a3e635 100%)',
+                  border: 'none', borderRadius: '8px', cursor: 'pointer',
+                  boxShadow: '0 3px 8px rgba(132,204,22,0.35), inset 0 1px 0 rgba(255,255,255,0.35)',
+                  letterSpacing: '0.04em', textTransform: 'uppercase'
+                }}
+                onClick={() =>
+                  setModalFields((p) => ({
+                    ...p,
+                    notes: [...(p.notes || []), ""],
+                  }))
+                }
+              >
+                + Add Note
+              </button>
+            </div>
+          </div>
+        </form>
       </Modal>
 
       {/* Confirm modal */}

@@ -41,7 +41,7 @@ const Sidebar = ({ brandHighlight = "", onLogout }) => {
 
       {/* Footer */}
       <div className="py-3 px-4 border-t border-white/6 text-[11px] text-gray-700 text-center select-none">
-        &copy; {new Date().getFullYear()} <span style={{ fontFamily: "'Sallafi', 'Crimson Text', serif", fontWeight: 700, fontSize: '10px' }}>apex-CRM</span>
+        &copy; {new Date().getFullYear()} <span style={{ fontFamily: "'Black Ops One', system-ui, sans-serif", fontWeight: 700, fontSize: '10px' }}>apex-CRM</span>
       </div>
     </aside>
   );

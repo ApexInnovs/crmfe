@@ -505,7 +505,7 @@ const LoginPage = () => {
 
               {/* Brand */}
               <div style={{ textAlign: 'center', marginBottom: 20 }}>
-                <span style={{ fontSize: 22, fontWeight: 700, color: '#111', fontFamily: "'Sallafi', 'Crimson Text', serif", letterSpacing: '0.5px' }}>apex-CRM</span>
+                <span style={{ fontSize: 22, fontWeight: 500, color: '#111', fontFamily: "'Black Ops One', system-ui, sans-serif", letterSpacing: '0.5px' }}>apex-CRM</span>
               </div>
 
               {/* Form */}
@@ -554,6 +554,20 @@ const LoginPage = () => {
                     ) : 'Sign in'}
                   </span>
                 </button>
+
+                {/* Credits */}
+                <div style={{
+                  marginTop: '32px',
+                  paddingTop: '16px',
+                  borderTop: '1px solid #e5e5e5',
+                  textAlign: 'center',
+                  fontSize: '11px',
+                  color: '#999',
+                  fontFamily: "'DM Sans', system-ui, sans-serif",
+                  letterSpacing: '0.2px'
+                }}>
+                  <p style={{ margin: 0 }}>Developed by <strong style={{ color: '#333', fontWeight: 600 }}>ApexInnovs</strong> · Marketed by <strong style={{ color: '#333', fontWeight: 600 }}>Lenstalk</strong></p>
+                </div>
               </form>
             </div>
           </div>
@@ -563,7 +577,7 @@ const LoginPage = () => {
 
             <img
               className="lp-bg-img"
-              src="https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=1600&q=85"
+              src="https://images.unsplash.com/photo-1588345921523-c2dcdb7f1dcd?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
               alt=""
               onLoad={() => setImgLoaded(true)}
               style={{ opacity: imgLoaded ? 1 : 0 }}
@@ -573,138 +587,23 @@ const LoginPage = () => {
             <div className="lp-grain" />
 
             <div className="lp-right-content">
-
-              {/* Tagline */}
-              <p className="lp-tagline">
-                Turn every lead into<br />a loyal client.
-              </p>
-
-              {/* Floating CRM card */}
-              <div className="lp-crm-card">
-
-                {/* Chrome bar */}
-                <div className="lp-card-chrome">
-                  <div className="lp-dot" style={{ background: '#ff5f57' }} />
-                  <div className="lp-dot" style={{ background: '#ffbd2e' }} />
-                  <div className="lp-dot" style={{ background: '#28c840' }} />
-                  <span style={{ marginLeft: 8, fontSize: 10, color: 'rgba(255,255,255,.38)', fontFamily: "'DM Sans', sans-serif" }}>Campaign Overview</span>
-                  <div className="lp-live-pill"><div className="lp-live-dot" />LIVE</div>
-                </div>
-
-                {/* Search bar */}
-                <div className="lp-search-bar">
-                  <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="rgba(255,255,255,.35)" strokeWidth={2}>
-                    <circle cx="11" cy="11" r="8" /><path strokeLinecap="round" d="M21 21l-4.35-4.35" />
-                  </svg>
-                  <input
-                    type="text"
-                    placeholder="Search leads by name or email…"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                  {searchTerm && (
-                    <button className="lp-search-clear" onClick={() => setSearchTerm('')}>✕</button>
-                  )}
-                </div>
-
-                {/* Stats Grid */}
-                <div className="lp-stats-grid">
-                  <div className="lp-stat-box s-green">
-                    <div className="lp-stat-label">Total Leads</div>
-                    <div className="lp-stat-value">2,847</div>
-                    <div className="lp-stat-trend">↑ 17% this mo.</div>
-                  </div>
-                  <div className="lp-stat-box s-blue">
-                    <div className="lp-stat-label">Converted</div>
-                    <div className="lp-stat-value">641</div>
-                    <div className="lp-stat-trend">↑ 8% this mo.</div>
-                  </div>
-                  <div className="lp-stat-box s-purple">
-                    <div className="lp-stat-label">Active</div>
-                    <div className="lp-stat-value">18</div>
-                    <div className="lp-stat-trend">↑ 5% this mo.</div>
-                  </div>
-                </div>
-
-                {/* Conversion rate bar */}
-                <div className="lp-conv-bar">
-                  <div className="lp-conv-label">
-                    <span>Conversion Rate</span>
-                    <span style={{ color: '#4ade80', fontWeight: 700 }}>22.5%</span>
-                  </div>
-                  <div className="lp-conv-track"><div className="lp-conv-fill" /></div>
-                </div>
-
-                {/* Recent Leads — fixed height, filled with invisible placeholders */}
-                <div className="lp-section-label">
-                  <span>Recent Leads</span>
-                  <span className="lp-section-count">{searchTerm ? `${filteredLeads.length} found` : '6 total'}</span>
-                </div>
-
-                <div className="lp-leads-list">
-                  {searchLoading && searchTerm ? (
-                    <>
-                      {[1, 2, 3].map((i) => (
-                        <div key={`skeleton-${i}`} className="lp-skeleton-row">
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 9, flex: 1 }}>
-                            <div className="lp-skeleton-avatar" />
-                            <div className="lp-skeleton-text">
-                              <div className="lp-skeleton-line" />
-                              <div className="lp-skeleton-line" />
-                            </div>
-                          </div>
-                          <div className="lp-skeleton-badge" />
-                        </div>
-                      ))}
-                    </>
-                  ) : filteredLeads.length === 0 && searchTerm ? (
-                    <div className="lp-empty-state">
-                      <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="rgba(255,255,255,.22)" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z" />
-                      </svg>
-                      No leads match &ldquo;{searchTerm}&rdquo;
-                    </div>
-                  ) : (
-                    <>
-                      {filteredLeads.map(c => (
-                        <div key={c.name} className="lp-lead-row">
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                            <div className="lp-avatar">{c.name[0]}</div>
-                            <div>
-                              <p style={{ margin: 0, fontSize: 11.5, fontWeight: 600, color: '#fff', fontFamily: "'DM Sans', sans-serif" }}>{c.name}</p>
-                              <p style={{ margin: 0, fontSize: 9, color: 'rgba(255,255,255,.36)', fontFamily: "'DM Sans', sans-serif" }}>{c.email}</p>
-                            </div>
-                          </div>
-                          <span className="lp-badge" style={c.bs}>{c.badge}</span>
-                        </div>
-                      ))}
-                      {Array.from({ length: Math.max(0, 3 - filteredLeads.length) }).map((_, i) => (
-                        <div key={`ph-${i}`} className="lp-lead-row" style={{ opacity: 0, pointerEvents: 'none' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                            <div className="lp-avatar">-</div>
-                            <div><p style={{ margin: 0, fontSize: 11.5, color: '#fff' }}>-</p><p style={{ margin: 0, fontSize: 9 }}>-</p></div>
-                          </div>
-                        </div>
-                      ))}
-                    </>
-                  )}
-                </div>
-
-                {/* Card footer */}
-                <div className="lp-card-footer">
-                  <span className="lp-card-footer-label">ApexInnovs CRM</span>
-                  <span className="lp-card-footer-link">
-                    View all leads
-                    <svg width="9" height="9" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-                  </span>
-                </div>
-              </div>
-
-              {/* Play button */}
-              <div className="lp-play">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-                  <path d="M8 5v14l11-7z" />
-                </svg>
+              {/* Display Gradient Logo */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                padding: '40px 20px'
+              }}>
+                <img
+                  src="/Vibrant gradient triangle logo design.png"
+                  alt="Vibrant gradient triangle logo design"
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '100%',
+                    objectFit: 'contain'
+                  }}
+                />
               </div>
             </div>
           </div>
