@@ -13,7 +13,7 @@ import { AddButton } from '../../components/common/Table';
 const PROJECT_STATUSES = ['Not Started', 'In Progress', 'On Hold', 'Completed', 'Cancelled'];
 const PROJECT_STATUS_COLORS = {
   'Not Started': 'bg-gray-100 text-gray-700',
-  'In Progress': 'bg-blue-100 text-blue-700',
+  'In Progress': 'bg-rose-100 text-rose-700',
   'On Hold': 'bg-yellow-100 text-yellow-700',
   'Completed': 'bg-emerald-100 text-emerald-700',
   'Cancelled': 'bg-red-100 text-red-700',
@@ -368,28 +368,32 @@ const ConvertedClientsPage = () => {
                         <div className="text-sm font-mono text-gray-800 font-medium">{proj.budget ? `₹${proj.budget}` : <span className="text-gray-300">—</span>}</div>
                       </div>
                     </div>
-                    <div className="flex justify-end gap-2 pt-2">
-                      <button style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 600, color: '#022c03', border: 'none', borderRadius: '8px', cursor: 'pointer', background: 'linear-gradient(90deg, #84cc16 0%, #a3e635 100%)', boxShadow: '0 2px 6px rgba(132,204,22,0.2)', transition: 'all 0.2s' }} onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(132,204,22,0.4)'; e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 6px rgba(132,204,22,0.2)'; e.currentTarget.style.transform = 'translateY(0)'; }} onClick={() => setEditIdx(idx)}>Edit</button>
-                      <button style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 600, color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', background: '#ef4444', boxShadow: '0 2px 6px rgba(239,68,68,0.2)', transition: 'all 0.2s' }} onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(239,68,68,0.4)'; e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 6px rgba(239,68,68,0.2)'; e.currentTarget.style.transform = 'translateY(0)'; }} onClick={() => setConfirmIdx(idx)}>Remove</button>
-                    </div>
-                  </>
-                )}
-                {/* Confirm dialog for remove */}
-                {confirmIdx === idx && (
-                  <div className="fixed inset-0 z-60 flex items-center justify-center backdrop-blur-sm p-4">
-                    <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(220,220,225,0.5), rgba(180,180,190,0.6), rgba(140,140,150,0.8))' }} />
-                    <div className="absolute inset-0 pointer-events-none" style={{ filter: 'url(#modal-grain)', mixBlendMode: 'multiply' }} />
-                    <div className="absolute inset-0" onClick={() => setConfirmIdx(null)} />
-                    <div className="relative bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm z-10"
-                      style={{ border: '1px solid rgba(200,200,200,0.25)', borderTop: '4px solid #ef4444', boxShadow: '0 20px 60px rgba(0,0,0,0.15)' }}>
-                      <div className="font-bold text-gray-900 mb-1">Remove this project?</div>
-                      <div className="text-sm text-gray-500 mb-5">Are you sure you want to remove <span className="font-semibold text-gray-800">"{proj.name || 'this project'}"</span>? This cannot be undone.</div>
-                      <div className="flex justify-end gap-3">
-                        <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-all" onClick={() => setConfirmIdx(null)}>Cancel</button>
-                        <button className="px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-600 rounded-lg transition-all" onClick={async () => { await handleRemove(idx); setConfirmIdx(null); onClose && onClose(); }}>Remove</button>
+                    {confirmIdx === idx ? (
+                      <div className="flex items-center justify-between gap-3 pt-3 px-3 py-2.5 rounded-lg mt-3" style={{ background: 'linear-gradient(135deg, rgba(153,27,27,0.08) 0%, rgba(153,27,27,0.04) 100%)', border: '1.5px solid rgba(153,27,27,0.2)', backdropFilter: 'blur(4px)' }}>
+                        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#991b1b" strokeWidth="2.5" strokeLinecap="round" style={{ flexShrink: 0 }}>
+                            <circle cx="12" cy="12" r="10" />
+                            <line x1="12" y1="8" x2="12" y2="12" />
+                            <line x1="12" y1="16" x2="12.01" y2="16" />
+                          </svg>
+                          <span className="text-sm font-semibold text-gray-900" style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                            Remove
+                            <span className="text-red-700 font-bold px-2 py-0.5 rounded" style={{ background: 'rgba(153,27,27,0.12)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px' }}>"{proj.name || 'this project'}"</span>
+                            ?
+                          </span>
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                          <button style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 600, color: '#374151', border: '1px solid #d1d5db', borderRadius: '7px', cursor: 'pointer', background: '#fff', transition: 'all 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }} onMouseEnter={e => { e.currentTarget.style.background = '#f9fafb'; e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.08)'; }} onMouseLeave={e => { e.currentTarget.style.background = '#fff'; e.currentTarget.style.boxShadow = '0 1px 2px rgba(0,0,0,0.05)'; }} onClick={() => setConfirmIdx(null)}>Cancel</button>
+                          <button style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 600, color: '#fff', border: 'none', borderRadius: '7px', cursor: 'pointer', background: '#991b1b', transition: 'all 0.2s', boxShadow: '0 2px 6px rgba(153,27,27,0.3)' }} onMouseEnter={e => { e.currentTarget.style.background = '#7f1d1d'; e.currentTarget.style.boxShadow = '0 4px 10px rgba(153,27,27,0.4)'; e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={e => { e.currentTarget.style.background = '#991b1b'; e.currentTarget.style.boxShadow = '0 2px 6px rgba(153,27,27,0.3)'; e.currentTarget.style.transform = 'translateY(0)'; }} onClick={async () => { await handleRemove(idx); setConfirmIdx(null); }}>Confirm Remove</button>
+                        </div>
                       </div>
-                    </div>
-                  </div>
+                    ) : (
+                      <div className="flex justify-end gap-2 pt-2">
+                        <button style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 600, color: '#022c03', border: 'none', borderRadius: '8px', cursor: 'pointer', background: 'linear-gradient(90deg, #84cc16 0%, #a3e635 100%)', boxShadow: '0 2px 6px rgba(132,204,22,0.2)', transition: 'all 0.2s' }} onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(132,204,22,0.4)'; e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 6px rgba(132,204,22,0.2)'; e.currentTarget.style.transform = 'translateY(0)'; }} onClick={() => setEditIdx(idx)}>Edit</button>
+                        <button style={{ padding: '6px 14px', fontSize: '12px', fontWeight: 600, color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer', background: '#991b1b', boxShadow: '0 2px 6px rgba(153,27,27,0.2)', transition: 'all 0.2s' }} onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(153,27,27,0.4)'; e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 6px rgba(153,27,27,0.2)'; e.currentTarget.style.transform = 'translateY(0)'; }} onClick={() => setConfirmIdx(idx)}>Remove</button>
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             ))}
