@@ -101,6 +101,7 @@ const LoginPage = () => {
           padding: 0;
           position: relative;
           z-index: 2;
+          background:#dadada;
         }
 
         .lp-left-chrome {
@@ -577,8 +578,8 @@ const LoginPage = () => {
 
             <img
               className="lp-bg-img"
-              src="https://images.unsplash.com/photo-1588345921523-c2dcdb7f1dcd?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
-              alt=""
+              src="/loginBg.png"
+              alt="Login background"
               onLoad={() => setImgLoaded(true)}
               style={{ opacity: imgLoaded ? 1 : 0 }}
             />
@@ -593,15 +594,32 @@ const LoginPage = () => {
                 alignItems: 'center',
                 justifyContent: 'center',
                 height: '100%',
-                padding: '40px 20px'
+                padding: '40px 20px',
+                position: 'relative'
               }}>
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: '220px',
+                    height: '200px',
+                    background: 'rgba(255,255,255,0.55)',
+                    filter: 'blur(18px)',
+                    borderRadius: '32px',
+                    zIndex: 1
+                  }}
+                />
                 <img
                   src="/Vibrant gradient triangle logo design.png"
                   alt="Vibrant gradient triangle logo design"
                   style={{
                     maxWidth: '100%',
                     maxHeight: '100%',
-                    objectFit: 'contain'
+                    objectFit: 'contain',
+                    position: 'relative',
+                    zIndex: 2
                   }}
                 />
               </div>

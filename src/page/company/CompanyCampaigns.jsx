@@ -2020,7 +2020,7 @@ const CompanyCampaigns = () => {
               {/* Input row with labels */}
               <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
                 {[
-                  { key: 'Name', label: 'Field Key', placeholder: 'e.g. phone_number', flex: '1 1 100px', minWidth: '90px' },
+                  { key: 'name', label: 'Field Key', placeholder: 'e.g. phone_number', flex: '1 1 100px', minWidth: '90px' },
                   { key: 'Label', label: 'Label', placeholder: 'e.g. Phone Number', flex: '1 1 100px', minWidth: '90px' },
                   { key: 'Type', label: 'Type', placeholder: 'text', isSelect: true, flex: '0 0 95px' },
                   { key: 'Placeholder', label: 'Placeholder', placeholder: 'optional', flex: '1 1 90px', minWidth: '80px' },
