@@ -380,7 +380,9 @@ const PublicCampaignPage = () => {
                               <label key={opt} className={`cmp-option-item${checked ? ' cmp-option-item--selected' : ''}`}>
                                 <span className={`cmp-checkbox-box${checked ? ' cmp-checkbox-box--checked' : ''}`}>
                                   {checked && (
-                                    <img src="/image.png" alt="checked" style={{ width: '16px', height: '16px' }} />
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#1C1917" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                      <polyline points="20 6 9 17 4 12" />
+                                    </svg>
                                   )}
                                 </span>
                                 <input
@@ -681,14 +683,14 @@ const GLOBAL_STYLES = `
     user-select: none;
   }
   .cmp-option-item:hover {
-    border-color: #78716C;
+    border-color: #16A34A;
     background: linear-gradient(180deg, #FFFFFF 0%, #FAFAF9 100%);
-    box-shadow: 0 0 0 1px rgba(120, 113, 108, 0.05) inset;
+    box-shadow: 0 0 0 1px rgba(22,163,74,0.1) inset;
   }
   .cmp-option-item--selected {
-    border-color: #78716C;
+    border-color: #16A34A;
     background: linear-gradient(180deg, #FFFCF9 0%, #FAFAF9 100%);
-    box-shadow: 0 0 0 2.5px rgba(120,113,108,0.06), 0 0 0 1px rgba(255,255,255,0.4) inset;
+    box-shadow: 0 0 0 2.5px rgba(22,163,74,0.15), 0 0 0 1px rgba(255,255,255,0.4) inset;
   }
   .cmp-option-label {
     font-family: 'Roboto', sans-serif;
@@ -711,8 +713,8 @@ const GLOBAL_STYLES = `
     justify-content: center;
   }
   .cmp-radio-dot--checked {
-    border-color: #78716C;
-    background: #78716C;
+    border-color: #16A34A;
+    background: #86EFAC;
     box-shadow: inset 0 0 0 2.5px #fff;
   }
 
@@ -730,8 +732,17 @@ const GLOBAL_STYLES = `
     justify-content: center;
   }
   .cmp-checkbox-box--checked {
-    border-color: #78716C;
-    background: #78716C;
+    border-color: #16A34A;
+    background: #86EFAC;
+    box-shadow: 0 1px 2px rgba(22,163,74,0.1);
+  }
+  .cmp-option-item:has(input:focus) .cmp-checkbox-box {
+    border-color: #16A34A;
+    box-shadow: 0 0 0 2px rgba(22,163,74,0.15);
+  }
+  .cmp-option-item:has(input:focus) .cmp-radio-dot {
+    border-color: #16A34A;
+    box-shadow: 0 0 0 2px rgba(22,163,74,0.15);
   }
 
   /* ── Error message (shadcn style) ── */

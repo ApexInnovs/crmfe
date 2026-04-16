@@ -2021,9 +2021,9 @@ const CompanyCampaigns = () => {
               <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
                 {[
                   { key: 'name', label: 'Field Key', placeholder: 'e.g. phone_number', flex: '1 1 100px', minWidth: '90px' },
-                  { key: 'Label', label: 'Label', placeholder: 'e.g. Phone Number', flex: '1 1 100px', minWidth: '90px' },
-                  { key: 'Type', label: 'Type', placeholder: 'text', isSelect: true, flex: '0 0 95px' },
-                  { key: 'Placeholder', label: 'Placeholder', placeholder: 'optional', flex: '1 1 90px', minWidth: '80px' },
+                  { key: 'label', label: 'Label', placeholder: 'e.g. Phone Number', flex: '1 1 100px', minWidth: '90px' },
+                  { key: 'type', label: 'Type', placeholder: 'text', isSelect: true, flex: '0 0 95px' },
+                  { key: 'placeholder', label: 'Placeholder', placeholder: 'optional', flex: '1 1 90px', minWidth: '80px' },
                 ].map(({ key, label, placeholder, flex, minWidth, isSelect }) => (
                   <div key={key} style={{ flex, minWidth: minWidth || '70px' }}>
                     <label style={{ fontSize: '10px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '5px', opacity: 0.9 }}>{label}</label>
@@ -2052,18 +2052,7 @@ const CompanyCampaigns = () => {
                             if (value && !/^[a-zA-Z0-9_]*$/.test(value)) {
                               return; // Silently reject invalid characters
                             }
-                            // Auto-fill label and placeholder based on field name
-                            const formattedLabel = value
-                              .split('_')
-                              .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                              .join(' ');
-                            const formattedPlaceholder = `Please Enter Your ${formattedLabel}`;
-                            setNewField(p => ({
-                              ...p,
-                              name: value,
-                              label: formattedLabel,
-                              placeholder: formattedPlaceholder
-                            }));
+                            setNewField(p => ({ ...p, name: value }));
                           } else {
                             setNewField(p => ({ ...p, [key]: value }));
                           }
@@ -2077,7 +2066,7 @@ const CompanyCampaigns = () => {
                 ))}
 
                 {/* Options field (conditional) */}
-                {['Dropdown', 'Radio', 'Checkbox'].includes(newField.type) && (
+                {['dropdown', 'radio', 'checkbox'].includes(newField.type) && (
                   <div style={{ flex: '1 1 110px', minWidth: '100px' }}>
                     <label style={{ fontSize: '10px', fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '5px', opacity: 0.9 }}>Options</label>
                     <input
