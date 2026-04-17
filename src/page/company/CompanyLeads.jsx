@@ -256,6 +256,12 @@ const CompanyLeads = () => {
   // Info modal state
   const [infoModal, setInfoModal] = useState({ open: false, lead: null });
 
+  // AI Review Modal state
+  const [aiReviewModal, setAiReviewModal] = useState({
+    open: false,
+    lead: null,
+  });
+
   // Add Recording Modal state
   const [addRecordingModal, setAddRecordingModal] = useState({
     open: false,
@@ -739,10 +745,37 @@ const CompanyLeads = () => {
     {
       key: "call_performance",
       label: "Rating",
-      render: (v) => {
+      render: (v, row) => {
         const rating = Number(v) || 0;
+        const hasAiReview = row.ai_review && Array.isArray(row.ai_review) && row.ai_review.length > 0;
         return (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600 }}>
+          <button
+            onClick={() => hasAiReview && setAiReviewModal({ open: true, lead: row })}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              fontSize: 13,
+              fontWeight: 600,
+              background: 'transparent',
+              border: 'none',
+              cursor: hasAiReview ? 'pointer' : 'default',
+              padding: '4px 8px',
+              borderRadius: '6px',
+              transition: 'all 0.15s ease',
+            }}
+            title={hasAiReview ? 'Click to view AI Review' : 'No AI Review available'}
+            onMouseEnter={e => {
+              if (hasAiReview) {
+                e.currentTarget.style.background = 'rgba(132, 204, 22, 0.1)';
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
             {rating > 0 ? (
               <svg viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg" width="18" height="18" preserveAspectRatio="xMidYMid meet">
                 <path d="M68.05 7.23l13.46 30.7a7.047 7.047 0 0 0 5.82 4.19l32.79 2.94c3.71.54 5.19 5.09 2.5 7.71l-24.7 20.75c-2 1.68-2.91 4.32-2.36 6.87l7.18 33.61c.63 3.69-3.24 6.51-6.56 4.76L67.56 102a7.033 7.033 0 0 0-7.12 0l-28.62 16.75c-3.31 1.74-7.19-1.07-6.56-4.76l7.18-33.61c.54-2.55-.36-5.19-2.36-6.87L5.37 52.78c-2.68-2.61-1.2-7.17 2.5-7.71l32.79-2.94a7.047 7.047 0 0 0 5.82-4.19l13.46-30.7c1.67-3.36 6.45-3.36 8.11-.01z" fill="#fdd835"></path>
@@ -762,7 +795,7 @@ const CompanyLeads = () => {
               </svg>
             )}
             <span style={{ color: rating > 0 ? '#92400e' : '#d1d5db' }}>{rating}</span>
-          </div>
+          </button>
         );
       },
     },
@@ -1863,6 +1896,297 @@ const CompanyLeads = () => {
               )}
             </div>
 
+          </div>
+        )}
+      </Modal>
+
+      {/* AI Review Modal */}
+      <Modal
+        isOpen={aiReviewModal.open}
+        onClose={() => setAiReviewModal({ open: false, lead: null })}
+        title={
+          aiReviewModal.lead
+            ? `🎤 AI Review - ${leadLabel(aiReviewModal.lead)}`
+            : "🎤 AI Review"
+        }
+        footer={
+          <button
+            type="button"
+            style={{
+              padding: '8px 20px',
+              fontSize: '12px',
+              fontWeight: 700,
+              color: '#ffffff',
+              background: 'linear-gradient(135deg, #84cc16 0%, #65a30d 100%)',
+              border: 'none',
+              borderRadius: '8px',
+              boxShadow: '0 4px 12px rgba(132,204,22,0.4), 0 2px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.3)',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.boxShadow = '0 8px 20px rgba(132,204,22,0.6), 0 2px 6px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.3)';
+              e.target.style.transform = 'translateY(-1px)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.boxShadow = '0 4px 12px rgba(132,204,22,0.4), 0 2px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.3)';
+              e.target.style.transform = 'translateY(0)';
+            }}
+            onClick={() => setAiReviewModal({ open: false, lead: null })}
+          >
+            Close
+          </button>
+        }
+      >
+        {aiReviewModal.lead && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', padding: '4px' }}>
+            {/* Premium Header with Call Quality Score */}
+            {aiReviewModal.lead.ai_review && Array.isArray(aiReviewModal.lead.ai_review) && aiReviewModal.lead.ai_review.length > 0 && (
+              <div style={{
+                background: 'linear-gradient(135deg, #84cc16 0%, #65a30d 80%, #4d7c0f 100%)',
+                borderRadius: '14px',
+                padding: '20px',
+                color: 'white',
+                position: 'relative',
+                overflow: 'hidden',
+                boxShadow: '0 8px 24px rgba(132,204,22,0.3), inset 0 1px 0 rgba(255,255,255,0.2)'
+              }}>
+                {/* Background decoration */}
+                <div style={{
+                  position: 'absolute',
+                  top: -40,
+                  right: -40,
+                  width: 120,
+                  height: 120,
+                  borderRadius: '50%',
+                  background: 'rgba(255,255,255,0.1)',
+                  pointerEvents: 'none'
+                }} />
+
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                    <span style={{ fontSize: '13px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.9 }}>
+                      Call Quality Assessment
+                    </span>
+                    <span style={{
+                      fontSize: '11px', fontWeight: 700, textTransform: 'uppercase',
+                      background: 'rgba(255,255,255,0.25)', padding: '4px 10px', borderRadius: '20px',
+                      backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)'
+                    }}>
+                      {aiReviewModal.lead.ai_review.filter(r => r.matched).length}/{aiReviewModal.lead.ai_review.length}
+                    </span>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div style={{
+                    height: '8px',
+                    background: 'rgba(255,255,255,0.25)',
+                    borderRadius: '10px',
+                    overflow: 'hidden',
+                    border: '1px solid rgba(255,255,255,0.3)'
+                  }}>
+                    <div style={{
+                      height: '100%',
+                      background: 'linear-gradient(90deg, #dcfce7 0%, #86efac 100%)',
+                      width: `${Math.round((aiReviewModal.lead.ai_review.filter(r => r.matched).length / aiReviewModal.lead.ai_review.length) * 100)}%`,
+                      transition: 'width 0.6s ease',
+                      boxShadow: '0 0 10px rgba(134,239,172,0.6)'
+                    }} />
+                  </div>
+
+                  <div style={{ marginTop: '10px', fontSize: '12px', opacity: 0.9 }}>
+                    <span style={{ fontWeight: 600 }}>
+                      {aiReviewModal.lead.ai_review.filter(r => r.matched).length} matched criteria
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* AI Review Badges */}
+            {aiReviewModal.lead.ai_review && Array.isArray(aiReviewModal.lead.ai_review) && aiReviewModal.lead.ai_review.length > 0 ? (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                gap: '12px',
+                padding: '16px',
+                background: 'linear-gradient(160deg, #ffffff 0%, #f9fafb 50%, #f3f4f6 100%)',
+                borderRadius: '14px',
+                border: '1.5px solid #e5e7eb',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.9)'
+              }}>
+                {aiReviewModal.lead.ai_review.map((review, idx) => {
+                  const isMatched = review.matched === true;
+                  const bgColor = isMatched
+                    ? 'linear-gradient(135deg, #dcfce7 0%, #d1fae5 100%)'
+                    : 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)';
+                  const borderColor = isMatched ? '#6ee7b7' : '#fca5a5';
+                  const textColor = isMatched ? '#065f46' : '#7c2d12';
+                  const dotColor = isMatched ? '#10b981' : '#ef4444';
+                  const iconColor = isMatched ? '#059669' : '#dc2626';
+
+                  const getIcon = (label) => {
+                    const iconMap = {
+                      'Greeting': '👋',
+                      'Product Mention': '📦',
+                      'Pricing Discussion': '💰',
+                      'Politeness': '🤝',
+                      'Invitation to Ask': '❓',
+                      'Closing': '✔️',
+                      'Helpfulness': '🎯',
+                    };
+                    return iconMap[label] || '•';
+                  };
+
+                  return (
+                    <div
+                      key={idx}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-start',
+                        gap: '10px',
+                        padding: '14px',
+                        background: bgColor,
+                        border: `2px solid ${borderColor}`,
+                        borderRadius: '12px',
+                        boxShadow: `0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.7)`,
+                        transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                        cursor: 'default',
+                        position: 'relative',
+                        overflow: 'hidden'
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.boxShadow = `0 8px 20px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.7)`;
+                        e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)';
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.boxShadow = `0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.7)`;
+                        e.currentTarget.style.transform = 'translateY(0) scale(1)';
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%' }}>
+                        <span style={{ fontSize: '20px' }}>{getIcon(review.label)}</span>
+                        <div style={{ flex: 1 }}>
+                          <span style={{
+                            fontSize: '13px',
+                            fontWeight: 700,
+                            color: textColor,
+                            lineHeight: '1.3',
+                            display: 'block'
+                          }}>
+                            {review.label}
+                          </span>
+                        </div>
+                      </div>
+                      <div style={{
+                        alignSelf: 'flex-start',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        color: textColor,
+                        background: isMatched ? 'rgba(16, 185, 129, 0.1)' : 'rgba(220, 38, 38, 0.1)',
+                        padding: '4px 8px',
+                        borderRadius: '6px'
+                      }}>
+                        <span style={{
+                          width: '6px',
+                          height: '6px',
+                          borderRadius: '50%',
+                          background: dotColor,
+                          boxShadow: `0 0 3px ${dotColor}80`
+                        }} />
+                        {isMatched ? '✓ Matched' : '✗ Not Matched'}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div style={{
+                padding: '24px',
+                textAlign: 'center',
+                color: '#6b7280',
+                fontSize: '13px',
+                background: 'linear-gradient(135deg, #f8fafc 0%, #f3f4f6 100%)',
+                borderRadius: '12px',
+                border: '1.5px dashed #d1d5db',
+                fontWeight: 500
+              }}>
+                No AI review data available.
+              </div>
+            )}
+
+            {/* Enhanced Summary Stats with visual cards */}
+            {aiReviewModal.lead.ai_review && Array.isArray(aiReviewModal.lead.ai_review) && aiReviewModal.lead.ai_review.length > 0 && (
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '12px',
+              }}>
+                <div style={{
+                  background: 'linear-gradient(135deg, #dcfce7 0%, #d1fae5 100%)',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  border: '1.5px solid #6ee7b7',
+                  boxShadow: '0 4px 12px rgba(16,185,129,0.15), inset 0 1px 0 rgba(255,255,255,0.7)',
+                  textAlign: 'center'
+                }}>
+                  <div style={{
+                    fontSize: '28px',
+                    fontWeight: 800,
+                    color: '#047857',
+                    lineHeight: '1',
+                    marginBottom: '6px'
+                  }}>
+                    {aiReviewModal.lead.ai_review.filter(r => r.matched).length}
+                  </div>
+                  <div style={{
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: '#059669',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    opacity: 0.8
+                  }}>
+                    ✓ Matched
+                  </div>
+                </div>
+
+                <div style={{
+                  background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  border: '1.5px solid #fca5a5',
+                  boxShadow: '0 4px 12px rgba(220,38,38,0.15), inset 0 1px 0 rgba(255,255,255,0.7)',
+                  textAlign: 'center'
+                }}>
+                  <div style={{
+                    fontSize: '28px',
+                    fontWeight: 800,
+                    color: '#991b1b',
+                    lineHeight: '1',
+                    marginBottom: '6px'
+                  }}>
+                    {aiReviewModal.lead.ai_review.filter(r => !r.matched).length}
+                  </div>
+                  <div style={{
+                    fontSize: '12px',
+                    fontWeight: 700,
+                    color: '#dc2626',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    opacity: 0.8
+                  }}>
+                    ✗ Not Matched
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </Modal>

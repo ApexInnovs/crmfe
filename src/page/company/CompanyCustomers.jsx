@@ -163,11 +163,11 @@ const ConvertedClientsPage = () => {
 
   const handleSubmit = async () => {
     // Phone number validation: must be 10 digits and numeric
-    const phone = modalFields.phone || '';
-    if (!/^\d{10}$/.test(phone)) {
-      toast.error('Phone number must be exactly 10 digits.');
-      return;
-    }
+    // const phone = modalFields.phone || '';
+    // if (!/^\d{10}$/.test(phone)) {
+    //   toast.error('Phone number must be exactly 10 digits.');
+    //   return;
+    // }
     setModalLoading(true);
     try {
       const payload = {
