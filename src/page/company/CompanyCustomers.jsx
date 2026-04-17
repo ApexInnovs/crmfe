@@ -233,9 +233,8 @@ const ConvertedClientsPage = () => {
       if (clientId) {
         try {
           await updateClient(clientId, { projects: updated });
-          if (typeof onSave === 'function') onSave();
-          setProjectModal(pm => ({ ...pm, projects: updated }));
           toast.success('Project removed.');
+          if (typeof onClose === 'function') onClose(); // Close modal after removal
         } catch (e) {
           toast.error(e.response?.data?.message || 'Failed to update projects');
         }
