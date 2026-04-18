@@ -1966,13 +1966,13 @@ const CompanyLeads = () => {
                 }} />
 
                 <div style={{ position: 'relative', zIndex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-                    <span style={{ fontSize: '13px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.9 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.1em', opacity: 0.9 }}>
                       Call Quality Assessment
                     </span>
                     <span style={{
                       fontSize: '11px', fontWeight: 700, textTransform: 'uppercase',
-                      background: 'rgba(255,255,255,0.25)', padding: '4px 10px', borderRadius: '20px',
+                      background: 'rgba(255,255,255,0.25)', padding: '2px 6px', borderRadius: '10px',
                       backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)'
                     }}>
                       {aiReviewModal.lead.ai_review.filter(r => r.matched).length}/{aiReviewModal.lead.ai_review.length}
@@ -2047,35 +2047,40 @@ const CompanyLeads = () => {
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'flex-start',
-                        gap: '10px',
-                        padding: '14px',
+                        gap: '6px',
+                        padding: '8px',
                         background: bgColor,
-                        border: `2px solid ${borderColor}`,
-                        borderRadius: '12px',
-                        boxShadow: `0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.7)`,
+                        border: `1.5px solid ${borderColor}`,
+                        borderRadius: '8px',
+                        boxShadow: `0 1px 4px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.5)`,
                         transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
                         cursor: 'default',
                         position: 'relative',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        minHeight: '44px',
+                        maxHeight: '60px',
                       }}
                       onMouseEnter={e => {
-                        e.currentTarget.style.boxShadow = `0 8px 20px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.7)`;
-                        e.currentTarget.style.transform = 'translateY(-4px) scale(1.02)';
+                        e.currentTarget.style.boxShadow = `0 4px 10px rgba(0,0,0,0.10), inset 0 1px 0 rgba(255,255,255,0.5)`;
+                        e.currentTarget.style.transform = 'translateY(-2px) scale(1.01)';
                       }}
                       onMouseLeave={e => {
-                        e.currentTarget.style.boxShadow = `0 2px 8px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.7)`;
+                        e.currentTarget.style.boxShadow = `0 1px 4px rgba(0,0,0,0.04), inset 0 1px 0 rgba(255,255,255,0.5)`;
                         e.currentTarget.style.transform = 'translateY(0) scale(1)';
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%' }}>
-                        <span style={{ fontSize: '20px' }}>{getIcon(review.label)}</span>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', width: '100%' }}>
+                        <span style={{ fontSize: '15px' }}>{getIcon(review.label)}</span>
                         <div style={{ flex: 1 }}>
                           <span style={{
-                            fontSize: '13px',
+                            fontSize: '11px',
                             fontWeight: 700,
                             color: textColor,
-                            lineHeight: '1.3',
-                            display: 'block'
+                            lineHeight: '1.2',
+                            display: 'block',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
                           }}>
                             {review.label}
                           </span>
@@ -2085,20 +2090,21 @@ const CompanyLeads = () => {
                         alignSelf: 'flex-start',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '6px',
-                        fontSize: '11px',
+                        gap: '4px',
+                        fontSize: '9.5px',
                         fontWeight: 600,
                         color: textColor,
-                        background: isMatched ? 'rgba(16, 185, 129, 0.1)' : 'rgba(220, 38, 38, 0.1)',
-                        padding: '4px 8px',
-                        borderRadius: '6px'
+                        background: isMatched ? 'rgba(16, 185, 129, 0.08)' : 'rgba(220, 38, 38, 0.08)',
+                        padding: '2px 6px',
+                        borderRadius: '4px',
+                        minHeight: '18px',
                       }}>
                         <span style={{
-                          width: '6px',
-                          height: '6px',
+                          width: '5px',
+                          height: '5px',
                           borderRadius: '50%',
                           background: dotColor,
-                          boxShadow: `0 0 3px ${dotColor}80`
+                          boxShadow: `0 0 2px ${dotColor}80`
                         }} />
                         {isMatched ? '✓ Matched' : '✗ Not Matched'}
                       </div>
@@ -2126,31 +2132,35 @@ const CompanyLeads = () => {
               <div style={{
                 display: 'grid',
                 gridTemplateColumns: '1fr 1fr',
-                gap: '12px',
+                gap: '8px',
               }}>
                 <div style={{
                   background: 'linear-gradient(135deg, #dcfce7 0%, #d1fae5 100%)',
-                  padding: '16px',
-                  borderRadius: '12px',
-                  border: '1.5px solid #6ee7b7',
-                  boxShadow: '0 4px 12px rgba(16,185,129,0.15), inset 0 1px 0 rgba(255,255,255,0.7)',
-                  textAlign: 'center'
+                  padding: '8px',
+                  borderRadius: '7px',
+                  border: '1px solid #6ee7b7',
+                  boxShadow: '0 1px 4px rgba(16,185,129,0.10), inset 0 1px 0 rgba(255,255,255,0.4)',
+                  textAlign: 'center',
+                  minHeight: '38px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
                 }}>
                   <div style={{
-                    fontSize: '28px',
+                    fontSize: '17px',
                     fontWeight: 800,
                     color: '#047857',
                     lineHeight: '1',
-                    marginBottom: '6px'
+                    marginBottom: '2px'
                   }}>
                     {aiReviewModal.lead.ai_review.filter(r => r.matched).length}
                   </div>
                   <div style={{
-                    fontSize: '12px',
+                    fontSize: '9px',
                     fontWeight: 700,
                     color: '#059669',
                     textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
+                    letterSpacing: '0.04em',
                     opacity: 0.8
                   }}>
                     ✓ Matched
@@ -2159,27 +2169,31 @@ const CompanyLeads = () => {
 
                 <div style={{
                   background: 'linear-gradient(135deg, #fee2e2 0%, #fecaca 100%)',
-                  padding: '16px',
-                  borderRadius: '12px',
-                  border: '1.5px solid #fca5a5',
-                  boxShadow: '0 4px 12px rgba(220,38,38,0.15), inset 0 1px 0 rgba(255,255,255,0.7)',
-                  textAlign: 'center'
+                  padding: '8px',
+                  borderRadius: '7px',
+                  border: '1px solid #fca5a5',
+                  boxShadow: '0 1px 4px rgba(220,38,38,0.10), inset 0 1px 0 rgba(255,255,255,0.4)',
+                  textAlign: 'center',
+                  minHeight: '38px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'center',
                 }}>
                   <div style={{
-                    fontSize: '28px',
+                    fontSize: '17px',
                     fontWeight: 800,
                     color: '#991b1b',
                     lineHeight: '1',
-                    marginBottom: '6px'
+                    marginBottom: '2px'
                   }}>
                     {aiReviewModal.lead.ai_review.filter(r => !r.matched).length}
                   </div>
                   <div style={{
-                    fontSize: '12px',
+                    fontSize: '9px',
                     fontWeight: 700,
                     color: '#dc2626',
                     textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
+                    letterSpacing: '0.04em',
                     opacity: 0.8
                   }}>
                     ✗ Not Matched
