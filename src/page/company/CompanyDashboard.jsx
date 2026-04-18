@@ -151,7 +151,7 @@ const CampaignAutocomplete = ({ companyId, value, onChange }) => {
             <li key={r._id} className="cd-autocomplete__option" onMouseDown={() => pick(r)}>
               <span className="cd-autocomplete__opt-title">{r.title || r.name}</span>
               {r.status && <span className={`cd-autocomplete__badge cd-autocomplete__badge--${r.status}`}>
-                {r.status === 1 ? 'Active' : r.status === 2 ? 'Started' : r.status === 3 ? 'Completed' : 'Cancelled'}
+                {r.status === 1 ? 'Pending' : r.status === 2 ? 'Started' : r.status === 3 ? 'Completed' : 'Cancelled'}
               </span>}
             </li>
           ))}

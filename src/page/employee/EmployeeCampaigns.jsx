@@ -6,13 +6,13 @@ import { getCampaignsByCompany } from '../../api/campigneAndLeadApi';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All' },
-  { value: 1, label: 'Active' },
+  { value: 1, label: 'Pending' },
   { value: 2, label: 'Started' },
   { value: 3, label: 'Completed' },
   { value: 4, label: 'Cancelled' },
 ];
 
-const STATUS_LABELS = { 1: 'Active', 2: 'Started', 3: 'Completed', 4: 'Cancelled' };
+const STATUS_LABELS = { 1: 'Pending', 2: 'Started', 3: 'Completed', 4: 'Cancelled' };
 const STATUS_COLORS = {
   1: 'bg-emerald-100 text-emerald-700 border-emerald-200',
   2: 'bg-blue-100 text-blue-700 border-blue-200',

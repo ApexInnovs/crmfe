@@ -24,13 +24,13 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All' },
-  { value: 1, label: 'Active' },
+  { value: 1, label: 'Pending' },
   { value: 2, label: 'Started' },
   { value: 3, label: 'Completed' },
   { value: 4, label: 'Cancelled' },
 ];
 
-const STATUS_LABELS = { 1: 'Active', 2: 'Started', 3: 'Completed', 4: 'Cancelled' };
+const STATUS_LABELS = { 1: 'Pending', 2: 'Started', 3: 'Completed', 4: 'Cancelled' };
 const STATUS_COLORS = {
   1: 'bg-emerald-100 text-emerald-700 border-emerald-200',
   2: 'bg-blue-100 text-blue-700 border-blue-200',
@@ -1503,7 +1503,7 @@ const CompanyCampaigns = () => {
       filter: { options: STATUS_OPTIONS, value: status, onChange: handleStatusChange },
       render: v => {
         const statusStyles = {
-          1: { label: 'Active', bgGradient: 'from-rose-50 to-rose-100', text: 'text-rose-700', border: 'border-rose-300', dot: 'bg-rose-500', glow: 'rgba(239, 68, 68, 0.15)' },
+          1: { label: 'Pending', bgGradient: 'from-rose-50 to-rose-100', text: 'text-rose-700', border: 'border-rose-300', dot: 'bg-rose-500', glow: 'rgba(239, 68, 68, 0.15)' },
           2: { label: 'Started', bgGradient: 'from-emerald-50 to-emerald-100', text: 'text-emerald-700', border: 'border-emerald-300', dot: 'bg-emerald-500', glow: 'rgba(16, 185, 129, 0.15)' },
           3: { label: 'Completed', bgGradient: 'from-slate-50 to-slate-100', text: 'text-slate-600', border: 'border-slate-300', dot: 'bg-slate-400', glow: 'rgba(100, 116, 139, 0.15)' },
           4: { label: 'Cancelled', bgGradient: 'from-red-50 to-red-100', text: 'text-red-700', border: 'border-red-300', dot: 'bg-red-500', glow: 'rgba(239, 68, 68, 0.15)' },
