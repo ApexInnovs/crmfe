@@ -171,7 +171,6 @@ const PublicCampaignPage = () => {
             </div>
           )}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <button onClick={() => window.location.href = '/'} className="cmp-btn-primary">Go to Dashboard</button>
             <button onClick={() => window.location.reload()} className="cmp-btn-outline">Try Again</button>
           </div>
         </div>
