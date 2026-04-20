@@ -222,10 +222,29 @@ const ConvertedClientsPage = () => {
     const [editIdx, setEditIdx] = useState(null); // null = view mode, number = edit mode for that project
     useEffect(() => { setLocalProjects(projects || []); setEditIdx(null); }, [projects, open]);
     const setProjectModal = React.useContext(React.createContext(() => { })); // fallback if not provided
-    const handleChange = (idx, key, value) => setLocalProjects(ps => ps.map((p, i) => i === idx ? { ...p, [key]: value } : p));
+    const handleChange = (idx, key, value) => setLocalProjects(ps => ps.map((p, i) => {
+      if (i !== idx) return p;
+      const updated = { ...p };
+      if (key === 'startDate') {
+        updated.startDate = value;
+        if (updated.sameAsStart) {
+          updated.deadline = value;
+        }
+      } else if (key === 'sameAsStart') {
+        updated.sameAsStart = !!value;
+        if (updated.sameAsStart) {
+          updated.deadline = updated.startDate || '';
+        }
+      } else {
+        updated[key] = value;
+      }
+      return updated;
+    }));
     const handleAdd = () => {
-      setLocalProjects(ps => ([...ps, { name: '', description: '', startDate: '', deadline: '', budget: '', status: 'Not Started' }]));
-      setEditIdx(localProjects.length); // Edit the new project
+      const newProj = { name: '', description: '', startDate: '', deadline: '', budget: '', status: 'Not Started' };
+      const updated = [...localProjects, newProj];
+      setLocalProjects(updated);
+      setEditIdx(updated.length - 1);
     };
     const handleRemove = async idx => {
       const updated = localProjects.filter((_, i) => i !== idx);
@@ -234,6 +253,7 @@ const ConvertedClientsPage = () => {
         try {
           await updateClient(clientId, { projects: updated });
           toast.success('Project removed.');
+          onSave && onSave();
           if (typeof onClose === 'function') onClose(); // Close modal after removal
         } catch (e) {
           toast.error(e.response?.data?.message || 'Failed to update projects');
@@ -326,22 +346,51 @@ const ConvertedClientsPage = () => {
                       <label className="block text-[12px] font-semibold text-gray-700 mb-1.5 tracking-tight">Description</label>
                       <input className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none transition-all" style={{ background: '#fafbfc', borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }} onFocus={e => { e.target.style.borderColor = '#84cc16'; e.target.style.boxShadow = '0 0 0 3px rgba(132,204,22,0.1), 0 1px 3px rgba(0,0,0,0.04)'; }} onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)'; }} value={proj.description} onChange={e => handleChange(idx, 'description', e.target.value)} placeholder="Enter project description" />
                     </div>
+                    <div className="mb-3">
+                      <div className="flex items-center" style={{ gap: 12 }}>
+                        <input id={`same-${idx}`} type="checkbox" checked={!!proj.sameAsStart} onChange={e => handleChange(idx, 'sameAsStart', e.target.checked)} style={{ width: 18, height: 18, backgroundColor: '#84cc16', accentColor: '#000', borderRadius: 4, border: '1px solid rgba(0,0,0,0.08)', cursor: 'pointer' }} />
+                        <label htmlFor={`same-${idx}`} className="text-sm text-gray-700 font-mono">End date same as Start date</label>
+                      </div>
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-5">
                       <div>
                         <label className="block text-[12px] font-semibold text-gray-700 mb-1.5 tracking-tight">Start Date</label>
                         <input type="date" className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none transition-all" style={{ background: '#fafbfc', borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }} onFocus={e => { e.target.style.borderColor = '#84cc16'; e.target.style.boxShadow = '0 0 0 3px rgba(132,204,22,0.1), 0 1px 3px rgba(0,0,0,0.04)'; }} onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)'; }} value={proj.startDate ? proj.startDate.slice(0, 10) : ''} min={new Date().toISOString().slice(0, 10)} onChange={e => handleChange(idx, 'startDate', e.target.value)} />
+                        {/* checkbox moved to full-width row below */}
                       </div>
                       <div>
-                        <label className="block text-[12px] font-semibold text-gray-700 mb-1.5 tracking-tight">Deadline</label>
-                        <input type="date" className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none transition-all" style={{ background: '#fafbfc', borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }} onFocus={e => { e.target.style.borderColor = '#84cc16'; e.target.style.boxShadow = '0 0 0 3px rgba(132,204,22,0.1), 0 1px 3px rgba(0,0,0,0.04)'; }} onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)'; }} value={proj.deadline ? proj.deadline.slice(0, 10) : ''} min={proj.startDate ? proj.startDate.slice(0, 10) : new Date().toISOString().slice(0, 10)} onChange={e => handleChange(idx, 'deadline', e.target.value)} />
+                        <label className="block text-[12px] font-semibold text-gray-700 mb-1.5 tracking-tight">End Date</label>
+                        <input type="date" className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none transition-all" style={{ background: '#fafbfc', borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }} onFocus={e => { e.target.style.borderColor = '#84cc16'; e.target.style.boxShadow = '0 0 0 3px rgba(132,204,22,0.1), 0 1px 3px rgba(0,0,0,0.04)'; }} onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)'; }} value={proj.sameAsStart ? (proj.startDate ? proj.startDate.slice(0, 10) : '') : (proj.deadline ? proj.deadline.slice(0, 10) : '')} min={proj.startDate ? proj.startDate.slice(0, 10) : new Date().toISOString().slice(0, 10)} onChange={e => handleChange(idx, 'deadline', e.target.value)} disabled={!!proj.sameAsStart} />
                       </div>
                       <div>
                         <label className="block text-[12px] font-semibold text-gray-700 mb-1.5 tracking-tight">Budget ($)</label>
                         <input type="number" className="w-full px-3 py-2.5 border border-gray-200 rounded-lg text-sm focus:outline-none transition-all" style={{ background: '#fafbfc', borderColor: '#e5e7eb', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }} onFocus={e => { e.target.style.borderColor = '#84cc16'; e.target.style.boxShadow = '0 0 0 3px rgba(132,204,22,0.1), 0 1px 3px rgba(0,0,0,0.04)'; }} onBlur={e => { e.target.style.borderColor = '#e5e7eb'; e.target.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)'; }} value={proj.budget} onChange={e => handleChange(idx, 'budget', e.target.value)} min="0" />
                       </div>
+
                     </div>
                     <div className="flex justify-end">
-                      <button style={{ padding: '8px 18px', fontSize: '12px', fontWeight: 600, color: '#022c03', border: 'none', borderRadius: '8px', cursor: 'pointer', background: 'linear-gradient(90deg, #84cc16 0%, #a3e635 100%)', boxShadow: '0 2px 6px rgba(132,204,22,0.2)', transition: 'all 0.2s' }} onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(132,204,22,0.4)'; e.currentTarget.style.transform = 'translateY(-1px)'; }} onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 6px rgba(132,204,22,0.2)'; e.currentTarget.style.transform = 'translateY(0)'; }} onClick={() => setEditIdx(null)}>Done</button>
+                      <button
+                        style={{ padding: '8px 18px', fontSize: '12px', fontWeight: 600, color: '#022c03', border: 'none', borderRadius: '8px', cursor: 'pointer', background: 'linear-gradient(90deg, #84cc16 0%, #a3e635 100%)', boxShadow: '0 2px 6px rgba(132,204,22,0.2)', transition: 'all 0.2s' }}
+                        onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(132,204,22,0.4)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                        onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 6px rgba(132,204,22,0.2)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                        onClick={async () => {
+                          // Persist this project's edits: PATCH, then close modal and refresh parent.
+                          if (!clientId) {
+                            setEditIdx(null);
+                            return;
+                          }
+                          try {
+                            await updateClient(clientId, { projects: localProjects });
+                            toast.success('Project updated.');
+                            // Close modal first, then let parent refresh the list
+                            if (typeof onClose === 'function') onClose();
+                            onSave && onSave();
+                          } catch (e) {
+                            toast.error(e.response?.data?.message || 'Failed to save project');
+                            return; // keep in edit mode if save failed
+                          }
+                        }}
+                      >Done</button>
                     </div>
                   </>
                 ) : (
@@ -359,7 +408,7 @@ const ConvertedClientsPage = () => {
                         <div className="text-sm font-mono text-gray-800 font-medium">{proj.startDate ? proj.startDate.slice(0, 10) : <span className="text-gray-300">—</span>}</div>
                       </div>
                       <div>
-                        <div className="text-[10px] text-gray-500 font-semibold mb-1.5 uppercase tracking-wider">Deadline</div>
+                        <div className="text-[10px] text-gray-500 font-semibold mb-1.5 uppercase tracking-wider">End Date</div>
                         <div className="text-sm font-mono text-gray-800 font-medium">{proj.deadline ? proj.deadline.slice(0, 10) : <span className="text-gray-300">—</span>}</div>
                       </div>
                       <div>
@@ -399,7 +448,7 @@ const ConvertedClientsPage = () => {
           </div>
 
           {/* Footer */}
-          <div className="flex justify-between items-center px-5 py-3 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
+          <div className="flex justify-start items-center px-5 py-3 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
             <button
               onClick={handleAdd}
               style={{
@@ -411,17 +460,6 @@ const ConvertedClientsPage = () => {
               onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(132,204,22,0.35)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
               onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 6px rgba(132,204,22,0.25)'; e.currentTarget.style.transform = 'translateY(0)'; }}
             >+ Add Project</button>
-            <button
-              onClick={handleSave}
-              style={{
-                padding: '8px 20px', fontSize: '13px', fontWeight: 600, color: '#022c03', border: 'none',
-                borderRadius: '10px', cursor: 'pointer',
-                background: 'linear-gradient(90deg, #84cc16 0%, #a3e635 100%)',
-                boxShadow: '0 2px 6px rgba(132,204,22,0.25)', transition: 'all 0.2s ease', textTransform: 'uppercase', letterSpacing: '0.05em'
-              }}
-              onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 4px 12px rgba(132,204,22,0.4)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-              onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 6px rgba(132,204,22,0.25)'; e.currentTarget.style.transform = 'translateY(0)'; }}
-            >Save Changes</button>
           </div>
         </div>
       </div>

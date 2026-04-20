@@ -265,7 +265,7 @@ const PublicCampaignPage = () => {
             )}
 
             {/* Fields */}
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleSubmit} autoComplete="off">
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
                 {campaign.formStructure?.map((field, idx) => {
                   const error = fieldErrors[field.name];
@@ -303,6 +303,7 @@ const PublicCampaignPage = () => {
                           onChange={(e) => handleChange(field.name, e.target.value)}
                           onBlur={() => handleBlur(field.name)}
                           disabled={submitting}
+                          autoComplete="off"
                           className={`cmp-input cmp-input--${inputState}`}
                         />
                       )}
@@ -316,6 +317,7 @@ const PublicCampaignPage = () => {
                           onChange={(e) => handleChange(field.name, e.target.value)}
                           onBlur={() => handleBlur(field.name)}
                           disabled={submitting}
+                          autoComplete="off"
                           rows={4}
                           className={`cmp-input cmp-textarea cmp-input--${inputState}`}
                         />
@@ -330,6 +332,7 @@ const PublicCampaignPage = () => {
                             onChange={(e) => handleChange(field.name, e.target.value)}
                             onBlur={() => handleBlur(field.name)}
                             disabled={submitting}
+                            autoComplete="off"
                             className={`cmp-input cmp-select cmp-input--${inputState}`}
                           >
                             <option value="">Select {field.label}</option>
@@ -361,6 +364,7 @@ const PublicCampaignPage = () => {
                                   onChange={(e) => handleChange(field.name, e.target.value)}
                                   onBlur={() => handleBlur(field.name)}
                                   disabled={submitting}
+                                  autoComplete="off"
                                   style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}
                                 />
                                 <span className="cmp-option-label">{opt}</span>
@@ -399,6 +403,7 @@ const PublicCampaignPage = () => {
                                   }}
                                   onBlur={() => handleBlur(field.name)}
                                   disabled={submitting}
+                                  autoComplete="off"
                                   style={{ position: 'absolute', opacity: 0, pointerEvents: 'none' }}
                                 />
                                 <span className="cmp-option-label">{opt}</span>

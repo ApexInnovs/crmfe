@@ -294,12 +294,17 @@ const CompanyLeads = () => {
   const [filterStatus, setFilterStatus] = useState("");
   const [filterAssignedTo, setFilterAssignedTo] = useState("");
   const [filterContactStatus, setFilterContactStatus] = useState("");
+  const [includeLostLeads, setIncludeLostLeads] = useState(false);
 
   const load = async () => {
     try {
       setLoading(true);
-      const params = { page, limit: pageSize, company: user._id };
-      if (filterStatus) params.status = filterStatus;
+      const params = { page, limit: pageSize, company: user._id, includeLost: includeLostLeads ? "true" : "false" };
+      if (includeLostLeads) {
+        params.status = "lost";
+      } else if (filterStatus) {
+        params.status = filterStatus;
+      }
       if (filterCampaign) params.campigne = filterCampaign;
       if (filterAssignedTo) params.assignedTo = filterAssignedTo;
       if (filterContactStatus) params.contacted = filterContactStatus;
@@ -331,7 +336,8 @@ const CompanyLeads = () => {
     filterContactStatus,
     searchText,
     searchKey,
-    filterAssignedTo
+    filterAssignedTo,
+    includeLostLeads
   ]);
 
   const loadCampaigns = async () => {
@@ -494,7 +500,9 @@ const CompanyLeads = () => {
 
   const statusFilterOptions = [
     { value: "", label: "All Statuses" },
-    ...LEAD_STATUSES.map((s) => ({ value: s.value, label: s.label })),
+    ...LEAD_STATUSES
+      .filter((s) => includeLostLeads || s.value !== "lost")
+      .map((s) => ({ value: s.value, label: s.label })),
   ];
   const campaignOptions = [
     { value: "", label: "All Campaigns" },
@@ -1011,6 +1019,55 @@ const CompanyLeads = () => {
             <option value="contacted">Contacted</option>
             <option value="not_contacted">Not Contacted</option>
           </select>
+
+          {/* Include Lost Leads Checkbox */}
+          <label style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 14px',
+            borderRadius: '10px',
+            border: '1px solid rgba(180,190,175,0.5)',
+            background: 'linear-gradient(175deg, #f4f6f3 0%, #ffffff 100%)',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.06) inset, 0 1px 0 rgba(255,255,255,0.8)',
+            height: '38px',
+            fontSize: '13.5px',
+            fontFamily: 'inherit',
+            color: '#374140',
+            fontWeight: '500',
+          }}
+            onMouseEnter={e => {
+              if (!includeLostLeads) {
+                e.currentTarget.style.borderColor = 'rgba(132,204,22,0.5)';
+                e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.04) inset, 0 0 0 3px rgba(132,204,22,0.12)';
+              }
+            }}
+            onMouseLeave={e => {
+              if (!includeLostLeads) {
+                e.currentTarget.style.borderColor = 'rgba(180,190,175,0.5)';
+                e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.06) inset, 0 1px 0 rgba(255,255,255,0.8)';
+              }
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={includeLostLeads}
+              onChange={(e) => {
+                setIncludeLostLeads(e.target.checked);
+                setFilterStatus("");
+                setPage(1);
+              }}
+              style={{
+                cursor: 'pointer',
+                accentColor: '#84cc16',
+                width: '16px',
+                height: '16px',
+              }}
+            />
+            <span>Show Lost</span>
+          </label>
         </div>
 
         {/* Add Lead Button */}
@@ -1141,7 +1198,7 @@ const CompanyLeads = () => {
         }
       >
         <div className="space-y-4">
-          <div className="font-semibold text-gray-800">
+          <div className="font-semibold text-gray-800" style={{ wordBreak: 'break-all', overflowWrap: 'anywhere' }} title={callRecordingModal.fileName}>
             {callRecordingModal.fileName || "No file"}
           </div>
           {callRecordingModal.fileUrl ? (
@@ -1377,7 +1434,7 @@ const CompanyLeads = () => {
               name="status"
               type="select"
               value={modalFields.status}
-              disabled={modalFields.status === "customer"}
+              // disabled={modalFields.status === "customer"}
               onChange={(e) =>
                 setModalFields((p) => ({ ...p, status: e.target.value }))
               }
