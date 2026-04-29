@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { loginAdmin } from '../api/employeeAndAdminApi';
 import { loginEmployee } from '../api/employeeAndAdminApi';
 import { LoginCompany } from '../api/companyAndPackageApi';
+import { registerUpdateCredits } from '../utils/creditiBridge';
 
 const AuthContext = createContext(null);
 
@@ -17,9 +18,26 @@ export const AuthProvider = ({ children }) => {
     token: null,
     userType: null,
     permissions: [],
+    credits: Number(localStorage.getItem('creditsLeft')) || 0,
     isAuthenticated: false,
     loading: true,
   });
+
+  const updateCredits = (newCredits) => {
+  setState((prev) => {
+    if (prev.credits === newCredits) return prev; // ✅ avoid re-render
+
+    localStorage.setItem('creditsLeft', newCredits); // ✅ persist
+
+    return {
+      ...prev,
+      credits: newCredits,
+    };
+  });
+};
+  useEffect(() => {
+  registerUpdateCredits(updateCredits);
+}, []);
 
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -75,7 +93,9 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('user');
     localStorage.removeItem('userType');
     localStorage.removeItem('permissions');
-    setState({ user: null, token: null, userType: null, permissions: [], isAuthenticated: false, loading: false });
+    localStorage.removeItem('creditsLeft');
+    setState({ user: null, token: null, userType: null, permissions: [],credits: 0,
+ isAuthenticated: false, loading: false });
   };
 
   const hasPermission = (permissionName) => {
