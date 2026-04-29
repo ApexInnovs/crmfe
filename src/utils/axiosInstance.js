@@ -2,8 +2,8 @@ import axios from "axios";
 import { pushCredits } from "./creditiBridge";
 
 const axiosInstance = axios.create({
-  // baseURL: "https://crmbe.onrender.com/api",
-  baseURL:"http://localhost:5000/api",
+  baseURL: "https://crmbe.onrender.com/api",
+  // baseURL:"http://localhost:5000/api",
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
